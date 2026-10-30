@@ -21,10 +21,15 @@ Naming: `knesset_<N>_<year>_<level>.csv`, where `<level>` is `ballots` (one row 
 ballot box, the committee's `expb` file) or `settlements` (one row per settlement,
 the committee's `expc` file).
 
-| File | Rows | Source file |
-|------|------|-------------|
-| `knesset_25_2022_ballots.csv` | 12,545 | `expb_1.csv` |
-| `knesset_25_2022_settlements.csv` | 1,216 | `expc_1.csv` |
+| File | Rows | Source file | Encoding |
+|------|------|-------------|----------|
+| `knesset_24_2021_ballots.csv` | 12,926 | `expb_2.csv` | Windows-1255 |
+| `knesset_24_2021_settlements.csv` | 1,215 | `expc_2.csv` | Windows-1255 |
+| `knesset_25_2022_ballots.csv` | 12,545 | `expb_1.csv` | UTF-8 |
+| `knesset_25_2022_settlements.csv` | 1,216 | `expc_1.csv` | UTF-8 |
+
+Raw files keep the committee's original encoding; `read_raw` detects it and drops the
+empty trailing column of the older files.
 
 ## Processed files
 
@@ -64,8 +69,12 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 - No duplicate `(settlement_code, ballot_id)`.
 - Summing ballots per settlement gives exactly the settlements file.
 - Seat allocation (threshold + Bader-Ofer with surplus agreements) reproduces the
-  official result. Knesset 25: Likud 32, Yesh Atid 24, Religious Zionism 14,
-  National Unity 12, Shas 11, UTJ 7, Yisrael Beiteinu 6, Ra'am 5, Hadash-Ta'al 5, Labor 4.
+  official result:
+  - Knesset 24: Likud 30, Yesh Atid 17, Shas 9, Blue and White 8, Yamina 7, Labor 7,
+    UTJ 7, Yisrael Beiteinu 7, Religious Zionism 6, Joint List 6, New Hope 6, Meretz 6, Ra'am 4.
+  - Knesset 25: Likud 32, Yesh Atid 24, Religious Zionism 14, National Unity 12, Shas 11,
+    UTJ 7, Yisrael Beiteinu 6, Ra'am 5, Hadash-Ta'al 5, Labor 4.
+- `scripts/check_excel.py` recalculates each workbook in LibreOffice: 0 formula errors.
 
 ## Notes for modeling
 
@@ -73,5 +82,5 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
   the same physical polling station across elections. Settlement codes are stable.
 - Party lists change between elections (mergers and splits). Cross-election training
   will need a mapping of lists to stable party families or blocs.
-- `parties/knesset_25_parties.csv`: names of the 13 main lists are filled in; the small
-  lists are marked `verified = no` and still need names.
+- Party tables: lists that passed the threshold are named; small lists are marked
+  `verified = no` and still need names.

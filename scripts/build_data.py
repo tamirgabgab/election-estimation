@@ -11,7 +11,9 @@ Usage:
   python scripts/build_data.py
 """
 
+import io
 import re
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -26,14 +28,22 @@ PROCESSED = ROOT / "data" / "processed"
 # prisoners, hospitals, etc.). It has no geography and no registered voters.
 ENVELOPES_CODE = 9999
 
+# surplus_agreements: only agreements between lists that passed the threshold matter.
+# Each list is verified to reproduce the official seat allocation; it may omit
+# agreements that did not change any seat.
 ELECTIONS = {
+    24: {
+        "year": 2021,
+        "date": "2021-03-23",
+        "threshold": 0.0325,
+        "seats": 120,
+        "surplus_agreements": [("פה", "ל"), ("אמת", "מרצ"), ("שס", "ג")],
+    },
     25: {
         "year": 2022,
         "date": "2022-11-01",
         "threshold": 0.0325,
         "seats": 120,
-        # Only agreements between lists that passed the threshold matter.
-        # Verified to reproduce the official seat allocation.
         "surplus_agreements": [("מחל", "ט"), ("פה", "ל")],
     },
 }
@@ -55,12 +65,20 @@ BASE_COLUMNS = set(COLUMN_NAMES.values())
 
 
 def read_raw(path: Path) -> pd.DataFrame:
+    # Older committee files are Windows-1255 and end every line with a trailing comma.
+    raw = path.read_bytes()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("cp1255")
     # Read everything as text first: ballot ids such as "3.10" must not become floats.
-    df = pd.read_csv(path, dtype=str, encoding="utf-8-sig").rename(columns=COLUMN_NAMES)
+    df = pd.read_csv(io.StringIO(text), dtype=str)
+    df = df.loc[:, ~df.columns.str.startswith("Unnamed:")]
+    df.columns = df.columns.str.strip()
+    df = df.rename(columns=COLUMN_NAMES).apply(lambda col: col.str.strip())
     for col in df.columns:
         if col not in ("settlement_name", "ballot_id"):
             df[col] = df[col].astype(int)
-    df["settlement_name"] = df["settlement_name"].str.strip()
     return df
 
 
@@ -143,6 +161,8 @@ def write_excel(path, ballots, settlements, national, names, parties, knesset, c
     # workbook also calculates in LibreOffice and Google Sheets.
     with pd.ExcelWriter(path, engine="xlsxwriter") as writer:
         wb = writer.book
+        # Fixed creation date so rebuilding an unchanged election gives an identical file.
+        wb.set_properties({"created": datetime.fromisoformat(cfg["date"])})
         count_fmt = wb.add_format({"num_format": "#,##0"})
         pct_fmt = wb.add_format({"num_format": "0.00%"})
         bold = wb.add_format({"bold": True})

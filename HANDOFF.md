@@ -10,28 +10,35 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
 ## Done
 
-- **Knesset 25 data** (2022, final) in `data/raw/`, byte-identical to the committee's
-  `expb_1.csv` (ballots) and `expc_1.csv` (settlements).
+- **Election data** in `data/raw/`, byte-identical to the committee's files:
+  Knesset 24 (2021, `expb_2`/`expc_2`, Windows-1255) and Knesset 25 (2022, `expb_1`/`expc_1`, UTF-8).
 - **Build pipeline** `scripts/build_data.py`:
   - validates `voters = invalid + valid`, party sums = `valid`, unique ballot ids,
     and ballots summed per settlement = settlements file;
+  - reads UTF-8 and Windows-1255 files, drops empty trailing columns;
   - standardizes column names to English, keeps `ballot_id` as text;
   - flags double envelopes (`settlement_code = 9999`) with `is_envelopes`;
   - computes national shares and seats (threshold + Bader-Ofer with surplus
-    agreements), reproducing the official result (Likud 32, Yesh Atid 24, ...);
+    agreements), reproducing the official result of both elections;
   - writes per-election CSVs, an Excel workbook with tables and formulas (checked
     in LibreOffice, no errors), and `ballots_long.csv.gz` for all elections.
-- **Party table** `data/parties/knesset_25_parties.csv`: 13 main lists named; small
-  lists marked `verified = no`.
+- **Party tables** `data/parties/knesset_{24,25}_parties.csv`: lists that passed the
+  threshold are named; small lists are marked `verified = no`.
+- **Check scripts**: `scripts/check_excel.py` (LibreOffice recalculation, 0 errors in both
+  workbooks) and `scripts/summarize_elections.py` (facts table below).
+- **Procedure** for adding an election is fixed in `CLAUDE.md`.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
-## Key facts (Knesset 25, verified on the data in this repo)
+## Key facts (from `python scripts/summarize_elections.py`)
 
-- 6,788,804 registered, 70.63% turnout, 4,764,742 valid votes.
-- 11,707 regular ballot boxes + 838 double-envelope rows (458,714 votes, 9.63% of valid).
-- 7,342 ballot ids are split boxes (`283.1`, `283.2`, ...).
-- All regular boxes summed vs. national result: 2.18 pp L1 (envelope bias).
-  Religious Zionism 10.35% regular vs 15.45% envelopes; Ra'am 4.32% vs 1.75%.
+| Knesset | Date | Registered | Turnout | Valid | Regular boxes | Envelope rows | Envelope votes | Split box ids | Lists / passed | Regular vs national L1 (pp) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 24 | 2021-03-23 | 6,578,084 | 67.44% | 4,410,052 | 12,127 | 799 | 421,619 (9.56%) | 8,842 | 39 / 13 | 1.86 |
+| 25 | 2022-11-01 | 6,788,804 | 70.63% | 4,764,742 | 11,707 | 838 | 458,714 (9.63%) | 7,342 | 40 / 10 | 2.18 |
+
+Envelope bias examples (regular boxes vs. envelopes):
+- Knesset 24: Yamina 5.87% vs 9.41%, Labor 5.88% vs 8.13%, Ra'am 4.02% vs 1.57%, UTJ 5.88% vs 3.27%.
+- Knesset 25: Religious Zionism 10.35% vs 15.45%, Ra'am 4.32% vs 1.75%, UTJ 6.11% vs 3.74%.
 
 ## Findings from an earlier session
 
@@ -57,20 +64,23 @@ projects: `harelc/elections-vote-transfer` (ballot matching across elections),
 ## Open questions
 
 - Meaning of the `ריכוז` (`concentration`) and `שופט` (`judge`) columns.
-- Names of the small Knesset 25 lists.
+- Names of the small lists (Knesset 24 and 25).
+- Surplus agreements in `ELECTIONS` are the ones that reproduce the official seats; other
+  agreements that changed no seat may be missing.
 - Sample unit: ballot box or settlement (current plan: ballot box).
 
 ## Next steps
 
-1. **Data** - add `expb` / `expc` for Knesset 16-24, and Knesset 26 once final
-   (expected around 2026-11-04). Add each to `ELECTIONS` in `scripts/build_data.py`
-   and a party table in `data/parties/`.
-2. **Ballot matching** - merge split boxes (`283.1` + `283.2` → `283`) and match boxes
+1. **Data** - add `expb` / `expc` for Knesset 16-23, and Knesset 26 once final
+   (expected around 2026-11-04), following the procedure in `CLAUDE.md`.
+2. **First held-out pair** - Knesset 24 → 25 is now available: run the baselines with
+   selection on 24 and evaluation on 25.
+3. **Ballot matching** - merge split boxes (`283.1` + `283.2` → `283`) and match boxes
    across elections by settlement + ballot number, or via statistical areas.
-3. **Party lineage** - one mapping CSV per pair of consecutive elections, plus a bloc
+4. **Party lineage** - one mapping CSV per pair of consecutive elections, plus a bloc
    mapping (right, center-left, Haredi, Arab, other).
-4. **Baselines** - random, greedy and MILP selection; envelope correction term.
-5. **Validation** - select on `t`, test on `t+1`; choose `λ` from the error vs.
+5. **Baselines** - random, greedy and MILP selection; envelope correction term.
+6. **Validation** - select on `t`, test on `t+1`; choose `λ` from the error vs.
    number-of-boxes Pareto curve.
-6. **Swing model**, then a **neural model** with Hard-Concrete gates for comparison.
-7. **Seat metric** - evaluate seat error too, including the 3.25% threshold.
+7. **Swing model**, then a **neural model** with Hard-Concrete gates for comparison.
+8. **Seat metric** - evaluate seat error too, including the 3.25% threshold.

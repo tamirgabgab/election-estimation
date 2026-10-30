@@ -23,6 +23,8 @@ Full write-up: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 | [`data/parties/`](data/parties) | Party letter → name table per Knesset |
 | [`data/processed/`](data/processed) | Generated tables: CSV per election, Excel workbook, `ballots_long.csv.gz` for all elections |
 | [`scripts/build_data.py`](scripts/build_data.py) | Validates raw files and builds `data/processed/` |
+| [`scripts/check_excel.py`](scripts/check_excel.py) | Recalculates the workbooks in LibreOffice and checks for formula errors |
+| [`scripts/summarize_elections.py`](scripts/summarize_elections.py) | Key facts table per election |
 | [`data/README.md`](data/README.md) | Columns, checks, data notes |
 | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | Problem, pitfalls, models, handling changing parties, evaluation |
 | [`HANDOFF.md`](HANDOFF.md) | Current status and next steps |
