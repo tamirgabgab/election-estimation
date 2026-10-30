@@ -96,6 +96,27 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   accurate but cost far more than 50–70 boxes (cities), and reading one box of a
   heterogeneous settlement destroys the gain. Small homogeneous units (statistical areas,
   M7) are needed for a 50–70 box budget.
+- **Statistical areas** (D22 answered): the user uploaded the Israel-Elections-Map ballot
+  files for K19–K25 (`data/raw/geography/`, CBS 2011 areas). `scripts/build_areas.py`
+  (run by `build_data.py`) writes `data/processed/ballot_areas.csv`; K26 is linked through
+  K25 polling centers. About 2,600 areas, 3–4 boxes each; 6–8% of boxes have no area and
+  use their settlement. The area unit covers K19–K26 (K16–K18 dropped for areas).
+- **Box budgets, stratified sampling and MILP** in the harness (`evaluate.py`): every
+  result records the boxes counted; `stratified` (bloc strata, one box per unit),
+  `greedy_budget` and `milp_budget` (whole units under a box budget; the MILP keeps the
+  greedy solution when it finds nothing better in 45 s). `scripts/compare_baselines.py`
+  → `reports/baselines_summary.md` compares units and methods at equal budgets.
+  Mean over held-out K22–K26 (floor, all regular boxes: 2.8 seats, 1.95 pp):
+
+  | Budget | Best optimized | Best probability sample | Random PPS (area) |
+  |---|---|---|---|
+  | 50 boxes | base box, MILP: 8.0 seats, 7.3 pp | area, stratified: 13.1 seats, 9.8 pp | 20.3 seats, 14.5 pp |
+  | 70 boxes | base box, greedy/MILP: 8.4 seats, 6.1–6.6 pp | area, stratified: 11.3 seats, 8.5 pp | 17.8 seats, 12.9 pp |
+
+  Caveats: only five test elections, so 1–2 seat differences are noise; the optimized
+  methods interpolate the training targets (greedy reaches zero training loss with about
+  as many units as stacked target rows, e.g. 42 units for 44 rows), so their weights
+  overfit. Regularization is the next modelling step.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -235,7 +256,6 @@ move answered items to "Decisions" below with the answer.
 | D8 | Knesset 20 split boxes share one number; their order (`-1`, `-2`) follows the file | File order | Keep; ignore the difference (merge, see M5) |
 | D9 | Knesset 19 settlements file leaves out the envelope votes; the build adds an envelopes row summed from the ballots file | Derived row | Keep |
 | D21 | Exact official name of K26 `די` (described by the user as the Reservists' and economic party of Yaron Zelekha and Yoaz Hendel) and its #1 | Name "המילואימניקים והמפלגה הכלכלית", leader empty | Confirm from the committee's list |
-| D22 | Ballot → statistical-area mapping for K16 and K19–K25: the user downloads the Yoavfried/Israel-Elections-Map ballot files (with geography columns) and the 2022-area crosswalk, and uploads them; licence not yet checked. The K17–K18 raw files already carry areas of their own vintage (1995 / 2008), 5% of boxes unresolved (`statistical_area_pending`) | Waiting for files | User uploads; open github.com in the network settings |
 
 ### Modeling
 
@@ -269,6 +289,7 @@ Answered by the user on 2026-10-30.
 | D20 | The three boxes with more voters than registered are kept as published |
 | M9 | On election night one representative ballot box is counted per panel area; evaluation must include the noise of reading a single box instead of the whole area |
 | B2 | Center-left stays one bloc (no center / left split) |
+| D22 | Area mapping: the user uploaded the Israel-Elections-Map ballot files for K19–K25; the area unit starts at K19, and the files are kept byte-for-byte in `data/raw/geography/` |
 
 The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 
@@ -277,14 +298,14 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 In short:
 
-1. **Statistical areas** (D22) - when the user uploads the Yoavfried files: build the
-   ballot → 2022 area mapping for K16–K25 (K26 through K25 namesakes), add an `area` unit
-   to `evaluate.UNITS`, rerun `scripts/run_baselines.py area`.
-2. **Box budget** - count the cost of a panel in ballot boxes (a whole small settlement
-   is one box), so units of different size compare fairly.
-3. **Baselines** - add stratified sampling and MILP to the harness.
-4. **Neural model** - Hard-Concrete gates and softmax weights with the combined
-   share / seat / bloc loss and recency weights, then LP refit of the weights.
-5. **Hyperparameters** - λ, α, β, γ, μ, decay; seat L1 is the selection metric (M8).
-6. **Analysis** - panel composition, stability across folds, bloc-scheme comparison.
-7. **Data** - replace Knesset 26 with the certified files (D14).
+1. **Regularize the optimized panels** - the weights interpolate the few training
+   targets. Options: penalize weights that stray from size-proportional design weights,
+   add sub-national calibration targets (per bloc stratum or district) to the stacked
+   rows, or fit on targets with noise. Compare in the harness.
+2. **Neural model** (user: later) - Hard-Concrete gates and softmax weights with the
+   combined share / seat / bloc loss, recency weights and the regularization from step 1,
+   then LP refit.
+3. **Hyperparameters** - λ, α, β, γ, μ, decay; seat L1 is the selection metric (M8).
+4. **Analysis** - panel composition, stability across folds, bloc-scheme comparison.
+5. **Data** - replace Knesset 26 with the certified files (D14); check the
+   Israel-Elections-Map licence.

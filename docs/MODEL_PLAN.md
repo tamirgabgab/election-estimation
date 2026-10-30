@@ -240,8 +240,10 @@ sign of leakage.
 5. **Evaluation harness** – done: `evaluate.py` (rolling folds, unit as a
    parameter, whole-unit and single-box readings) and
    `scripts/run_baselines.py`; results in `reports/baselines_*.md`.
-6. **Baselines** – random (uniform, PPS) and greedy done; stratified and
-   MILP to add.
+6. **Baselines** – done: random (uniform, PPS), stratified, greedy, and
+   greedy / MILP under a box budget, for settlement, base-box and area units
+   (`reports/baselines_summary.md`). Finding: optimized weights interpolate the
+   training targets, so the network step needs weight regularization.
 7. **Network** – `election_estimation/panel_net.py` in PyTorch:
    Hard-Concrete gates, softmax weights, combined loss, hardening and LP
    refit. CPU is sufficient (6k parameters, 10 elections).
