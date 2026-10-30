@@ -89,6 +89,22 @@ Decision: work with Knesset 16-26 (11 elections with ballot-level data). Useful
 projects: `harelc/elections-vote-transfer` (ballot matching across elections),
 `Yoavfried/israel-election-map` (mapping to 2022 statistical areas).
 
+### Sources checked for Knesset 16-18 (2026-10-30)
+
+data.gov.il, bechirot.gov.il and odata.org.il are blocked from the cloud container, so
+the official files could not be opened here; GitHub copies were downloaded and checked.
+
+| Knesset | Source | Envelopes | Checked totals |
+|---------|--------|-----------|----------------|
+| 18 (2009) | Yoavfried `public-data/v1/ballots/k18.csv` (normalized English schema, `is_envelope` column) | yes | valid 3,373,490; Kadima 22.47%, Likud 21.61% (= official) |
+| 17 (2006) | Yoavfried `public-data/v1/ballots/k17.csv` | yes (149 rows) | valid 3,137,064 (= official); eligible voters per box recovered by the project from archived reports, not in the official file |
+| 16-18 | harelc `ballot16.csv`, `ballot17.csv`, `ballot18.csv` (original CEC Hebrew layout) | **no** - regular boxes only | K18 valid 3,189,099 and K16 2,992,431 (official totals are higher by the envelope votes); K17 has `בזב = 0` in every row |
+| 16-20 | data.gov.il package `26f9fa06-fcd7-4173-8df5-65797b63e857` (official, per Yoavfried's docs) | unknown | not reachable from here |
+| 14-20 | odata.org.il dataset `elections` (e.g. K18 "לפי ישובים וקלפיות" xlsx) | unknown | not reachable from here |
+
+None of these has a separate settlements file for K16-18 in the CEC layout; settlements
+can be summed from the ballots (as done for the Knesset 19 envelopes row).
+
 ## Open questions for the user
 
 Every open question is listed here with the value currently used, so work can go on
@@ -138,7 +154,8 @@ move answered items to "Decisions" below with the answer.
 | D3 | Surplus agreements: only those that reproduce the official seats are recorded | Partial list per election | User sends the official lists of agreements |
 | D4 | Knesset 19-21 have no committee code / ballot uid / ריכוז / שופט | Empty | Fill committee code from K22 by settlement code; keep empty |
 | D5 | Knesset 26 (October 2026) | Not added | Add provisional results now; wait for the final results (~2026-11-04) |
-| D6 | How far back to go | Plan: Knesset 16-26 | Stop earlier (e.g. 20) if older files are hard to get |
+| D6 | How far back to go | Plan: Knesset 16-26 | K17-18 usable (Yoavfried, with envelopes; or official files if the user downloads them); K16 only without envelopes so far; K14-15 unknown |
+| D10 | Source for K16-18: official data.gov.il / odata files downloaded by the user, or the GitHub copies | Not decided | Official first; Yoavfried for K17-18 as fallback (needs a reader for its schema) |
 | D7 | Knesset 20: Kulanu needs a surplus agreement to reach its official 10 seats; the partner is unknown (Shas, UTJ, Yisrael Beiteinu, Meretz, Yesh Atid or Zionist Union all work) | Placeholder: Kulanu + Yisrael Beiteinu | User confirms the real partner |
 | D8 | Knesset 20 split boxes share one number; their order (`-1`, `-2`) follows the file | File order | Keep; ignore the difference (merge, see M5) |
 | D9 | Knesset 19 settlements file leaves out the envelope votes; the build adds an envelopes row summed from the ballots file | Derived row | Keep |
