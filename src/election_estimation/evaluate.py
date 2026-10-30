@@ -102,6 +102,7 @@ def score(pred_votes: pd.Series, e: Election) -> dict[str, float]:
 class Panel:
     units: list[str]
     weights: np.ndarray | None  # None = pool the counted votes
+    info: dict | None = None    # e.g. hyperparameters chosen by inner validation
 
     def boxes(self, e: Election, reading: str) -> int:
         """Ballot boxes counted in election e."""
@@ -145,6 +146,13 @@ def candidate_units(train: list[Election]) -> list[str]:
     return sorted(common)
 
 
+def unit_costs(train: list[Election], units: list[str], lookback: int = 2) -> np.ndarray:
+    """Expected boxes of each unit: the most it had in the last `lookback` training
+    elections (units grow and are renumbered, so the last election alone underestimates)."""
+    counts = pd.concat([e.unit_boxes.reindex(units) for e in train[-lookback:]], axis=1)
+    return counts.max(axis=1).fillna(1).values
+
+
 def random_pooled(train, ks, rng) -> dict[int, Panel]:
     """k units drawn uniformly from the last training election; counted votes pooled."""
     pool = list(train[-1].units.index)
@@ -160,24 +168,72 @@ def random_pps(train, ks, rng) -> dict[int, Panel]:
             for k in ks}
 
 
-def stacked(train: list[Election], units: list[str], decay: float,
-            min_share: float = 0.01) -> tuple[np.ndarray, np.ndarray]:
-    """Stacked unit shares (rows: lists of every training election) and targets.
+def strata(e: Election) -> pd.Series:
+    """Stratum of every unit of e: dominant bloc, and whether it has >= 60% of the votes."""
+    blocs = e.units.T.groupby(pd.Index([e.blocs.get(c, "other") for c in e.units.columns])).sum().T
+    shares = blocs.div(blocs.sum(axis=1), axis=0)
+    return shares.idxmax(axis=1) + np.where(shares.max(axis=1) >= 0.6, "_pure", "_mixed")
 
-    Each election contributes its lists with at least `min_share` nationally
-    plus "other", scaled by its recency weight.
+
+def stacked(
+    train: list[Election],
+    units: list[str],
+    decay: float,
+    min_share: float = 0.01,
+    calibration: float = 0.0,
+    noise: float = 0.0,
+    replicates: int = 4,
+    rng: np.random.Generator | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Stacked target rows for the panel weights: X w should match y.
+
+    Each training election contributes, scaled by its recency weight:
+    - its national shares (lists with at least `min_share` plus "other");
+    - with `calibration` > 0, the same rows within every stratum of the last
+      training election (bloc profile): sum over the stratum's units of
+      w_i x_i should equal the stratum's vote share times its list shares,
+      plus a row for the stratum's total weight; these rows are scaled by
+      `calibration`;
+    - with `noise` > 0, `replicates` perturbed copies of the national rows:
+      every unit's list shares are multiplied by exp(N(0, noise)) and
+      renormalized, and the target is recomputed from the perturbed units, so
+      weights cannot lean on exact values of single units.
     """
     rho = recency_weights(train, decay)
+    groups = strata(train[-1]).reindex(units)
     X_rows, y_rows = [], []
     for e, r in zip(train, rho):
         major = e.shares[e.shares >= min_share].index
         counts = e.units.loc[units]
-        X = pd.concat([counts[major], counts.drop(columns=major).sum(axis=1).rename("other")],
+        C = pd.concat([counts[major], counts.drop(columns=major).sum(axis=1).rename("other")],
                       axis=1)
-        X = X.div(X.sum(axis=1), axis=0)
+        X = C.div(C.sum(axis=1), axis=0)
         y = pd.concat([e.shares[major], pd.Series({"other": e.shares.drop(major).sum()})])
         X_rows.append(X.values.T * r)
         y_rows.append(y.values * r)
+        if calibration > 0:
+            all_counts = e.units
+            all_groups = groups.reindex(all_counts.index)
+            total = all_counts.values.sum()
+            for g in groups.dropna().unique():
+                inside = (groups == g).values
+                g_counts = all_counts[all_groups == g]
+                g_share = g_counts.values.sum() / total
+                g_list = pd.concat([g_counts[major].sum(),
+                                    pd.Series({"other": g_counts.drop(columns=major).values.sum()})])
+                g_list = g_list / g_list.sum()
+                Xg = X.values.T * inside[None, :]
+                X_rows.append(np.vstack([Xg, inside[None, :].astype(float)]) * r * calibration)
+                y_rows.append(np.concatenate([g_list.values * g_share, [g_share]]) * r * calibration)
+        if noise > 0:
+            size = C.sum(axis=1).values
+            for _ in range(replicates):
+                Xn = X.values * np.exp(rng.normal(0.0, noise, size=X.shape))
+                Xn = Xn / Xn.sum(axis=1, keepdims=True)
+                yn = (Xn * size[:, None]).sum(axis=0) / size.sum()
+                yn = yn + (y.values - (X.values * size[:, None]).sum(axis=0) / size.sum())
+                X_rows.append(Xn.T * r / replicates)
+                y_rows.append(yn * r / replicates)
     return np.vstack(X_rows), np.concatenate(y_rows)
 
 
@@ -195,12 +251,12 @@ def greedy_weighted(decay: float = 0.7, candidates: int = 40) -> Method:
 def greedy_budget(decay: float = 0.7, candidates: int = 40) -> Method:
     """Greedy column generation under a box budget; k = boxes to count.
 
-    A unit costs its number of boxes in the last training election, and is
-    counted whole on election night (reading "unit").
+    A unit costs its expected boxes (`unit_costs`), and is counted whole on
+    election night (reading "unit").
     """
     def method(train, ks, rng) -> dict[int, Panel]:
         units = candidate_units(train)
-        costs = train[-1].unit_boxes.loc[units].values
+        costs = unit_costs(train, units)
         X, y = stacked(train, units, decay)
         panels = {}
         for k in ks:
@@ -224,7 +280,7 @@ def milp_budget(decay: float = 0.7, pool: int = 400, time_limit: float = 60.0,
     """
     def method(train, ks, rng) -> dict[int, Panel]:
         units = candidate_units(train)
-        costs = train[-1].unit_boxes.loc[units].values
+        costs = unit_costs(train, units)
         X, y = stacked(train, units, decay)
         dist = np.abs(X - y[:, None]).sum(axis=0)
         panels = {}
@@ -246,6 +302,61 @@ def milp_budget(decay: float = 0.7, pool: int = 400, time_limit: float = 60.0,
     return method
 
 
+def greedy_regularized(
+    grid: dict[str, list[float]],
+    decay: float = 0.7,
+    candidates: int = 40,
+    tune_budget: int = 50,
+    inner_folds: int = 2,
+    ks: tuple[int, ...] = (35, 50, 70),
+) -> Method:
+    """Greedy selection under a box budget with regularized weights.
+
+    `grid` maps one or more of "mu" (pull towards size-proportional weights),
+    "calibration" (stratum targets) and "noise" (perturbed copies) to candidate
+    values. The value is chosen by inner validation: each of the last
+    `inner_folds` training elections is predicted from the elections before it
+    at `tune_budget` boxes, and the setting with the lowest mean seat L1 wins
+    (ties: lower share L1). The test election is never used.
+    """
+    names = list(grid)
+    settings = [dict(zip(names, values)) for values in np.array(np.meshgrid(
+        *[grid[n] for n in names])).T.reshape(-1, len(names))]
+
+    def fit(train, budgets, setting, rng) -> dict[int, Panel]:
+        units = candidate_units(train)
+        costs = unit_costs(train, units)
+        sizes = train[-1].units.loc[units].sum(axis=1).values.astype(float)
+        X, y = stacked(train, units, decay, calibration=setting.get("calibration", 0.0),
+                       noise=setting.get("noise", 0.0), rng=rng)
+        panels = {}
+        for k in budgets:
+            history = greedy_selection(X, y, max_boxes=k, candidates=candidates, costs=costs,
+                                       budget=k, sizes=sizes, mu=setting.get("mu", 0.0))
+            panels[k] = Panel(*_panel(units, history[-1]).__dict__.values())
+            panels[k].info = dict(setting)
+        return panels
+
+    def method(train, budgets, rng) -> dict[int, Panel]:
+        best = None
+        for setting in settings:
+            scores = []
+            for v in range(len(train) - inner_folds, len(train)):
+                if v < 1:
+                    continue
+                panel = fit(train[:v], [tune_budget], setting, rng)[tune_budget]
+                pred = panel.predict(train[v], "unit", rng)
+                result = score(pred, train[v])
+                scores.append((result["seat_L1"], result["share_L1"]))
+            key = tuple(np.mean(scores, axis=0)) if scores else (0.0, 0.0)
+            if best is None or key < best[0]:
+                best = (key, setting)
+        return fit(train, budgets, best[1], rng)
+    method.readings = ("unit",)
+    method.ks = ks
+    return method
+
+
 def stratified(train, ks, rng) -> dict[int, Panel]:
     """Stratified random panel; k = units, read one box each.
 
@@ -256,9 +367,7 @@ def stratified(train, ks, rng) -> dict[int, Panel]:
     stratum's vote share divided by the stratum's sample size.
     """
     e = train[-1]
-    blocs = e.units.T.groupby(pd.Index([e.blocs.get(c, "other") for c in e.units.columns])).sum().T
-    shares = blocs.div(blocs.sum(axis=1), axis=0)
-    stratum = shares.idxmax(axis=1) + np.where(shares.max(axis=1) >= 0.6, "_pure", "_mixed")
+    stratum = strata(e)
     size = e.units.sum(axis=1)
     weight = size.groupby(stratum).sum() / size.sum()
     panels = {}
@@ -321,6 +430,8 @@ def evaluate(
                             if pred is not None:
                                 results.append({"boxes": panels[k].boxes(test, reading),
                                                 **score(pred, test)})
+                    info = panels[k].info or {}
                     mean = pd.DataFrame(results).mean().to_dict()
-                    rows.append({"test": t, "method": name, "k": k, "reading": reading, **mean})
+                    rows.append({"test": t, "method": name, "k": k, "reading": reading,
+                                 **{f"param_{p}": v for p, v in info.items()}, **mean})
     return pd.DataFrame(rows)

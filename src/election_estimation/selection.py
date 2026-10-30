@@ -14,24 +14,40 @@ def l1(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.abs(np.asarray(a) - np.asarray(b)).sum())
 
 
-def fit_weights(X: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, float, np.ndarray]:
-    """Optimal convex weights for the columns of X (parties x boxes).
+def fit_weights(
+    X: np.ndarray,
+    y: np.ndarray,
+    prior: np.ndarray | None = None,
+    mu: float = 0.0,
+) -> tuple[np.ndarray, float, np.ndarray]:
+    """Optimal convex weights for the columns of X (target rows x columns).
 
-    Returns the weights, the L1 loss, and the duals of the party rows, which
-    column generation uses to price boxes that are not yet selected.
+    Minimizes ||X w - y||_1 + mu * ||w - prior||_1 over w >= 0, sum(w) = 1.
+    Returns the weights, the objective, and the duals of the target rows
+    followed by the dual of the sum row, which column generation uses to
+    price columns that are not yet selected.
     """
     m, k = X.shape
-    # Variables: w (k), e_plus (m), e_minus (m).  X w - e_plus + e_minus = y.
+    use_prior = prior is not None and mu > 0
+    # Variables: w (k), e_plus (m), e_minus (m)[, d_plus (k), d_minus (k)].
+    # X w - e_plus + e_minus = y;  w - d_plus + d_minus = prior.
     c = np.concatenate([np.zeros(k), np.ones(2 * m)])
     A_eq = np.block([
         [X, -np.eye(m), np.eye(m)],
         [np.ones((1, k)), np.zeros((1, 2 * m))],
     ])
     b_eq = np.concatenate([y, [1.0]])
+    if use_prior:
+        c = np.concatenate([c, np.full(2 * k, mu)])
+        A_eq = np.block([
+            [A_eq, np.zeros((m + 1, 2 * k))],
+            [np.eye(k), np.zeros((k, 2 * m)), -np.eye(k), np.eye(k)],
+        ])
+        b_eq = np.concatenate([b_eq, prior])
     res = linprog(c, A_eq=A_eq, b_eq=b_eq, bounds=(0, None), method="highs")
     if res.status != 0:
         raise RuntimeError(res.message)
-    duals = res.eqlin.marginals
+    duals = res.eqlin.marginals[: m + 1]
     return res.x[:k], float(res.fun), duals
 
 
@@ -42,6 +58,8 @@ def greedy_selection(
     candidates: int = 200,
     costs: np.ndarray | None = None,
     budget: float | None = None,
+    sizes: np.ndarray | None = None,
+    mu: float = 0.0,
 ) -> list[dict]:
     """Forward selection guided by column generation.
 
@@ -49,7 +67,9 @@ def greedy_selection(
     under the current LP duals are each tried with a full refit, and the one
     that lowers the loss the most is added. With `costs` and `budget`, the
     shortlist and the choice use loss decrease per unit of cost, and columns
-    that no longer fit in the budget are skipped.
+    that no longer fit in the budget are skipped. With `sizes` and `mu`, the
+    weights are pulled towards size-proportional weights of the selected
+    columns (see `fit_weights`).
     """
     n = X.shape[1]
     costs = np.ones(n) if costs is None else np.asarray(costs, dtype=float)
@@ -60,14 +80,18 @@ def greedy_selection(
     selected = [int(affordable[np.argmin(dist)])]
     spent = costs[selected[0]]
     history = []
-    w, loss, duals = fit_weights(X[:, selected], y)
+    def fit(cols: list[int]):
+        prior = None if sizes is None else sizes[cols] / sizes[cols].sum()
+        return fit_weights(X[:, cols], y, prior=prior, mu=mu)
+
+    w, loss, duals = fit(selected)
     while True:
         history.append({"k": len(selected), "cost": spent, "loss": loss,
                         "boxes": list(selected), "weights": w})
         if loss < 1e-9 or len(selected) >= max_boxes:
             break
-        pi, mu = duals[:-1], duals[-1]
-        reduced_cost = -(pi @ X + mu) / costs
+        pi, rho = duals[:-1], duals[-1]
+        reduced_cost = -(pi @ X + rho) / costs
         reduced_cost[selected] = np.inf
         reduced_cost[costs > budget - spent] = np.inf
         shortlist = [j for j in np.argsort(reduced_cost)[:candidates] if np.isfinite(reduced_cost[j])]
@@ -75,7 +99,7 @@ def greedy_selection(
             break
         best = None
         for j in shortlist:
-            trial = fit_weights(X[:, selected + [int(j)]], y)
+            trial = fit(selected + [int(j)])
             gain = (loss - trial[1]) / costs[j]
             if best is None or gain > best[0]:
                 best = (gain, int(j), trial)

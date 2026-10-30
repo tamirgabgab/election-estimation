@@ -79,7 +79,7 @@ def main(unit: str, rerun: bool = True) -> None:
         f"MILP: pool {MILP_POOL}, time limit {MILP_TIME_LIMIT}s, budgets {list(MILP_KS)}.",
         "`unit` reading counts whole panel units; `single_box` counts one random box per unit.",
         "`k` is the number of panel units, except for the `*_budget` methods, where it is the",
-        "budget in ballot boxes (unit cost = its boxes in the last training election).",
+        "budget in ballot boxes (unit cost = its most boxes in the last two training elections).",
         "`boxes` is the number of ballot boxes actually counted in the test election:",
         "compare methods at equal `boxes`, not equal `k`."
         "",
