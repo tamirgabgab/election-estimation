@@ -153,7 +153,6 @@ move answered items to "Decisions" below with the answer.
 
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
-| B2 | Split center-left into "center" and "left"? | One bloc | Keep; split (center = Blue and White, Yesh Atid, National Unity, Kulanu?; left = Labor, Meretz, Democratic Union) |
 | B4 | New Hope (K24): right-wing party in the anti-Netanyahu coalition | right | right; center-left |
 | B5 | Kulanu (K20-21): center-right, sat in the Likud-led coalition | right | right; center-left |
 | B6 | Blue and White (K21-23, joint list with Telem's right-leaning members; K24 Gantz only) | center-left | center-left; split center/left (see B2) |
@@ -215,6 +214,7 @@ move answered items to "Decisions" below with the answer.
 | D8 | Knesset 20 split boxes share one number; their order (`-1`, `-2`) follows the file | File order | Keep; ignore the difference (merge, see M5) |
 | D9 | Knesset 19 settlements file leaves out the envelope votes; the build adds an envelopes row summed from the ballots file | Derived row | Keep |
 | D21 | Exact official name of K26 `די` (described by the user as the Reservists' and economic party of Yaron Zelekha and Yoaz Hendel) and its #1 | Name "המילואימניקים והמפלגה הכלכלית", leader empty | Confirm from the committee's list |
+| D22 | Ballot → statistical-area mapping for K16 and K19–K25: the user downloads the Yoavfried/Israel-Elections-Map ballot files (with geography columns) and the 2022-area crosswalk, and uploads them; licence not yet checked. The K17–K18 raw files already carry areas of their own vintage (1995 / 2008), 5% of boxes unresolved (`statistical_area_pending`) | Waiting for files | User uploads; open github.com in the network settings |
 
 ### Modeling
 
@@ -246,6 +246,8 @@ Answered by the user on 2026-10-30.
 | M7 | Sampling unit: CBS statistical area (2022 areas, mapping from the Yoavfried project), the whole settlement where there are no areas; replaces M1's base box |
 | M8 | Main accuracy target: seats per list (including who passes the threshold); the seat term gets the largest weight in the loss and is the primary selection metric |
 | D20 | The three boxes with more voters than registered are kept as published |
+| M9 | On election night one representative ballot box is counted per panel area; evaluation must include the noise of reading a single box instead of the whole area |
+| B2 | Center-left stays one bloc (no center / left split) |
 
 The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 

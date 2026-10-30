@@ -81,8 +81,12 @@ size changes after K23.
 Decision (M7): the sampling unit is the CBS statistical area (2022 areas),
 and the whole settlement where a settlement has no areas. Ballot boxes of
 K16–K25 are mapped to areas by the Yoavfried/Israel-Elections-Map project;
-K26 boxes are mapped through their K25 namesakes. On election night a panel
-area is read from its ballot boxes.
+K26 boxes are mapped through their K25 namesakes. On election night one
+representative ballot box is counted per panel area (M9), so held-out
+evaluation must simulate reading a single box of each area, not the area
+total. Note: the K17–K18 files already carry statistical areas of their own
+vintage (1995, 2008), with about 5% of boxes unresolved; areas of different
+vintages need the project's crosswalk to the 2022 areas.
 
 ### 3.2 Party metadata per election
 
