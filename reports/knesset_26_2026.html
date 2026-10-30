@@ -149,6 +149,34 @@ tr.dim .share-track .fill { background: var(--axis); }
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); border-radius: 8px; padding: 8px 10px; font-size: 13px; max-width: 260px;
 }
 #tip b { display: block; margin-bottom: 2px; }
+.combo { position: relative; max-width: 560px; }
+.text-input {
+  width: 100%; font: inherit; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--axis); background: var(--surface); color: var(--ink);
+}
+.combo ul {
+  position: absolute; z-index: 5; inset-inline: 0; top: calc(100% + 4px); margin: 0; padding: 4px;
+  list-style: none; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); max-height: 380px; overflow-y: auto;
+}
+.combo li { padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+.combo li[aria-selected="true"], .combo li:hover { background: var(--wash); }
+.combo li.empty { cursor: default; color: var(--ink-2); }
+.meta { display: block; color: var(--ink-2); font-size: 13px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.chips button {
+  font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); cursor: pointer;
+  border: 1px solid var(--ring); border-radius: 999px; padding: 4px 12px;
+}
+.chips button:hover { background: var(--wash); }
+.ballot { font-weight: 700; border: 1px solid var(--axis); border-radius: 4px; padding: 0 5px; font-size: 13px; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--ink); }
+th[aria-sort]::after { content: " ▼"; font-size: 10px; }
+th[aria-sort="ascending"]::after { content: " ▲"; }
+.sticky { position: sticky; inset-inline-start: 0; background: var(--surface); z-index: 1; }
+.set-controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-bottom: 12px; }
+.set-controls .text-input { max-width: 260px; }
 [hidden] { display: none !important; }
 @media (max-width: 600px) {
   h1 { font-size: 22px; }
@@ -169,6 +197,7 @@ tr.dim .share-track .fill { background: var(--axis); }
     <div class="tabs" role="tablist">
       <button role="tab" data-view="election" aria-selected="true">תוצאות לפי כנסת</button>
       <button role="tab" data-view="compare" aria-selected="false">השוואה בין כנסות</button>
+      <button role="tab" data-view="party" aria-selected="false">חיפוש מפלגה</button>
     </div>
     <label id="knesset-picker">כנסת:
       <select id="knesset-select"></select>
@@ -204,12 +233,26 @@ tr.dim .share-track .fill { background: var(--axis); }
     </div>
   </section>
 
+  <section id="view-party" hidden>
+    <div class="card">
+      <h2>חיפוש לפי פתק, שם מפלגה או מספר 1</h2>
+      <div class="combo">
+        <input id="party-q" class="text-input" type="search" role="combobox" autocomplete="off"
+          aria-expanded="false" aria-controls="party-list" aria-autocomplete="list" aria-label="חיפוש מפלגה"
+          placeholder="למשל מחל, אמת, שס או נתניהו">
+        <ul id="party-list" role="listbox" hidden></ul>
+      </div>
+      <div class="chips" id="party-chips"></div>
+    </div>
+    <div id="party-detail"></div>
+  </section>
+
   <div class="notes card" id="footer"></div>
 </main>
 <div id="tip" role="tooltip"></div>
 
 <script>
-const DATA = {"multi":false,"elections":[{"knesset":26,"year":2026,"date":"2026-10-27","threshold":0.0325,"source":"committee","provisional":true,"seats_total":120,"surplus_agreements":[["הליכוד","הציונות הדתית-זהות"],["ש\"ס","יהדות התורה"],["הדמוקרטים","ישר!"],["רע\"מ","הרשימה המשותפת"],["ישראל ביתנו","ביחד"]],"registered":7331981,"voters":5716673,"invalid":25988,"valid":5690685,"regular_boxes":12018,"envelope_rows":908,"parties":[{"letter":"מחל","name_he":"הליכוד","name_en":"Likud","family":"Likud","bloc":"right","votes":1167458,"share":0.205152,"passed":true,"seats":27},{"letter":"דרך","name_he":"ישר!","name_en":"Yashar","family":"Yashar","bloc":"center_left","votes":913502,"share":0.160526,"passed":true,"seats":21},{"letter":"רק","name_he":"ביחד","name_en":"Beyachad","family":"Beyachad","bloc":"right","votes":531476,"share":0.093394,"passed":true,"seats":12},{"letter":"ודם","name_he":"הרשימה המשותפת","name_en":"Joint List","family":"Joint List","bloc":"arab","votes":500147,"share":0.087889,"passed":true,"seats":11},{"letter":"אמת","name_he":"הדמוקרטים","name_en":"The Democrats","family":"The Democrats","bloc":"center_left","votes":366352,"share":0.064377,"passed":true,"seats":8},{"letter":"ל","name_he":"ישראל ביתנו","name_en":"Yisrael Beiteinu","family":"Yisrael Beiteinu","bloc":"right","votes":337413,"share":0.059292,"passed":true,"seats":7},{"letter":"עם","name_he":"רע\"מ","name_en":"Ra'am","family":"Ra'am","bloc":"arab","votes":337253,"share":0.059264,"passed":true,"seats":8},{"letter":"ב","name_he":"עוצמה יהודית","name_en":"Otzma Yehudit","family":"Otzma Yehudit","bloc":"right","votes":326624,"share":0.057396,"passed":true,"seats":7},{"letter":"ג","name_he":"יהדות התורה","name_en":"United Torah Judaism","family":"United Torah Judaism","bloc":"haredi","votes":312604,"share":0.054933,"passed":true,"seats":7},{"letter":"שס","name_he":"ש\"ס","name_en":"Shas","family":"Shas","bloc":"haredi","votes":299506,"share":0.052631,"passed":true,"seats":6},{"letter":"ט","name_he":"הציונות הדתית-זהות","name_en":"Religious Zionism-Zehut","family":"Religious Zionism","bloc":"right","votes":290451,"share":0.05104,"passed":true,"seats":6},{"letter":"די","name_he":"","name_en":"","family":"","bloc":"other","votes":154995,"share":0.027237,"passed":false,"seats":0},{"letter":"ך","name_he":"","name_en":"","family":"","bloc":"other","votes":95663,"share":0.01681,"passed":false,"seats":0},{"letter":"נר","name_he":"","name_en":"","family":"","bloc":"other","votes":11274,"share":0.001981,"passed":false,"seats":0},{"letter":"זך","name_he":"","name_en":"","family":"","bloc":"other","votes":10594,"share":0.001862,"passed":false,"seats":0},{"letter":"ני","name_he":"","name_en":"","family":"","bloc":"other","votes":9923,"share":0.001744,"passed":false,"seats":0},{"letter":"בי","name_he":"","name_en":"","family":"","bloc":"other","votes":5712,"share":0.001004,"passed":false,"seats":0},{"letter":"ד","name_he":"","name_en":"","family":"","bloc":"other","votes":4294,"share":0.000755,"passed":false,"seats":0},{"letter":"צדק","name_he":"","name_en":"","family":"","bloc":"other","votes":2084,"share":0.000366,"passed":false,"seats":0},{"letter":"בד","name_he":"","name_en":"","family":"","bloc":"other","votes":1465,"share":0.000257,"passed":false,"seats":0},{"letter":"צף","name_he":"","name_en":"","family":"","bloc":"other","votes":1050,"share":0.000185,"passed":false,"seats":0},{"letter":"רץ","name_he":"","name_en":"","family":"","bloc":"other","votes":1011,"share":0.000178,"passed":false,"seats":0},{"letter":"י","name_he":"","name_en":"","family":"","bloc":"other","votes":955,"share":0.000168,"passed":false,"seats":0},{"letter":"נקי","name_he":"","name_en":"","family":"","bloc":"other","votes":929,"share":0.000163,"passed":false,"seats":0},{"letter":"קך","name_he":"","name_en":"","family":"","bloc":"other","votes":919,"share":0.000161,"passed":false,"seats":0},{"letter":"ה","name_he":"","name_en":"","family":"","bloc":"other","votes":902,"share":0.000159,"passed":false,"seats":0},{"letter":"פה","name_he":"","name_en":"","family":"","bloc":"other","votes":872,"share":0.000153,"passed":false,"seats":0},{"letter":"נף","name_he":"","name_en":"","family":"","bloc":"other","votes":787,"share":0.000138,"passed":false,"seats":0},{"letter":"קץ","name_he":"","name_en":"","family":"","bloc":"other","votes":774,"share":0.000136,"passed":false,"seats":0},{"letter":"בקר","name_he":"","name_en":"","family":"","bloc":"other","votes":747,"share":0.000131,"passed":false,"seats":0},{"letter":"קה","name_he":"","name_en":"","family":"","bloc":"other","votes":712,"share":0.000125,"passed":false,"seats":0},{"letter":"ק","name_he":"","name_en":"","family":"","bloc":"other","votes":581,"share":0.000102,"passed":false,"seats":0},{"letter":"ז","name_he":"","name_en":"","family":"","bloc":"other","votes":508,"share":8.9e-05,"passed":false,"seats":0},{"letter":"נץ","name_he":"","name_en":"","family":"","bloc":"other","votes":481,"share":8.5e-05,"passed":false,"seats":0},{"letter":"יק","name_he":"","name_en":"","family":"","bloc":"other","votes":412,"share":7.2e-05,"passed":false,"seats":0},{"letter":"זץ","name_he":"","name_en":"","family":"","bloc":"other","votes":255,"share":4.5e-05,"passed":false,"seats":0},{"letter":"כן","name_he":"","name_en":"","family":"","bloc":"other","votes":0,"share":0.0,"passed":false,"seats":0},{"letter":"צבי","name_he":"","name_en":"","family":"","bloc":"other","votes":0,"share":0.0,"passed":false,"seats":0}]}]};
+const DATA = {"multi":false,"elections":[{"knesset":26,"year":2026,"date":"2026-10-27","threshold":0.0325,"source":"committee","provisional":true,"seats_total":120,"surplus_agreements":[["הליכוד","הציונות הדתית-זהות"],["ש\"ס","יהדות התורה"],["הדמוקרטים","ישר!"],["רע\"מ","הרשימה המשותפת"],["ישראל ביתנו","ביחד"]],"registered":7331981,"voters":5716673,"invalid":25988,"valid":5690685,"regular_boxes":12018,"envelope_rows":908,"parties":[{"letter":"מחל","name_he":"הליכוד","name_en":"Likud","family":"Likud","bloc":"right","leader":"","votes":1167458,"share":0.205152,"passed":true,"seats":27},{"letter":"דרך","name_he":"ישר!","name_en":"Yashar","family":"Yashar","bloc":"center_left","leader":"","votes":913502,"share":0.160526,"passed":true,"seats":21},{"letter":"רק","name_he":"ביחד","name_en":"Beyachad","family":"Beyachad","bloc":"right","leader":"","votes":531476,"share":0.093394,"passed":true,"seats":12},{"letter":"ודם","name_he":"הרשימה המשותפת","name_en":"Joint List","family":"Joint List","bloc":"arab","leader":"","votes":500147,"share":0.087889,"passed":true,"seats":11},{"letter":"אמת","name_he":"הדמוקרטים","name_en":"The Democrats","family":"The Democrats","bloc":"center_left","leader":"","votes":366352,"share":0.064377,"passed":true,"seats":8},{"letter":"ל","name_he":"ישראל ביתנו","name_en":"Yisrael Beiteinu","family":"Yisrael Beiteinu","bloc":"right","leader":"","votes":337413,"share":0.059292,"passed":true,"seats":7},{"letter":"עם","name_he":"רע\"מ","name_en":"Ra'am","family":"Ra'am","bloc":"arab","leader":"","votes":337253,"share":0.059264,"passed":true,"seats":8},{"letter":"ב","name_he":"עוצמה יהודית","name_en":"Otzma Yehudit","family":"Otzma Yehudit","bloc":"right","leader":"","votes":326624,"share":0.057396,"passed":true,"seats":7},{"letter":"ג","name_he":"יהדות התורה","name_en":"United Torah Judaism","family":"United Torah Judaism","bloc":"haredi","leader":"","votes":312604,"share":0.054933,"passed":true,"seats":7},{"letter":"שס","name_he":"ש\"ס","name_en":"Shas","family":"Shas","bloc":"haredi","leader":"","votes":299506,"share":0.052631,"passed":true,"seats":6},{"letter":"ט","name_he":"הציונות הדתית-זהות","name_en":"Religious Zionism-Zehut","family":"Religious Zionism","bloc":"right","leader":"","votes":290451,"share":0.05104,"passed":true,"seats":6},{"letter":"די","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":154995,"share":0.027237,"passed":false,"seats":0},{"letter":"ך","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":95663,"share":0.01681,"passed":false,"seats":0},{"letter":"נר","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":11274,"share":0.001981,"passed":false,"seats":0},{"letter":"זך","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":10594,"share":0.001862,"passed":false,"seats":0},{"letter":"ני","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":9923,"share":0.001744,"passed":false,"seats":0},{"letter":"בי","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":5712,"share":0.001004,"passed":false,"seats":0},{"letter":"ד","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":4294,"share":0.000755,"passed":false,"seats":0},{"letter":"צדק","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":2084,"share":0.000366,"passed":false,"seats":0},{"letter":"בד","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":1465,"share":0.000257,"passed":false,"seats":0},{"letter":"צף","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":1050,"share":0.000185,"passed":false,"seats":0},{"letter":"רץ","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":1011,"share":0.000178,"passed":false,"seats":0},{"letter":"י","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":955,"share":0.000168,"passed":false,"seats":0},{"letter":"נקי","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":929,"share":0.000163,"passed":false,"seats":0},{"letter":"קך","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":919,"share":0.000161,"passed":false,"seats":0},{"letter":"ה","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":902,"share":0.000159,"passed":false,"seats":0},{"letter":"פה","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":872,"share":0.000153,"passed":false,"seats":0},{"letter":"נף","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":787,"share":0.000138,"passed":false,"seats":0},{"letter":"קץ","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":774,"share":0.000136,"passed":false,"seats":0},{"letter":"בקר","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":747,"share":0.000131,"passed":false,"seats":0},{"letter":"קה","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":712,"share":0.000125,"passed":false,"seats":0},{"letter":"ק","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":581,"share":0.000102,"passed":false,"seats":0},{"letter":"ז","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":508,"share":8.9e-05,"passed":false,"seats":0},{"letter":"נץ","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":481,"share":8.5e-05,"passed":false,"seats":0},{"letter":"יק","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":412,"share":7.2e-05,"passed":false,"seats":0},{"letter":"זץ","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":255,"share":4.5e-05,"passed":false,"seats":0},{"letter":"כן","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":0,"share":0.0,"passed":false,"seats":0},{"letter":"צבי","name_he":"","name_en":"","family":"","bloc":"other","leader":"","votes":0,"share":0.0,"passed":false,"seats":0}]}]};
 
 const BLOCS = [
   { id: "right", label: "ימין" },
@@ -457,6 +500,275 @@ function renderCompare() {
   fitLabels();
 }
 
+// ---------- party lookup ----------
+const norm = s => String(s || "").toLowerCase().replace(/["'״׳\-–!.\s]/g, "");
+const ELECTIONS_ASC = [...DATA.elections].sort((a, b) => a.knesset - b.knesset);
+const lookupState = { entity: null, metric: "share", sortCol: null, sortDir: -1, filter: "", minValid: 200, limit: 30 };
+let ENTITIES = null;
+
+function knessetRange(nums) {
+  // [16, 17, 18, 21] -> "16–18, 21"
+  const parts = [];
+  for (const n of nums) {
+    const last = parts[parts.length - 1];
+    if (last && n === last[1] + 1) last[1] = n; else parts.push([n, n]);
+  }
+  return parts.map(([a, b]) => a === b ? String(a) : `${a}–${b}`).join(", ");
+}
+
+function buildEntities() {
+  // One entity per named party family; every unnamed list is its own entity.
+  const ents = new Map();
+  for (const el of ELECTIONS_ASC) for (const p of el.parties) {
+    const key = p.family ? `f:${p.family}` : `u:${el.knesset}:${p.letter}`;
+    if (!ents.has(key)) ents.set(key, { key, named: !!p.family, runs: [] });
+    ents.get(key).runs.push({ el, p });
+  }
+  return [...ents.values()].map(e => {
+    const last = e.runs[e.runs.length - 1];
+    return Object.assign(e, {
+      name: e.named ? partyName(last.p) : `רשימה ${last.p.letter} (כנסת ${last.el.knesset})`,
+      bloc: last.p.bloc,
+      leader: last.p.leader,
+      letters: [...new Set(e.runs.map(r => r.p.letter))],
+      knessets: [...new Set(e.runs.map(r => r.el.knesset))],
+      maxVotes: Math.max(...e.runs.map(r => r.p.votes)),
+      words: [...new Set(e.runs.flatMap(r => [r.p.name_he, r.p.name_en, r.p.leader]).filter(Boolean).map(norm))],
+    });
+  });
+}
+
+function searchEntities(query) {
+  // Exact ballot letters first, then letter prefix, then name or leader substring.
+  const q = norm(query);
+  if (!q) return [];
+  const scored = [];
+  for (const e of ENTITIES) {
+    const letters = e.letters.map(norm);
+    const score = letters.includes(q) ? 3 : letters.some(l => l.startsWith(q)) ? 2 : e.words.some(w => w.includes(q)) ? 1 : 0;
+    if (score) scored.push([score, e]);
+  }
+  const lastK = e => e.knessets[e.knessets.length - 1];
+  scored.sort((a, b) => b[0] - a[0] || b[1].named - a[1].named || lastK(b[1]) - lastK(a[1]) || b[1].maxVotes - a[1].maxVotes);
+  return scored.slice(0, 12).map(s => s[1]);
+}
+
+function entityMeta(e) {
+  return `פתק ${e.letters.map(esc).join(", ")} · ${e.knessets.length === 1 ? "כנסת" : "כנסות"} ${knessetRange(e.knessets)}` +
+    (e.leader ? ` · מספר 1: ${esc(e.leader)}` : "");
+}
+
+function renderSuggestions(list, active) {
+  const ul = document.getElementById("party-list");
+  const input = document.getElementById("party-q");
+  ul.innerHTML = list.length ? list.map((e, i) => `
+    <li role="option" id="party-opt-${i}" data-key="${esc(e.key)}" aria-selected="${i === active}">
+      <span class="dot" style="background: ${blocVar(e.bloc)}"></span><b>${esc(e.name)}</b>
+      <span class="meta">${entityMeta(e)}</span></li>`).join("")
+    : `<li class="empty">לא נמצאה רשימה. נסו אותיות של פתק, שם מפלגה או שם של מספר 1.</li>`;
+  ul.hidden = false;
+  input.setAttribute("aria-expanded", "true");
+  if (active >= 0) input.setAttribute("aria-activedescendant", `party-opt-${active}`);
+  else input.removeAttribute("aria-activedescendant");
+}
+
+function closeSuggestions() {
+  document.getElementById("party-list").hidden = true;
+  document.getElementById("party-q").setAttribute("aria-expanded", "false");
+}
+
+function selectEntity(e) {
+  document.getElementById("party-q").value = e.name;
+  closeSuggestions();
+  Object.assign(lookupState, { entity: e, sortCol: e.knessets[e.knessets.length - 1], sortDir: -1, filter: "", limit: 30 });
+  renderParty(e);
+}
+
+function renderParty(e) {
+  const runs = e.runs;
+  const best = runs.reduce((a, r) => (r.p.seats > a.p.seats || (r.p.seats === a.p.seats && r.p.share > a.p.share)) ? r : a);
+  const avgShare = runs.reduce((s, r) => s + r.p.share, 0) / runs.length;
+  const passed = runs.filter(r => r.p.passed).length;
+  const tiles = [
+    ["מערכות בחירות", runs.length, `${e.knessets.length === 1 ? "כנסת" : "כנסות"} ${knessetRange(e.knessets)}`],
+    ["עברה את אחוז החסימה", `${passed} מתוך ${runs.length}`, ""],
+    ["אחוז ממוצע", fmtPct(avgShare), "על הכנסות שבהן רצה"],
+    ["שיא מנדטים", best.p.seats, `כנסת ${best.el.knesset} (${best.el.year})`],
+  ];
+  const rows = runs.map(({ el, p }) => `
+    <tr class="${p.passed ? "" : "dim"}">
+      <td>כנסת ${el.knesset}</td><td class="n">${el.year}</td>
+      <td><span class="ballot">${esc(p.letter)}</span></td>
+      <td><span class="dot" style="background: ${blocVar(p.bloc)}"></span>${esc(partyName(p))}</td>
+      <td>${p.leader ? esc(p.leader) : '<span style="color: var(--muted)">לא ידוע</span>'}</td>
+      <td class="n">${fmtInt(p.votes)}</td><td class="n">${fmtPct(p.share)}</td>
+      <td>${p.passed ? '<span class="status ok">✓ עברה</span>' : '<span class="status no">✗ לא עברה</span>'}</td>
+      <td class="n">${p.seats}</td>
+    </tr>`).join("");
+  const related = ENTITIES.filter(x => x !== e && x.named && x.letters.some(l => e.letters.includes(l)))
+    .sort((a, b) => b.knessets[b.knessets.length - 1] - a.knessets[a.knessets.length - 1]);
+  const sub = [e.named && runs[runs.length - 1].p.name_en, `גוש: ${BLOC_LABEL[e.bloc]}`,
+    e.leader ? `מספר 1 בכנסת ${runs[runs.length - 1].el.knesset}: ${e.leader}` : ""].filter(Boolean).map(esc).join(" · ");
+
+  document.getElementById("party-detail").innerHTML = `
+    <div class="card">
+      <h2><span class="dot" style="background: ${blocVar(e.bloc)}"></span>${esc(e.name)}</h2>
+      <p class="sub" style="margin-bottom: 12px">${sub}</p>
+      <div class="tiles">${tiles.map(([l, v, n]) => `
+        <div class="tile"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join("")}
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>כנסת</th><th>שנה</th><th>פתק</th><th>שם הרשימה</th><th>מספר 1</th><th>קולות</th><th>אחוז</th><th>אחוז החסימה</th><th>מנדטים</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      ${related.length ? `<div class="chips" id="party-related"><span class="meta" style="width: 100%">רשימות אחרות עם אותו פתק:</span>` +
+        related.map(x => `<button data-key="${esc(x.key)}"><span class="ballot">${x.letters.filter(l => e.letters.includes(l)).map(esc).join(", ")}</span> ${esc(x.name)} · ${x.knessets.length === 1 ? "כנסת" : "כנסות"} ${knessetRange(x.knessets)}</button>`).join("") + `</div>` : ""}
+      ${e.named ? "" : '<p class="notes">שם הרשימה לא זוהה עדיין בטבלת המפלגות של הכנסת הזו.</p>'}
+    </div>
+    <div class="card">
+      <h2>תוצאות לפי יישוב</h2>
+      <p class="notes">החלק של הרשימה מהקולות הכשרים בכל יישוב. לחיצה על כותרת עמודה ממיינת לפיה. "–" פירושו שהיישוב לא הופיע באותה כנסת. השורה "מעטפות כפולות" היא קולות החיילים, הדיפלומטים, האסירים והמאושפזים, שנספרים בנפרד.</p>
+      <div class="set-controls">
+        <input id="set-filter" class="text-input" type="search" placeholder="סינון לפי שם יישוב" aria-label="סינון לפי שם יישוב">
+        <div class="seg" id="set-metric">
+          <button data-metric="share" aria-pressed="${lookupState.metric === "share"}">אחוז</button>
+          <button data-metric="votes" aria-pressed="${lookupState.metric === "votes"}">קולות</button>
+        </div>
+        <label>גודל יישוב:
+          <select id="set-min">${[[0, "כל היישובים"], [200, "200 קולות כשרים ומעלה"], [1000, "1,000 ומעלה"], [10000, "10,000 ומעלה"]]
+            .map(([v, l]) => `<option value="${v}" ${v === lookupState.minValid ? "selected" : ""}>${l}</option>`).join("")}</select>
+        </label>
+      </div>
+      <div class="table-wrap"><table id="set-table"></table></div>
+      <button class="more" id="set-more" hidden></button>
+    </div>`;
+
+  const rel = document.getElementById("party-related");
+  if (rel) rel.onclick = ev => {
+    const b = ev.target.closest("button");
+    if (b) { selectEntity(ENTITIES.find(x => x.key === b.dataset.key)); scrollTo({ top: 0 }); }
+  };
+  e.settlementRows ??= settlementRows(e);
+  document.getElementById("set-filter").oninput = ev => {
+    lookupState.filter = ev.target.value; lookupState.limit = 30; renderSettlements(e);
+  };
+  document.getElementById("set-min").onchange = ev => {
+    lookupState.minValid = Number(ev.target.value); lookupState.limit = 30; renderSettlements(e);
+  };
+  document.getElementById("set-metric").onclick = ev => {
+    const b = ev.target.closest("button");
+    if (!b) return;
+    lookupState.metric = b.dataset.metric;
+    document.querySelectorAll("#set-metric button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    renderSettlements(e);
+  };
+  document.getElementById("set-more").onclick = () => { lookupState.limit += 50; renderSettlements(e); };
+  renderSettlements(e);
+}
+
+function settlementRows(e) {
+  // One row per settlement code; cells keyed by Knesset (lists of one family in one
+  // election are summed).
+  const S = DATA.settlements;
+  const rows = new Map();
+  for (const { el, p } of e.runs) {
+    const s = S.elections[el.knesset];
+    const votes = s.votes[p.letter];
+    s.codes.forEach((code, i) => {
+      if (!rows.has(code)) rows.set(code, { code, name: S.names[code], cells: {}, maxValid: 0 });
+      const row = rows.get(code);
+      const cell = row.cells[el.knesset] ??= { votes: 0, valid: s.valid[i] };
+      cell.votes += votes[i];
+      row.maxValid = Math.max(row.maxValid, s.valid[i]);
+    });
+  }
+  return [...rows.values()];
+}
+
+function renderSettlements(e) {
+  const { metric, sortCol, sortDir, minValid } = lookupState;
+  const q = norm(lookupState.filter);
+  const val = c => !c ? null : metric === "share" ? (c.valid ? c.votes / c.valid : 0) : c.votes;
+  const fmt = (c) => {
+    if (!c) return "–";
+    const tipText = `${fmtInt(c.votes)} קולות מתוך ${fmtInt(c.valid)} כשרים`;
+    return `<span title="${tipText}">${metric === "share" ? fmtPct(val(c), 1) : fmtInt(c.votes)}</span>`;
+  };
+  let rows = e.settlementRows.filter(r => (q ? norm(r.name).includes(q) : r.maxValid >= minValid));
+  rows.sort(sortCol === "name"
+    ? (a, b) => sortDir * a.name.localeCompare(b.name, "he")
+    : (a, b) => {
+      const va = val(a.cells[sortCol]), vb = val(b.cells[sortCol]);
+      if (va == null || vb == null) return (va == null) - (vb == null);  // missing cells last
+      return sortDir * (va - vb);
+    });
+  const national = Object.fromEntries(e.runs.map(({ el }) => [el.knesset, { votes: 0, valid: el.valid }]));
+  for (const { el, p } of e.runs) national[el.knesset].votes += p.votes;
+  const ariaSort = col => sortCol === col ? ` aria-sort="${sortDir === -1 ? "descending" : "ascending"}"` : "";
+  const cols = [...e.knessets].reverse();  // newest first, next to the name
+  const head = `<thead><tr><th class="sticky sortable" data-col="name"${ariaSort("name")}>יישוב</th>` +
+    cols.map(k => `<th class="sortable" data-col="${k}"${ariaSort(k)}>כנסת ${k}</th>`).join("") + `</tr></thead>`;
+  const line = (name, cells, cls = "") => `<tr class="${cls}"><td class="sticky">${esc(name)}</td>` +
+    cols.map(k => `<td class="n">${fmt(cells[k])}</td>`).join("") + `</tr>`;
+  const shown = rows.slice(0, lookupState.limit);
+  document.getElementById("set-table").innerHTML = head + `<tbody>` +
+    line("כל הארץ", national, "total") + shown.map(r => line(r.name, r.cells)).join("") +
+    (rows.length ? "" : `<tr><td class="sticky" colspan="${e.knessets.length + 1}">לא נמצא יישוב מתאים.</td></tr>`) + `</tbody>`;
+  document.querySelectorAll("#set-table th.sortable").forEach(th => th.onclick = () => {
+    const col = th.dataset.col === "name" ? "name" : Number(th.dataset.col);
+    lookupState.sortDir = lookupState.sortCol === col ? -lookupState.sortDir : (col === "name" ? 1 : -1);
+    lookupState.sortCol = col;
+    renderSettlements(e);
+  });
+  const more = document.getElementById("set-more");
+  const rest = rows.length - shown.length;
+  more.hidden = rest <= 0;
+  more.textContent = `הצג עוד ${Math.min(50, rest)} יישובים (מתוך ${fmtInt(rest)} נוספים)`;
+}
+
+function initLookup() {
+  if (ENTITIES) return;
+  ENTITIES = buildEntities();
+  const input = document.getElementById("party-q");
+  const ul = document.getElementById("party-list");
+  let results = [], active = -1;
+  input.oninput = () => {
+    results = searchEntities(input.value);
+    active = results.length ? 0 : -1;
+    input.value.trim() ? renderSuggestions(results, active) : closeSuggestions();
+  };
+  input.onkeydown = ev => {
+    if (ul.hidden && ev.key === "ArrowDown") { input.oninput(); return; }
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      ev.preventDefault();
+      if (!results.length) return;
+      active = (active + (ev.key === "ArrowDown" ? 1 : -1) + results.length) % results.length;
+      renderSuggestions(results, active);
+      document.getElementById(`party-opt-${active}`).scrollIntoView({ block: "nearest" });
+    } else if (ev.key === "Enter" && active >= 0) {
+      ev.preventDefault();
+      selectEntity(results[active]);
+    } else if (ev.key === "Escape") {
+      closeSuggestions();
+    }
+  };
+  input.onblur = () => setTimeout(closeSuggestions, 150);
+  ul.onmousedown = ev => {
+    const li = ev.target.closest("li[data-key]");
+    if (!li) return;
+    ev.preventDefault();
+    selectEntity(ENTITIES.find(x => x.key === li.dataset.key));
+  };
+  // Quick picks: the lists that won seats in the latest election.
+  const latestEl = ELECTIONS_ASC[ELECTIONS_ASC.length - 1];
+  const picks = latestEl.parties.filter(p => p.seats > 0 && p.family).sort((a, b) => b.seats - a.seats);
+  document.getElementById("party-chips").innerHTML = `<span class="meta" style="width: 100%">רשימות הכנסת ה-${latestEl.knesset}:</span>` +
+    picks.map(p => `<button data-key="${esc("f:" + p.family)}"><span class="ballot">${esc(p.letter)}</span> ${esc(partyName(p))}</button>`).join("");
+  document.getElementById("party-chips").onclick = ev => {
+    const b = ev.target.closest("button");
+    if (b) selectEntity(ENTITIES.find(x => x.key === b.dataset.key));
+  };
+}
+
 // ---------- wiring ----------
 function showElection(knesset) {
   const el = DATA.elections.find(e => e.knesset === knesset);
@@ -472,12 +784,18 @@ function setView(view) {
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.view === view));
   document.getElementById("view-election").hidden = view !== "election";
   document.getElementById("view-compare").hidden = view !== "compare";
+  document.getElementById("view-party").hidden = view !== "party";
   document.getElementById("knesset-picker").hidden = view !== "election";
   document.getElementById("footer").hidden = view !== "election";
   if (view === "compare") {
     document.getElementById("title").textContent = "השוואה בין כנסות";
     document.getElementById("subtitle").textContent = `${DATA.elections.length} מערכות בחירות · ממוצע לפי מפלגות או גושים`;
     renderCompare();
+  } else if (view === "party") {
+    document.getElementById("title").textContent = "חיפוש מפלגה";
+    document.getElementById("subtitle").textContent =
+      `לפי אותיות הפתק, שם המפלגה או מספר 1 · ${DATA.elections.length} מערכות בחירות, כנסות ${knessetRange(ELECTIONS_ASC.map(e => e.knesset))}`;
+    initLookup();
   } else {
     showElection(Number(document.getElementById("knesset-select").value));
   }

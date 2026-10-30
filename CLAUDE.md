@@ -58,9 +58,12 @@ Follow these steps every time, in this order, so every election is handled the s
    `data/raw/knesset_<N>_<year>_settlements.csv` (ballots only for a `yoavfried` source);
    verify with `cmp`.
 4. **Party table** - `data/parties/knesset_<N>_parties.csv` with columns
-   `letter,name_he,name_en,family,bloc,verified` and one row per letter column in the file.
-   Name the lists that passed the threshold (`verified = yes` only when sure); all other
-   letters get empty names, empty `family`, `bloc = other` and `verified = no`.
+   `letter,name_he,name_en,family,bloc,verified,leader_he` and one row per letter column in
+   the file. Name the lists that passed the threshold (`verified = yes` only when sure); all
+   other letters get empty names, empty `family`, `bloc = other` and `verified = no`.
+   - `leader_he` is the person in first place on the list in that election (shown in the
+     party lookup of `index.html`). Fill it only from a source found for this election
+     (#1 is not always the party chair); leave it empty when unconfirmed.
    - `family` groups the same party across elections in the reports. Use the `family`
      already used in earlier elections when it is the same party (e.g. Likud); a joint or
      new list gets its own family (default: `name_en`).
@@ -82,7 +85,8 @@ Follow these steps every time, in this order, so every election is handled the s
 8. **Excel check** - `python scripts/check_excel.py data/processed/knesset_<N>_<year>.xlsx`
    must report 0 error cells.
 9. **Report check** - `node scripts/check_reports.js <scratchpad>/reports` must print `ok`
-   for every page. Look at the screenshots of the new election's page and of `index.html`
+   for every page (for `index.html` this includes the party lookup and a check that each
+   list's settlement votes add up to its national votes). Look at the screenshots of the new election's page and of `index.html`
    (desktop and mobile) for overlapping labels or broken layout.
 10. **Docs** - run `python scripts/summarize_elections.py` and paste the table into
    `HANDOFF.md`; add the raw files to the table in `data/README.md`; update the HANDOFF
@@ -102,7 +106,12 @@ Follow these steps every time, in this order, so every election is handled the s
   share, a threshold marker, passed / not passed and seats.
 - `reports/index.html` - all elections: a selector to view one election, and a comparison
   tab with seats or vote share by bloc or by party family per election, plus an average
-  over the elections the user ticks (party averages only over elections the party ran in).
+  over the elections the user ticks (party averages only over elections the party ran in),
+  and a party lookup tab: type ballot letters (`מחל`), a party name or a list leader, pick
+  a suggestion, and see every election the party (`family`) ran in (letters, name, #1,
+  votes, share, passed, seats), other lists with the same letters, and its share or votes
+  in every settlement per election (filter, minimum size, sort by column). Only
+  `index.html` carries the per-settlement data (about 1.2 MB).
 - Pages are self-contained (data inlined, no external scripts), RTL Hebrew, work in light
   and dark mode and at phone width.
 - Bloc colors are fixed per bloc (right, haredi, center-left, arab in that order, other

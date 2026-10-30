@@ -25,7 +25,7 @@ Full write-up: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 | [`scripts/build_data.py`](scripts/build_data.py) | Validates raw files and builds `data/processed/` |
 | [`scripts/check_excel.py`](scripts/check_excel.py) | Recalculates the workbooks in LibreOffice and checks for formula errors |
 | [`scripts/summarize_elections.py`](scripts/summarize_elections.py) | Key facts table per election |
-| [`reports/index.html`](reports/index.html) | Results of every election, comparison and averages by party or bloc |
+| [`reports/index.html`](reports/index.html) | Results of every election, comparison and averages by party or bloc, party lookup by ballot letters with results per settlement |
 | [`reports/`](reports) | One HTML results page per election, `knesset_<N>_<year>.html` |
 | [`scripts/build_reports.py`](scripts/build_reports.py) | Builds the HTML reports (run by `build_data.py`) |
 | [`scripts/check_reports.js`](scripts/check_reports.js) | Opens the reports in a headless browser and checks them |

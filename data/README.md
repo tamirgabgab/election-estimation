@@ -152,9 +152,12 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 
 ## Party tables
 
-`data/parties/knesset_<N>_parties.csv`: `letter,name_he,name_en,family,bloc,verified`.
+`data/parties/knesset_<N>_parties.csv`: `letter,name_he,name_en,family,bloc,verified,leader_he`.
 
-- `family` - the same party across elections (used by the cross-election report).
+- `family` - the same party across elections (used by the cross-election report and the
+  party lookup).
+- `leader_he` - #1 on the list in that election, filled only when a source confirms it
+  (see the source list in `HANDOFF.md`); empty for unconfirmed and unnamed lists.
 - `bloc` - `right`, `haredi`, `center_left`, `arab` or `other`. This is an ideological
   grouping chosen for this project and can be edited; rebuild after changing it.
   Current choice: right = Likud, Likud-Yisrael Beiteinu, National Union, NRP, Yisrael BaAliyah, National Union-NRP, Yamina, Union of Right-Wing Parties, Kulanu, Religious Zionism, New Hope, Yisrael Beiteinu,

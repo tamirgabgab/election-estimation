@@ -35,6 +35,36 @@ const outDir = process.argv[2] || fs.mkdtempSync(path.join(require("os").tmpdir(
       }
       const shot = path.join(outDir, `${path.basename(file, ".html")}_${mode}.png`);
       await page.screenshot({ path: shot, fullPage: true });
+
+      if (file === "index.html") {
+        // Party lookup: ballot letters complete to the party; settlement votes add up.
+        await page.click("button[data-view=party]");
+        await page.fill("#party-q", "מחל");
+        const first = await page.textContent("#party-list li");
+        if (!first.includes("הליכוד")) errors.push(`lookup "מחל" suggests: ${first.trim()}`);
+        await page.press("#party-q", "Enter");
+        const runs = (await page.$$("#party-detail table:first-of-type tbody tr")).length;
+        if (runs < 2) errors.push(`Likud lookup shows ${runs} elections`);
+        if ((await page.$$("#set-table tbody tr")).length < 2) errors.push("empty settlement table");
+        await page.click("#set-table th[data-col=name]");
+        await page.fill("#set-filter", "ירושלים");
+        if ((await page.$$("#set-table tbody tr")).length < 2) errors.push("settlement filter found nothing");
+        const bad = await page.evaluate(() => {
+          initLookup();
+          const out = [];
+          for (const e of ENTITIES) {
+            const sums = {};
+            for (const r of settlementRows(e)) for (const [k, c] of Object.entries(r.cells)) sums[k] = (sums[k] || 0) + c.votes;
+            for (const { el, p } of e.runs) {
+              const own = e.runs.filter(x => x.el === el).reduce((s, x) => s + x.p.votes, 0);
+              if (sums[el.knesset] !== own) out.push(`${e.name} K${el.knesset}: ${sums[el.knesset]} != ${own}`);
+            }
+          }
+          return out;
+        });
+        if (bad.length) errors.push("settlement sums: " + bad.slice(0, 3).join("; "));
+        await page.screenshot({ path: path.join(outDir, `index_party_${mode}.png`), fullPage: true });
+      }
       console.log(`${file} [${mode}]: ${errors.length ? "FAIL " + errors.join("; ") : "ok"}`);
       failed ||= errors.length > 0;
       await page.close();
