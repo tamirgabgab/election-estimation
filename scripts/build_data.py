@@ -25,14 +25,22 @@ RAW = ROOT / "data" / "raw"
 PARTIES = ROOT / "data" / "parties"
 PROCESSED = ROOT / "data" / "processed"
 
-# Settlement code of the "outer envelopes" pseudo-settlement (soldiers, diplomats,
+# Settlement codes of the "outer envelopes" pseudo-settlement (soldiers, diplomats,
 # prisoners, hospitals, etc.). It has no geography and no registered voters.
-ENVELOPES_CODE = 9999
+# 9999 from Knesset 22 on, 99999 in Knesset 21.
+ENVELOPES_CODES = {9999, 99999}
 
 # surplus_agreements: only agreements between lists that passed the threshold matter.
 # Each list is verified to reproduce the official seat allocation; it may omit
 # agreements that did not change any seat.
 ELECTIONS = {
+    21: {
+        "year": 2019,
+        "date": "2019-04-09",
+        "threshold": 0.0325,
+        "seats": 120,
+        "surplus_agreements": [("מחל", "טב"), ("שס", "ג"), ("אמת", "מרצ")],
+    },
     22: {
         "year": 2019,
         "date": "2019-09-17",
@@ -69,6 +77,7 @@ COLUMN_NAMES = {
     "שם ישוב": "settlement_name",
     "סמל ישוב": "settlement_code",
     "קלפי": "ballot_id",
+    "מספר קלפי": "ballot_id",  # Knesset 21 and earlier
     "ריכוז": "concentration",
     "שופט": "judge",
     "בזב": "registered",
@@ -76,7 +85,11 @@ COLUMN_NAMES = {
     "פסולים": "invalid",
     "כשרים": "valid",
 }
-BASE_COLUMNS = set(COLUMN_NAMES.values())
+BASE_ORDER = list(dict.fromkeys(COLUMN_NAMES.values()))
+BASE_COLUMNS = set(BASE_ORDER)
+# Not published in older files (Knesset 21 and earlier); added as empty columns.
+OPTIONAL_SETTLEMENT_COLUMNS = ["committee_code"]
+OPTIONAL_BALLOT_COLUMNS = ["committee_code", "ballot_uid", "concentration", "judge"]
 
 
 def read_raw(path: Path) -> pd.DataFrame:
@@ -94,7 +107,12 @@ def read_raw(path: Path) -> pd.DataFrame:
     for col in df.columns:
         if col not in ("settlement_name", "ballot_id"):
             df[col] = df[col].astype(int)
-    return df
+    optional = OPTIONAL_BALLOT_COLUMNS if "ballot_id" in df else OPTIONAL_SETTLEMENT_COLUMNS
+    for col in optional:
+        if col not in df:
+            df[col] = pd.Series(pd.NA, index=df.index, dtype="Int64")
+    base = [c for c in BASE_ORDER if c in df]
+    return df[base + [c for c in df.columns if c not in BASE_COLUMNS]]
 
 
 def party_columns(df: pd.DataFrame) -> list[str]:
@@ -160,7 +178,9 @@ def build_national(settlements, parties, names, cfg) -> pd.DataFrame:
 def add_keys(ballots: pd.DataFrame, settlements: pd.DataFrame) -> None:
     ballots.insert(0, "ballot_key", ballots["settlement_code"].astype(str) + "_" + ballots["ballot_id"])
     for df in (ballots, settlements):
-        df["is_envelopes"] = df["settlement_code"] == ENVELOPES_CODE
+        df["is_envelopes"] = df["settlement_code"].isin(ENVELOPES_CODES)
+    envelopes = settlements[settlements["is_envelopes"]]
+    assert len(envelopes) == 1 and (envelopes["registered"] == 0).all(), "expected one envelopes row"
 
 
 def to_long(ballots: pd.DataFrame, parties: list[str], knesset: int) -> pd.DataFrame:

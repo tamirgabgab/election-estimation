@@ -22,7 +22,7 @@ for the model design.
   Follow the procedure below.
 - Read `ballot_id` as text (`3.10` is not `3.1`).
 - Do not guess party names or facts. Mark unknowns (`verified = no`) and tell the user.
-- Double envelopes (`settlement_code = 9999`, `is_envelopes`) are never sampling
+- Double envelopes (`is_envelopes`, code 9999 or 99999) are never sampling
   candidates, but they are part of the national target.
 
 ## Procedure: the user sends results of a Knesset election
@@ -34,8 +34,10 @@ Follow these steps every time, in this order, so every election is handled the s
    ask the user if any of them is unclear. If only one of the two files arrived, ask for
    the other before building.
 2. **Inspect** - encoding (UTF-8 or Windows-1255), header names vs. `COLUMN_NAMES` in
-   `scripts/build_data.py`, row counts, trailing empty columns, the `9999` envelopes row.
-   New or renamed base columns → extend `COLUMN_NAMES`/`read_raw`, never edit the raw file.
+   `scripts/build_data.py`, row counts, trailing empty columns, the envelopes row
+   (`מעטפות חיצוניות`, code 9999; 99999 in Knesset 21). New or renamed base columns →
+   extend `COLUMN_NAMES`/`read_raw`; missing ones → `OPTIONAL_*_COLUMNS` (left empty);
+   a new envelopes code → `ENVELOPES_CODES`. Never edit the raw file.
 3. **Copy raw** - byte-for-byte to `data/raw/knesset_<N>_<year>_ballots.csv` and
    `data/raw/knesset_<N>_<year>_settlements.csv`; verify with `cmp`.
 4. **Party table** - `data/parties/knesset_<N>_parties.csv` with columns

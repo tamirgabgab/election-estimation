@@ -23,6 +23,8 @@ the committee's `expc` file).
 
 | File | Rows | Source file | Encoding |
 |------|------|-------------|----------|
+| `knesset_21_2019_ballots.csv` | 10,765 | `expb_5.csv` | Windows-1255 |
+| `knesset_21_2019_settlements.csv` | 1,214 | `expc_5.csv` | Windows-1255 |
 | `knesset_22_2019_ballots.csv` | 10,901 | `expb_4.csv` | Windows-1255 |
 | `knesset_22_2019_settlements.csv` | 1,214 | `expc_4.csv` | Windows-1255 |
 | `knesset_23_2020_ballots.csv` | 11,179 | `expb_3.csv` | Windows-1255 |
@@ -34,6 +36,10 @@ the committee's `expc` file).
 
 Raw files keep the committee's original encoding; `read_raw` detects it and drops the
 empty trailing column of the older files.
+
+Knesset 21 uses an older layout: the ballot column is `מספר קלפי`, and there are no
+`סמל ועדה`, `ברזל`, `ריכוז` or `שופט` columns. These columns are empty in its processed
+files; nothing is filled in from other elections.
 
 ## Processed files
 
@@ -65,7 +71,7 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 | `voters` | מצביעים | Votes cast |
 | `invalid` | פסולים | Invalid votes |
 | `valid` | כשרים | Valid votes (= sum of party columns) |
-| `is_envelopes` | - | `True` for settlement code 9999, "outer envelopes" (soldiers, diplomats, prisoners, hospitals). It has no geography and `registered = 0` |
+| `is_envelopes` | - | `True` for settlement code 9999 (99999 in Knesset 21), "outer envelopes" (soldiers, diplomats, prisoners, hospitals). It has no geography and `registered = 0` |
 | party letters | e.g. מחל | Valid votes for that list |
 
 ## Checks done by the build script
@@ -76,6 +82,8 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 - Summing ballots per settlement gives exactly the settlements file.
 - Seat allocation (threshold + Bader-Ofer with surplus agreements) reproduces the
   official result:
+  - Knesset 21: Likud 35, Blue and White 35, Shas 8, UTJ 8, Hadash-Ta'al 6, Labor 6,
+    Yisrael Beiteinu 5, Union of Right-Wing Parties 5, Meretz 4, Kulanu 4, Ra'am-Balad 4.
   - Knesset 22: Blue and White 33, Likud 32, Joint List 13, Shas 9, Yisrael Beiteinu 8,
     UTJ 7, Yamina 7, Labor-Gesher 6, Democratic Union 5.
   - Knesset 23: Likud 36, Blue and White 33, Joint List 15, Shas 9, UTJ 7,
@@ -94,9 +102,9 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 - `family` - the same party across elections (used by the cross-election report).
 - `bloc` - `right`, `haredi`, `center_left`, `arab` or `other`. This is an ideological
   grouping chosen for this project and can be edited; rebuild after changing it.
-  Current choice: right = Likud, Yamina, Religious Zionism, New Hope, Yisrael Beiteinu,
+  Current choice: right = Likud, Yamina, Union of Right-Wing Parties, Kulanu, Religious Zionism, New Hope, Yisrael Beiteinu,
   Jewish Home; haredi = Shas, UTJ; center-left = Blue and White, Yesh Atid, National
-  Unity, Labor, Labor-Gesher, Labor-Gesher-Meretz, Meretz, Democratic Union; arab = Joint List, Ra'am, Hadash-Ta'al, Balad.
+  Unity, Labor, Labor-Gesher, Labor-Gesher-Meretz, Meretz, Democratic Union; arab = Joint List, Ra'am, Ra'am-Balad, Hadash-Ta'al, Balad.
 
 ## Notes for modeling
 
