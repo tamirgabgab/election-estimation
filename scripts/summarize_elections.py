@@ -28,7 +28,8 @@ def facts(knesset: int) -> dict:
         "Regular boxes": f"{len(regular):,}",
         "Envelope rows": f"{len(envelopes):,}",
         "Envelope votes": f"{envelopes['valid'].sum():,} ({envelopes['valid'].sum() / ballots['valid'].sum():.2%})",
-        "Split box ids": f"{ballots['ballot_id'].str.contains('.', regex=False).sum():,}",
+        # "283.1" style ids, or repeated ids keyed "283-1" (Knesset 20).
+        "Split box ids": f"{(ballots['ballot_id'].str.contains('.', regex=False) | ballots['ballot_key'].str.contains('-', regex=False)).sum():,}",
         "Lists / passed": f"{len(parties)} / {national['passed_threshold'].sum()}",
         "Regular vs national L1 (pp)": f"{(regular_share - national_share).abs().sum() * 100:.2f}",
     }

@@ -25,21 +25,37 @@ RAW = ROOT / "data" / "raw"
 PARTIES = ROOT / "data" / "parties"
 PROCESSED = ROOT / "data" / "processed"
 
-# Settlement codes of the "outer envelopes" pseudo-settlement (soldiers, diplomats,
-# prisoners, hospitals, etc.). It has no geography and no registered voters.
-# 9999 from Knesset 22 on, 99999 in Knesset 21.
-ENVELOPES_CODES = {9999, 99999}
+# The "outer envelopes" pseudo-settlement (soldiers, diplomats, prisoners, hospitals,
+# etc.). It has no geography and no registered voters. Older files use other codes
+# (see envelopes_codes below); they are normalized to this code and name.
+ENVELOPES_CODE = 9999
+ENVELOPES_NAME = "מעטפות חיצוניות"
 
 # surplus_agreements: only agreements between lists that passed the threshold matter.
 # Each list is verified to reproduce the official seat allocation; it may omit
 # agreements that did not change any seat.
+# envelopes_codes: raw settlement code of the envelopes row in each file, when not 9999.
+# unsuffixed_split_boxes: split ballot boxes share one ballot number (no ".1", ".2").
 ELECTIONS = {
+    20: {
+        "year": 2015,
+        "date": "2015-03-17",
+        "threshold": 0.0325,
+        "seats": 120,
+        # Kulanu needs an agreement to get its official 10 seats, but its partner is not
+        # known: Shas, UTJ, Yisrael Beiteinu, Meretz, Yesh Atid or Zionist Union all give
+        # the official result. Yisrael Beiteinu is a placeholder (HANDOFF question D7).
+        "surplus_agreements": [("מחל", "טב"), ("אמת", "מרצ"), ("כ", "ל")],
+        "envelopes_codes": {"ballots": 875, "settlements": 0},
+        "unsuffixed_split_boxes": True,
+    },
     21: {
         "year": 2019,
         "date": "2019-04-09",
         "threshold": 0.0325,
         "seats": 120,
         "surplus_agreements": [("מחל", "טב"), ("שס", "ג"), ("אמת", "מרצ")],
+        "envelopes_codes": {"ballots": 99999, "settlements": 99999},
     },
     22: {
         "year": 2019,
@@ -119,11 +135,21 @@ def party_columns(df: pd.DataFrame) -> list[str]:
     return [c for c in df.columns if c not in BASE_COLUMNS]
 
 
-def validate(ballots: pd.DataFrame, settlements: pd.DataFrame, parties: list[str]) -> None:
+def normalize_envelopes(ballots: pd.DataFrame, settlements: pd.DataFrame, cfg: dict) -> None:
+    codes = cfg.get("envelopes_codes", {"ballots": ENVELOPES_CODE, "settlements": ENVELOPES_CODE})
+    for df, code in ((ballots, codes["ballots"]), (settlements, codes["settlements"])):
+        rows = df["settlement_code"] == code
+        assert rows.any(), f"no envelopes rows with code {code}"
+        df.loc[rows, "settlement_code"] = ENVELOPES_CODE
+        df.loc[rows, "settlement_name"] = ENVELOPES_NAME
+
+
+def validate(ballots: pd.DataFrame, settlements: pd.DataFrame, parties: list[str], cfg: dict) -> None:
     for name, df in (("ballots", ballots), ("settlements", settlements)):
         assert (df["voters"] == df["invalid"] + df["valid"]).all(), f"{name}: voters != invalid + valid"
         assert (df[parties].sum(axis=1) == df["valid"]).all(), f"{name}: party votes != valid"
-    assert not ballots.duplicated(["settlement_code", "ballot_id"]).any(), "duplicate ballot ids"
+    if not cfg.get("unsuffixed_split_boxes"):
+        assert not ballots.duplicated(["settlement_code", "ballot_id"]).any(), "duplicate ballot ids"
 
     counts = ["registered", "voters", "invalid", "valid", *parties]
     from_ballots = ballots.groupby("settlement_code")[counts].sum().sort_index()
@@ -176,9 +202,14 @@ def build_national(settlements, parties, names, cfg) -> pd.DataFrame:
 
 
 def add_keys(ballots: pd.DataFrame, settlements: pd.DataFrame) -> None:
-    ballots.insert(0, "ballot_key", ballots["settlement_code"].astype(str) + "_" + ballots["ballot_id"])
+    key = ballots["settlement_code"].astype(str) + "_" + ballots["ballot_id"]
+    # Split boxes published under one number get "-1", "-2", ... in file order.
+    repeated = key.duplicated(keep=False)
+    key[repeated] += "-" + (key[repeated].groupby(key[repeated]).cumcount() + 1).astype(str)
+    assert key.is_unique
+    ballots.insert(0, "ballot_key", key)
     for df in (ballots, settlements):
-        df["is_envelopes"] = df["settlement_code"].isin(ENVELOPES_CODES)
+        df["is_envelopes"] = df["settlement_code"] == ENVELOPES_CODE
     envelopes = settlements[settlements["is_envelopes"]]
     assert len(envelopes) == 1 and (envelopes["registered"] == 0).all(), "expected one envelopes row"
 
@@ -302,7 +333,8 @@ def build_election(knesset: int, cfg: dict) -> pd.DataFrame:
     settlements = read_raw(RAW / f"{stem}_settlements.csv")
     parties = party_columns(ballots)
     assert parties == party_columns(settlements), "party columns differ between files"
-    validate(ballots, settlements, parties)
+    normalize_envelopes(ballots, settlements, cfg)
+    validate(ballots, settlements, parties, cfg)
 
     names = pd.read_csv(PARTIES / f"knesset_{knesset}_parties.csv", dtype=str, keep_default_na=False)
     missing = set(parties) - set(names["letter"])

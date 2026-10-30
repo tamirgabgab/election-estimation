@@ -26,7 +26,7 @@ for the model design.
   Follow the procedure below.
 - Read `ballot_id` as text (`3.10` is not `3.1`).
 - Do not guess party names or facts. Mark unknowns (`verified = no`) and tell the user.
-- Double envelopes (`is_envelopes`, code 9999 or 99999) are never sampling
+- Double envelopes (`is_envelopes`, normalized to code 9999) are never sampling
   candidates, but they are part of the national target.
 
 ## Procedure: the user sends results of a Knesset election
@@ -38,10 +38,12 @@ Follow these steps every time, in this order, so every election is handled the s
    ask the user if any of them is unclear. If only one of the two files arrived, ask for
    the other before building.
 2. **Inspect** - encoding (UTF-8 or Windows-1255), header names vs. `COLUMN_NAMES` in
-   `scripts/build_data.py`, row counts, trailing empty columns, the envelopes row
-   (`מעטפות חיצוניות`, code 9999; 99999 in Knesset 21). New or renamed base columns →
-   extend `COLUMN_NAMES`/`read_raw`; missing ones → `OPTIONAL_*_COLUMNS` (left empty);
-   a new envelopes code → `ENVELOPES_CODES`. Never edit the raw file.
+   `scripts/build_data.py`, row counts, trailing empty columns, the envelopes row in each
+   file (`מעטפות חיצוניות`; code 9999, but 99999 in Knesset 21 and 875 / 0 in Knesset 20),
+   duplicate ballot ids. New or renamed base columns → extend `COLUMN_NAMES`/`read_raw`;
+   missing ones → `OPTIONAL_*_COLUMNS` (left empty); another envelopes code →
+   `envelopes_codes` in the election's config (normalized to 9999); split boxes sharing one
+   number → `unsuffixed_split_boxes` (keys get `-1`, `-2`). Never edit the raw file.
 3. **Copy raw** - byte-for-byte to `data/raw/knesset_<N>_<year>_ballots.csv` and
    `data/raw/knesset_<N>_<year>_settlements.csv`; verify with `cmp`.
 4. **Party table** - `data/parties/knesset_<N>_parties.csv` with columns
@@ -58,7 +60,9 @@ Follow these steps every time, in this order, so every election is handled the s
    `threshold`, `seats`, `surplus_agreements`. Thresholds: 1.5% up to Knesset 16 (2003),
    2% for Knesset 17-19 (2006-2013), 3.25% from Knesset 20 (2015). The surplus agreements
    must make the computed seats equal the official result; if the official seats cannot be
-   confirmed, say so instead of guessing.
+   confirmed, say so instead of guessing. When several sets of agreements reproduce the
+   result and the real one is unknown, use a placeholder, comment it in `ELECTIONS` and add
+   a data question to `HANDOFF.md`.
 6. **Build** - `python scripts/build_data.py`. All validation asserts must pass and the
    printed seats must match the official result. This also rebuilds the HTML reports.
 7. **Regression check** - `git diff --stat data/processed/` must show no change in other

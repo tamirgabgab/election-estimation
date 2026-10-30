@@ -1,0 +1,27 @@
+﻿letter,name_he,name_en,family,bloc,votes,share,passed_threshold,seats
+מחל,הליכוד,Likud,Likud,right,985408,0.23401452046648638,True,30
+אמת,המחנה הציוני,Zionist Union,Zionist Union,center_left,786313,0.18673347449134195,True,24
+ודעם,הרשימה המשותפת,Joint List,Joint List,arab,446583,0.10605445317420285,True,13
+פה,יש עתיד,Yesh Atid,Yesh Atid,center_left,371602,0.0882479783342405,True,11
+כ,כולנו,Kulanu,Kulanu,right,315360,0.0748916379553557,True,10
+טב,הבית היהודי,Jewish Home,Jewish Home,right,283910,0.06742289742486376,True,8
+שס,"ש""ס",Shas,Shas,haredi,241613,0.05737821322078689,True,7
+ל,ישראל ביתנו,Yisrael Beiteinu,Yisrael Beiteinu,right,214906,0.051035839505434014,True,6
+ג,יהדות התורה,United Torah Judaism,United Torah Judaism,haredi,210143,0.04990472309377318,True,6
+מרצ,מרצ,Meretz,Meretz,center_left,165529,0.03930979813264863,True,5
+קץ,,,,other,125158,0.029722500073618745,False,0
+קנ,,,,other,47180,0.011204298194868345,False,0
+ע,,,,other,4301,0.001021400732007816,False,0
+רק,,,,other,2992,0.0007105396396576111,False,0
+ףץ,,,,other,2493,0.000592037206439313,False,0
+נז,,,,other,1802,0.0004279386466119703,False,0
+יץ,,,,other,1385,0.00032890955913295164,False,0
+ף,,,,other,895,0.00021254444434945253,False,0
+נץ,,,,other,823,0.0001954458968710608,False,0
+זץ,,,,other,761,0.00018072214765355683,False,0
+ני,,,,other,502,0.00011921487269656443,False,0
+י,,,,other,423,0.0001004539664355513,False,0
+ז,,,,other,337,8.003070139191676e-05,False,0
+זך,,,,other,242,5.747011791348325e-05,False,0
+יז,,,,other,223,5.295800121779655e-05,False,0
+יך,,,,other,0,0.0,False,0

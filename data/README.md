@@ -23,6 +23,8 @@ the committee's `expc` file).
 
 | File | Rows | Source file | Encoding |
 |------|------|-------------|----------|
+| `knesset_20_2015_ballots.csv` | 10,414 | `expbkal20.csv` | UTF-8 |
+| `knesset_20_2015_settlements.csv` | 1,196 | `expc-5.csv` | Windows-1255 |
 | `knesset_21_2019_ballots.csv` | 10,765 | `expb_5.csv` | Windows-1255 |
 | `knesset_21_2019_settlements.csv` | 1,214 | `expc_5.csv` | Windows-1255 |
 | `knesset_22_2019_ballots.csv` | 10,901 | `expb_4.csv` | Windows-1255 |
@@ -37,9 +39,16 @@ the committee's `expc` file).
 Raw files keep the committee's original encoding; `read_raw` detects it and drops the
 empty trailing column of the older files.
 
-Knesset 21 uses an older layout: the ballot column is `מספר קלפי`, and there are no
-`סמל ועדה`, `ברזל`, `ריכוז` or `שופט` columns. These columns are empty in its processed
+Knesset 20 and 21 use an older layout: the ballot column is `מספר קלפי`, and there are no
+`סמל ועדה`, `ברזל`, `ריכוז` or `שופט` columns. These columns are empty in their processed
 files; nothing is filled in from other elections.
+
+Envelopes codes differ in the raw files (99999 in Knesset 21; 875 in the Knesset 20
+ballots file and 0, with an empty name, in its settlements file). The build normalizes
+them to 9999 / `מעטפות חיצוניות`.
+
+Knesset 20 publishes split ballot boxes under one number (58 pairs, e.g. Jerusalem has
+21 of them); their `ballot_key` gets `-1` / `-2` in file order, `ballot_id` stays as published.
 
 ## Processed files
 
@@ -59,7 +68,7 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 
 | Column | Raw name | Meaning |
 |--------|----------|---------|
-| `ballot_key` | - | `<settlement_code>_<ballot_id>`, unique within one election |
+| `ballot_key` | - | `<settlement_code>_<ballot_id>` (plus `-1`/`-2` for Knesset 20 split boxes), unique within one election |
 | `ballot_uid` | ברזל | Committee's internal ballot box id |
 | `committee_code` | סמל ועדה | Regional elections committee |
 | `settlement_code` | סמל ישוב | CBS settlement code |
@@ -71,7 +80,7 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 | `voters` | מצביעים | Votes cast |
 | `invalid` | פסולים | Invalid votes |
 | `valid` | כשרים | Valid votes (= sum of party columns) |
-| `is_envelopes` | - | `True` for settlement code 9999 (99999 in Knesset 21), "outer envelopes" (soldiers, diplomats, prisoners, hospitals). It has no geography and `registered = 0` |
+| `is_envelopes` | - | `True` for settlement code 9999 (normalized, see above), "outer envelopes" (soldiers, diplomats, prisoners, hospitals). It has no geography and `registered = 0` |
 | party letters | e.g. מחל | Valid votes for that list |
 
 ## Checks done by the build script
@@ -82,6 +91,8 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 - Summing ballots per settlement gives exactly the settlements file.
 - Seat allocation (threshold + Bader-Ofer with surplus agreements) reproduces the
   official result:
+  - Knesset 20: Likud 30, Zionist Union 24, Joint List 13, Yesh Atid 11, Kulanu 10,
+    Jewish Home 8, Shas 7, Yisrael Beiteinu 6, UTJ 6, Meretz 5.
   - Knesset 21: Likud 35, Blue and White 35, Shas 8, UTJ 8, Hadash-Ta'al 6, Labor 6,
     Yisrael Beiteinu 5, Union of Right-Wing Parties 5, Meretz 4, Kulanu 4, Ra'am-Balad 4.
   - Knesset 22: Blue and White 33, Likud 32, Joint List 13, Shas 9, Yisrael Beiteinu 8,
@@ -104,7 +115,7 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
   grouping chosen for this project and can be edited; rebuild after changing it.
   Current choice: right = Likud, Yamina, Union of Right-Wing Parties, Kulanu, Religious Zionism, New Hope, Yisrael Beiteinu,
   Jewish Home; haredi = Shas, UTJ; center-left = Blue and White, Yesh Atid, National
-  Unity, Labor, Labor-Gesher, Labor-Gesher-Meretz, Meretz, Democratic Union; arab = Joint List, Ra'am, Ra'am-Balad, Hadash-Ta'al, Balad.
+  Unity, Zionist Union, Labor, Labor-Gesher, Labor-Gesher-Meretz, Meretz, Democratic Union; arab = Joint List, Ra'am, Ra'am-Balad, Hadash-Ta'al, Balad.
 
 ## Notes for modeling
 
