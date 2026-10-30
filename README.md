@@ -31,6 +31,9 @@ Full write-up: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 | [`scripts/check_reports.js`](scripts/check_reports.js) | Opens the reports in a headless browser and checks them |
 | [`data/README.md`](data/README.md) | Columns, checks, data notes |
 | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | Problem, pitfalls, models, handling changing parties, evaluation |
+| [`docs/MODEL_PLAN.md`](docs/MODEL_PLAN.md) | Agreed design of the fixed-panel model and its implementation steps |
+| [`src/election_estimation/`](src/election_estimation) | Modelling code: data loading, metrics (L1, Bader-Ofer, blocs), box selection (LP, greedy, MILP) |
+| [`scripts/explore_knesset.py`](scripts/explore_knesset.py) | Per-election exploration and in-sample selection experiment (`PYTHONPATH=src`) |
 | [`HANDOFF.md`](HANDOFF.md) | Current status and next steps |
 | [`CLAUDE.md`](CLAUDE.md) | Working rules for this project |
 | [`.claude/skills/save-usage/`](.claude/skills/save-usage) | Skill for saving Claude usage, with the official limit rules and tips |

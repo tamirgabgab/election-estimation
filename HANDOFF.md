@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-10-30. Branch: `claude/stoic-tesla-h2fa2d`.
+Last updated: 2026-10-30. Branch: `main` (merged from `claude/stoic-tesla-h2fa2d` and `claude/peaceful-cerf-knn9rl`).
 
 ## Goal
 
@@ -63,6 +63,12 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 - **Check scripts**: `scripts/check_excel.py` (LibreOffice recalculation, 0 errors in all
   workbooks) and `scripts/summarize_elections.py` (facts table below).
 - **Procedure** for adding an election is fixed in `CLAUDE.md`.
+- **Merged with the modelling branch** (2026-10-30): `docs/MODEL_PLAN.md` (agreed model
+  design), `src/election_estimation/` (`data.py` loads the processed tables and adds
+  base boxes; `metrics.py` L1, Bader-Ofer, soft seats, blocs; `selection.py` LP weights,
+  greedy column generation, MILP, random baseline) and `scripts/explore_knesset.py`
+  (K25 in-sample experiment: 14 boxes reproduce the national result exactly, so only
+  held-out evaluation is meaningful).
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -141,13 +147,10 @@ move answered items to "Decisions" below with the answer.
 
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
-| B1 | Scheme: ideological blocs, or coalition blocs (Netanyahu bloc vs. the rest)? | Ideological: right, haredi, center-left, arab, other | Keep; switch; or add a second column `coalition_bloc` and let the report choose |
 | B2 | Split center-left into "center" and "left"? | One bloc | Keep; split (center = Blue and White, Yesh Atid, National Unity, Kulanu?; left = Labor, Meretz, Democratic Union) |
-| B3 | Yisrael Beiteinu (K20-25): secular right, but outside the Netanyahu bloc since 2019 | right | right; center-left |
 | B4 | New Hope (K24): right-wing party in the anti-Netanyahu coalition | right | right; center-left |
 | B5 | Kulanu (K20-21): center-right, sat in the Likud-led coalition | right | right; center-left |
 | B6 | Blue and White (K21-23, joint list with Telem's right-leaning members; K24 Gantz only) | center-left | center-left; split center/left (see B2) |
-| B7 | National Unity (K25): Blue and White + New Hope + Eisenkot | center-left | center-left; center (see B2) |
 | B8 | Labor-Gesher (K22): Gesher was center-right | center-left | center-left |
 | B9 | Yamina (K24) and Ra'am (K24) joined the Bennett-Lapid coalition | right / arab | keep ideological; only matters under B1 |
 | B10 | Arab bloc: keep Ra'am (Islamist, joined a coalition) with Hadash-Ta'al and Balad? | arab | keep; split "arab" into two |
@@ -157,9 +160,6 @@ move answered items to "Decisions" below with the answer.
 | B14 | Gil Pensioners (K17, 7 seats, in the Kadima-led coalition) | other | other; center-left |
 | B15 | National Union (K16, K18) and National Union-NRP (K17) | right | right |
 | B16 | Shinui (K16, secular liberal) and One Nation (K16, Amir Peretz, later merged into Labor) | center-left | center-left; center (see B2) |
-| B18 | Beyachad (K26, Bennett), in the anti-Netanyahu opposition | right | right; center-left |
-| B19 | Yashar! (K26, Eisenkot) | center-left | center-left; center (see B2) |
-| B20 | Otzma Yehudit (K26, own list; part of Religious Zionism in K25) | right | right |
 | B17 | Yisrael BaAliyah (K16, Sharansky, later merged into Likud) and NRP (K16) | right | right |
 
 ### Party families (`family` column; used for party averages in the report)
@@ -199,7 +199,6 @@ move answered items to "Decisions" below with the answer.
 | D11 | Knesset 17 eligible voters per box were recovered by the Yoavfried project from archived reports (total 5,011,053), not taken from the official file | Used as is | Keep; replace with official numbers if found |
 | D12 | Knesset 16 envelopes row: official totals minus regular boxes. Official votes of the 17 largest lists and the totals come from Wikidata / IFES ElectionGuide (found by web search; Wikipedia itself is blocked here); the 1,707 envelope votes of the 11 smallest lists are split in proportion to their regular votes (estimate) | Added this way | Keep; replace with the official envelope file if found |
 | D14 | Knesset 26 is provisional: the files were downloaded before the committee's certified results; seats match the final distribution reported in the press (Likud 27, Yashar 21, Beyachad 12, Joint List 11, Democrats 8, Ra'am 8, Yisrael Beiteinu 7, UTJ 7, Otzma Yehudit 7, Shas 6, Religious Zionism-Zehut 6) | `provisional: True` in `ELECTIONS`; report says "not final" | Replace the raw files with the certified ones and remove the flag |
-| D15 | Knesset 26 letters of new lists (`דרך` Yashar!, `רק` Beyachad, `ודם` Joint List, `ב` Otzma Yehudit) were matched by their seat counts to the reported results, not read from an official list | Used | Confirm against the committee's list of candidate lists |
 | D16 | Knesset 26 ballots file has two new columns, `חיצוניות` and `קלפי אחרת` (kept as `external`, `other_ballot`; all zero) | Kept, meaning unknown | User explains; drop them |
 | D17 | List leaders (`leader_he`, #1 on each list that passed): from search snippets, not from the committee's official candidate lists. 50 are "medium" (source names the party leader, not explicitly #1), e.g. most of K16-17, K21 Meretz (Zandberg), K18 Jewish Home (Hershkowitz). Notable #1s: K16 National Union = Liberman, K17 National Union-NRP = Elon, K19 Shas = Yishai, K22 Yamina = Shaked, K26 UTJ = Yaakov Asher, K26 Joint List = Yousef Jabareen | Used, sources in `data/parties/leaders_sources.csv` | Verify against the official lists (needs gov.il / knesset.gov.il access); keep |
 | D18 | Small lists have no names or leaders, so the party lookup shows them as "רשימה <letters> (כנסת N)" (e.g. K26 `צדק`) | Unnamed | Name them from the committee's list of candidate lists per election; leave |
@@ -209,34 +208,52 @@ move answered items to "Decisions" below with the answer.
 | D7 | Knesset 20: Kulanu needs a surplus agreement to reach its official 10 seats; the partner is unknown (Shas, UTJ, Yisrael Beiteinu, Meretz, Yesh Atid or Zionist Union all work) | Placeholder: Kulanu + Yisrael Beiteinu | User confirms the real partner |
 | D8 | Knesset 20 split boxes share one number; their order (`-1`, `-2`) follows the file | File order | Keep; ignore the difference (merge, see M5) |
 | D9 | Knesset 19 settlements file leaves out the envelope votes; the build adds an envelopes row summed from the ballots file | Derived row | Keep |
+| D20 | Three regular boxes report more voters than registered: K18 מי עמי box 1 (282 / 198), K22 כרמים box 1 (231 / 211), K22 תלם box 1 (221 / 212) | Kept as published | Keep; cap at registered; drop the boxes |
+| D21 | Exact official name of K26 `די` (described by the user as the Reservists' and economic party of Yaron Zelekha and Yoaz Hendel) and its #1 | Name "המילואימניקים והמפלגה הכלכלית", leader empty | Confirm from the committee's list |
 
 ### Modeling
 
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
-| M1 | Sample unit | Ballot box | Ballot box; settlement |
-| M2 | Target metric | L1 on shares of valid votes (pp) | Also seat error; also bloc error |
-| M3 | Double envelopes (5.5%-9.6% of valid votes, growing) | Model them as a separate term from past elections | Ignore; separate term |
-| M4 | Budget: a maximum number of sample boxes, or only the `λ` trade-off? | `λ` trade-off, chosen on the Pareto curve | Fixed maximum (e.g. 100 boxes); `λ` only |
-| M5 | Split boxes (`283.1`, `283.2`): one sampling unit or separate? | Not decided | Merge per base number; keep separate |
 | M6 | Training window: all past elections, or only the last few? | Not decided | All; last k; weighted by recency |
 
 ### Decisions
 
-None yet.
+Answered by the user on 2026-10-30.
+
+| ID | Decision |
+|----|----------|
+| B1 | Blocs are ideological (right, center-left, arab, haredi, other), not coalition camps |
+| B3 | Yisrael Beiteinu is `right` |
+| B7 | National Unity (K25) is `center_left` |
+| B18 | Beyachad (K26, Bennett, letters `רק`) is `right` |
+| B19 | Yashar! (K26, Eisenkot, letters `דרך`) is `center_left` |
+| B20 | Otzma Yehudit (K26, letters `ב`) is `right` |
+| B21 | K26 `די` (the Reservists and the economic party, Zelekha and Hendel) and `ך` (Amcha Yisrael, Ofer Winter) are `right` |
+| B22 | Haredi lists are a separate bloc for now; a three-bloc scheme (haredi merged into right) is evaluated alongside |
+| B23 | Lists under 1% nationally are not assigned individually; they stay `other` |
+| D15 | K26 letters confirmed by the user: `דרך` Yashar!, `רק` Beyachad, `ודם` Joint List, `ב` Otzma Yehudit, `ט` Religious Zionism, `אמת` The Democrats, `ל` Yisrael Beiteinu, `עם` Ra'am |
+| M1, M5 | Sampling unit: base ballot box (sub-boxes `283.1`, `283.2` merged into `283`) |
+| M2 | Loss and evaluation: L1 on party shares, L1 on seats (Bader-Ofer), L1 on bloc shares and bloc seats |
+| M3 | Double envelopes are part of the national target, never candidates; the box weights compensate for them |
+| M4 | Panel size about 50-70 boxes (order of sqrt of the number of settlements); scenario: a fixed panel chosen in advance, prediction = fixed weighted average |
+
+The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 
 ## Next steps
 
-1. **Data** - replace Knesset 26 with the certified files (D14); Knesset 14-15 if files are found (D13), and Knesset 26 once final
-   (expected around 2026-11-04), following the procedure in `CLAUDE.md`.
-2. **First held-out pairs** - Knesset 16 → 17 through 25 → 26 are available: run the
-   baselines with selection on `t` and evaluation on `t+1`.
-3. **Ballot matching** - merge split boxes (`283.1` + `283.2` → `283`) and match boxes
-   across elections by settlement + ballot number, or via statistical areas.
-4. **Party lineage** - one mapping CSV per pair of consecutive elections, plus a bloc
-   mapping (right, center-left, Haredi, Arab, other).
-5. **Baselines** - random, greedy and MILP selection; envelope correction term.
-6. **Validation** - select on `t`, test on `t+1`; choose `λ` from the error vs.
-   number-of-boxes Pareto curve.
-7. **Swing model**, then a **neural model** with Hard-Concrete gates for comparison.
-8. **Seat metric** - evaluate seat error too, including the 3.25% threshold.
+The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
+In short:
+
+1. **Data** - replace Knesset 26 with the certified files (D14), following the
+   procedure in `CLAUDE.md`.
+2. **Ballot matching** - `src/election_estimation/matching.py`: base boxes, the
+   cross-election box index, survival and drift between consecutive elections.
+3. **Metrics** - `src/election_estimation/metrics.py` exists (L1, Bader-Ofer, soft seats,
+   blocs); add tests that it reproduces the official seats of every election.
+4. **Evaluation harness** - rolling folds (train K16..t, test t+1), metric tables, Pareto
+   curve of error vs. panel size.
+5. **Baselines** - random, stratified, greedy, MILP (`selection.py` exists).
+6. **Neural model** - Hard-Concrete gates and softmax weights with the combined
+   share / seat / bloc loss, then LP refit of the weights.
+7. **Analysis** - panel composition, stability across folds, bloc-scheme comparison.
