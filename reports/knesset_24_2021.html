@@ -114,7 +114,7 @@ select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid
 .stack .seg-fill:last-of-type { border-start-end-radius: 4px; border-end-end-radius: 4px; }
 .majority { position: absolute; top: -6px; bottom: -6px; width: 0; border-inline-start: 2px dashed var(--ink); pointer-events: none; }
 .majority span { position: absolute; top: -20px; transform: translateX(50%); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
-.stack-rows { display: grid; grid-template-columns: max-content 1fr; gap: 14px 12px; align-items: center; margin-top: 24px; }
+.stack-rows { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 14px 12px; align-items: center; margin-top: 24px; }
 .stack-rows .row-label { color: var(--ink-2); font-size: 13px; white-space: nowrap; }
 .bars { display: grid; grid-template-columns: minmax(110px, max-content) 1fr; gap: 6px 10px; align-items: center; }
 .bars .name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -154,6 +154,8 @@ tr.dim .share-track .fill { background: var(--axis); }
   h1 { font-size: 22px; }
   .tile .value { font-size: 20px; }
   .tiles { grid-template-columns: repeat(2, 1fr); }
+  .stack-rows { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .stack-rows .row-label { margin-top: 10px; }
   .bars { grid-template-columns: minmax(80px, 120px) 1fr; }
 }
 </style>
@@ -255,8 +257,9 @@ function stackBar(segments, total, opts = {}) {
   for (const s of segments) {
     if (s.value <= 0) continue;
     const w = (s.value / total) * 100;
-    const text = w >= 20 ? `${esc(s.label)} ${esc(s.valueText)}` : (w >= 6 ? esc(s.valueText) : "");
-    html += `<div class="seg-fill" style="flex: 0 0 calc(${w}% - 2px); background: ${blocVar(s.id)}; color: var(--on-${s.id})" data-tip="${esc(s.tipHtml)}">${text}</div>`;
+    // fitLabels() later picks the longest label that fits the rendered width.
+    html += `<div class="seg-fill" style="flex: 0 0 calc(${w}% - 2px); background: ${blocVar(s.id)}; color: var(--on-${s.id})"
+      data-full="${esc(s.label)} ${esc(s.valueText)}" data-short="${esc(s.valueText)}" data-tip="${esc(s.tipHtml)}"></div>`;
   }
   if (opts.majority) {
     const pos = (opts.majority / total) * 100;
@@ -265,6 +268,18 @@ function stackBar(segments, total, opts = {}) {
   }
   return html + `</div>`;
 }
+
+function fitLabels() {
+  for (const el of document.querySelectorAll(".seg-fill[data-full]")) {
+    const span = document.createElement("span");
+    el.replaceChildren(span);
+    for (const text of [el.dataset.full, el.dataset.short, ""]) {
+      span.textContent = text;
+      if (span.offsetWidth <= el.clientWidth - 8) break;
+    }
+  }
+}
+addEventListener("resize", fitLabels);
 
 function blocLegend() {
   return BLOCS.map(b => `<span style="--sw: ${blocVar(b.id)}">${b.label}</span>`).join("");
@@ -437,6 +452,7 @@ function renderCompare() {
   document.getElementById("compare-table-title").textContent =
     `${metricLabel} ${compareState.group === "bloc" ? "לפי גושים" : "לפי מפלגות"} וממוצע על ${sel.length} כנסות`;
   document.getElementById("compare-table").innerHTML = head + `<tbody>${body}</tbody>`;
+  fitLabels();
 }
 
 // ---------- wiring ----------
@@ -445,6 +461,7 @@ function showElection(knesset) {
   document.getElementById("title").textContent = `תוצאות הבחירות לכנסת ה-${el.knesset}`;
   document.getElementById("subtitle").textContent = `${el.date} · תוצאות סופיות לפי קובצי ועדת הבחירות`;
   renderElection(el);
+  fitLabels();
 }
 
 function setView(view) {

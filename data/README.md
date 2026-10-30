@@ -23,6 +23,8 @@ the committee's `expc` file).
 
 | File | Rows | Source file | Encoding |
 |------|------|-------------|----------|
+| `knesset_22_2019_ballots.csv` | 10,901 | `expb_4.csv` | Windows-1255 |
+| `knesset_22_2019_settlements.csv` | 1,214 | `expc_4.csv` | Windows-1255 |
 | `knesset_23_2020_ballots.csv` | 11,179 | `expb_3.csv` | Windows-1255 |
 | `knesset_23_2020_settlements.csv` | 1,214 | `expc_3.csv` | Windows-1255 |
 | `knesset_24_2021_ballots.csv` | 12,926 | `expb_2.csv` | Windows-1255 |
@@ -74,6 +76,8 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 - Summing ballots per settlement gives exactly the settlements file.
 - Seat allocation (threshold + Bader-Ofer with surplus agreements) reproduces the
   official result:
+  - Knesset 22: Blue and White 33, Likud 32, Joint List 13, Shas 9, Yisrael Beiteinu 8,
+    UTJ 7, Yamina 7, Labor-Gesher 6, Democratic Union 5.
   - Knesset 23: Likud 36, Blue and White 33, Joint List 15, Shas 9, UTJ 7,
     Labor-Gesher-Meretz 7, Yisrael Beiteinu 7, Yamina 6.
   - Knesset 24: Likud 30, Yesh Atid 17, Shas 9, Blue and White 8, Yamina 7, Labor 7,
@@ -92,10 +96,12 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
   grouping chosen for this project and can be edited; rebuild after changing it.
   Current choice: right = Likud, Yamina, Religious Zionism, New Hope, Yisrael Beiteinu,
   Jewish Home; haredi = Shas, UTJ; center-left = Blue and White, Yesh Atid, National
-  Unity, Labor, Labor-Gesher-Meretz, Meretz; arab = Joint List, Ra'am, Hadash-Ta'al, Balad.
+  Unity, Labor, Labor-Gesher, Labor-Gesher-Meretz, Meretz, Democratic Union; arab = Joint List, Ra'am, Hadash-Ta'al, Balad.
 
 ## Notes for modeling
 
+- Settlement names change spelling between elections (`אבו גווייעד שבט` in Knesset 25,
+  `אבו ג'ווייעד (שבט)` in Knesset 22); always join on `settlement_code`.
 - Ballot numbering changes between elections, so `ballot_key` cannot be assumed to be
   the same physical polling station across elections. Settlement codes are stable.
 - Party lists change between elections (mergers and splits). Cross-election training

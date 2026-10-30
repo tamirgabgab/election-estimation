@@ -33,6 +33,13 @@ ENVELOPES_CODE = 9999
 # Each list is verified to reproduce the official seat allocation; it may omit
 # agreements that did not change any seat.
 ELECTIONS = {
+    22: {
+        "year": 2019,
+        "date": "2019-09-17",
+        "threshold": 0.0325,
+        "seats": 120,
+        "surplus_agreements": [("מחל", "טב"), ("פה", "ל"), ("אמת", "מרצ"), ("שס", "ג")],
+    },
     23: {
         "year": 2020,
         "date": "2020-03-02",

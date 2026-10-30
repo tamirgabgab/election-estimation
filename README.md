@@ -43,7 +43,7 @@ python scripts/build_data.py
 
 ## Approach in short
 
-1. **Data** - ballot-level results (now Knesset 23-25, target 16-26), validated and unified.
+1. **Data** - ballot-level results (now Knesset 22-25, target 16-26), validated and unified.
 2. **Baselines** - random sample, MILP / greedy selection of boxes.
 3. **Swing model** - predict the change from the previous election.
 4. **Neural model** - learnable per-box gates with an L0 (Hard-Concrete) penalty.
