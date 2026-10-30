@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
 PARTIES = ROOT / "data" / "parties"
 PROCESSED = ROOT / "data" / "processed"
+OFFICIAL = ROOT / "data" / "official"
 
 # The "outer envelopes" pseudo-settlement (soldiers, diplomats, prisoners, hospitals,
 # etc.). It has no geography and no registered voters. Older files use other codes
@@ -39,6 +40,8 @@ ENVELOPES_NAME = "מעטפות חיצוניות"
 # unsuffixed_split_boxes: split ballot boxes share one ballot number (no ".1", ".2").
 # source "yoavfried": one ballots file from the Yoavfried/Israel-Elections-Map project
 #   (no settlements file; settlements are summed from the ballots).
+# source "regular_boxes_only": a committee-layout ballots file without envelope votes; an
+#   envelopes row is added from data/official/knesset_<N>_totals.csv.
 ELECTIONS = {
     17: {
         "year": 2006,
@@ -148,9 +151,15 @@ def read_raw(path: Path) -> pd.DataFrame:
     df = df.loc[:, ~df.columns.str.startswith("Unnamed:")]
     df.columns = df.columns.str.strip()
     df = df.rename(columns=COLUMN_NAMES).apply(lambda col: col.str.strip())
+    # Knesset 16 ends with a DOS end-of-file marker (\x1a) parsed as an empty row.
+    eof = df["settlement_code"] == "\x1a"
+    assert eof.sum() <= 1 and (df.loc[eof].drop(columns=["settlement_name", "settlement_code", "ballot_id"],
+                                                 errors="ignore").fillna("0") == "0").all().all()
+    df = df[~eof]
     for col in df.columns:
         if col not in ("settlement_name", "ballot_id"):
-            df[col] = df[col].astype(int)
+            # A list with no votes is written as "0.0" in Knesset 16.
+            df[col] = df[col].str.replace(r"^(\d+)\.0$", r"\1", regex=True).astype(int)
     optional = OPTIONAL_BALLOT_COLUMNS if "ballot_id" in df else OPTIONAL_SETTLEMENT_COLUMNS
     for col in optional:
         if col not in df:
@@ -196,6 +205,36 @@ def read_yoavfried(path: Path) -> pd.DataFrame:
     for col in OPTIONAL_BALLOT_COLUMNS:
         df[col] = pd.Series(pd.NA, index=df.index, dtype="Int64")
     return df[[c for c in BASE_ORDER if c in df] + parties]
+
+
+def add_envelopes_from_official(ballots: pd.DataFrame, path: Path) -> tuple[pd.DataFrame, list[str]]:
+    """Append an envelopes row = official national totals minus the regular boxes.
+
+    For sources that publish regular boxes only. `path` lists official voters, invalid
+    and valid votes and the votes of each list it knows. The envelope votes of lists
+    missing from it are the remainder, split in proportion to their regular votes
+    (largest remainder); those letters are returned so they can be reported.
+    """
+    official = pd.read_csv(path, dtype={"key": str, "count": int}).set_index("key")["count"]
+    parties = party_columns(ballots)
+    regular = ballots[["voters", "invalid", "valid", *parties]].sum()
+    row = {c: int(official[c] - regular[c]) for c in ("voters", "invalid", "valid")}
+    assert row["voters"] == row["invalid"] + row["valid"] and min(row.values()) >= 0
+    known = [p for p in parties if p in official.index]
+    assert set(official.index) - {"voters", "invalid", "valid"} <= set(parties), "unknown letters"
+    for p in known:
+        row[p] = int(official[p] - regular[p])
+        assert row[p] >= 0, f"official votes of {p} below its regular boxes"
+    estimated = [p for p in parties if p not in known]
+    rest = row["valid"] - sum(row[p] for p in known)
+    assert rest >= 0
+    weights = regular[estimated] / regular[estimated].sum() * rest
+    shares = weights.astype(int)
+    shares[(weights - shares).sort_values(ascending=False).index[:rest - shares.sum()]] += 1
+    row.update({p: int(shares[p]) for p in estimated})
+    row.update(settlement_code=ENVELOPES_CODE, settlement_name=ENVELOPES_NAME, ballot_id="1", registered=0)
+    added = pd.DataFrame([row]).reindex(columns=ballots.columns).astype(ballots.dtypes.to_dict())
+    return pd.concat([ballots, added], ignore_index=True), estimated
 
 
 def settlements_from_ballots(ballots: pd.DataFrame) -> pd.DataFrame:
@@ -418,6 +457,11 @@ def build_election(knesset: int, cfg: dict) -> pd.DataFrame:
     stem = f"knesset_{knesset}_{cfg['year']}"
     if cfg.get("source") == "yoavfried":
         ballots = read_yoavfried(RAW / f"{stem}_ballots.csv")
+        settlements = settlements_from_ballots(ballots)
+    elif cfg.get("source") == "regular_boxes_only":
+        ballots, estimated = add_envelopes_from_official(read_raw(RAW / f"{stem}_ballots.csv"),
+                                                         OFFICIAL / f"knesset_{knesset}_totals.csv")
+        print(f"  envelope votes estimated for {len(estimated)} small lists: {' '.join(estimated)}")
         settlements = settlements_from_ballots(ballots)
     else:
         ballots = read_raw(RAW / f"{stem}_ballots.csv")
