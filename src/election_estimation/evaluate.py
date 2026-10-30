@@ -17,15 +17,26 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from election_estimation.data import KNESSETS, bloc_of, load_ballots, party_columns
+from election_estimation.data import KNESSETS, PROCESSED_DIR, bloc_of, load_ballots, party_columns
 from election_estimation.elections import seat_rules
 from election_estimation.metrics import bader_ofer, to_blocs
 from election_estimation.selection import exact_selection, greedy_selection
 
+def _areas(ballots: pd.DataFrame, knesset: int) -> pd.Series:
+    areas = pd.read_csv(PROCESSED_DIR / "ballot_areas.csv", encoding="utf-8-sig",
+                        dtype={"ballot_key": str})
+    areas = areas[areas["knesset"] == knesset].set_index("ballot_key")["area_id"]
+    unit = ballots["ballot_key"].map(areas)
+    assert unit.notna().all(), f"K{knesset}: ballots without an area"
+    return unit
+
+
 UNITS = {
-    "settlement": lambda b: b["settlement_code"].astype(str),
-    "base_box": lambda b: b["base_box"],
+    "settlement": lambda b, k: b["settlement_code"].astype(str),
+    "base_box": lambda b, k: b["base_box"],
+    "area": _areas,  # CBS 2011 statistical area, else the settlement (scripts/build_areas.py)
 }
+UNIT_KNESSETS = {"area": list(range(19, 27))}
 
 
 @dataclass
@@ -48,7 +59,7 @@ def load_election(knesset: int, unit: str = "settlement") -> Election:
     ballots = load_ballots(knesset)
     parties = party_columns(ballots)
     regular = ballots[~ballots["is_envelopes"] & (ballots["valid"] > 0)].copy()
-    regular["unit"] = UNITS[unit](regular)
+    regular["unit"] = UNITS[unit](regular, knesset)
     national = ballots[parties].sum()
     return Election(
         knesset=knesset,
@@ -63,7 +74,7 @@ def load_election(knesset: int, unit: str = "settlement") -> Election:
 
 
 def load_all(unit: str = "settlement") -> dict[int, Election]:
-    return {k: load_election(k, unit) for k in KNESSETS}
+    return {k: load_election(k, unit) for k in UNIT_KNESSETS.get(unit, KNESSETS)}
 
 
 # --- scoring -----------------------------------------------------------------

@@ -80,6 +80,26 @@ envelope rows (code 875) of the ballots file, so national totals match the offic
 Knesset 20 publishes split ballot boxes under one number (58 pairs, e.g. Jerusalem has
 21 of them); their `ballot_key` gets `-1` / `-2` in file order, `ballot_id` stays as published.
 
+## Geography: statistical areas
+
+`data/raw/geography/knesset_<N>_<year>_ballot_areas.csv` (K19-K25) are the ballot files
+of the [Israel-Elections-Map](https://github.com/Yoavfried/Israel-Elections-Map) project
+(`public-data/v1/ballots/k<N>.csv`), downloaded by the user on 2026-10-30 and stored
+byte-for-byte. Each regular box has a CBS statistical area of the 2011 vintage
+(`stat_area_id`, e.g. `stat2011:3000123`); 6-8% of the boxes per election have none
+(`statistical_area_pending`). The K17-K18 raw ballots files carry areas of other
+vintages (1995, 2008) and K16 has none, so the area unit starts at K19. The project's
+licence has not been checked yet.
+
+`scripts/build_areas.py` (run by `build_data.py`) writes `data/processed/ballot_areas.csv`
+(`knesset, ballot_key, area_id, method`) for K19-K26:
+
+- K19-K25: the project's area, matched on settlement + ballot number (all boxes match,
+  valid votes equal); boxes without an area get `loc:<settlement_code>`.
+- K26 (no area file): the most common K25 area of the same polling center (`ריכוז`,
+  95% of boxes), else the K25 box with the same settlement and number, else the
+  settlement. Checked on K24 → K25: 93% of polling centers keep their area.
+
 ## Processed files
 
 | File | Content |
@@ -89,6 +109,7 @@ Knesset 20 publishes split ballot boxes under one number (58 pairs, e.g. Jerusal
 | `knesset_<N>/national.csv` | National votes, share, threshold and seats per party |
 | `knesset_<N>_<year>.xlsx` | Excel workbook: `National`, `Settlements`, `Ballots`, `Parties` tables with formulas |
 | `ballots_long.csv.gz` | All elections, one row per (ballot, party): `votes` and `share` of valid votes |
+| `ballot_areas.csv` | K19-K26: statistical area (or settlement) of every regular box, see above |
 
 `knesset_<N>/national.csv` also carries each list's `family` and `bloc`.
 

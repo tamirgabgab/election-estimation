@@ -3,6 +3,7 @@
 Usage:
     PYTHONPATH=src python scripts/run_baselines.py settlement
     PYTHONPATH=src python scripts/run_baselines.py base_box
+    PYTHONPATH=src python scripts/run_baselines.py area        # K19-K26 only
     PYTHONPATH=src python scripts/run_baselines.py base_box --report-only   # rewrite the .md from the .csv
 """
 
@@ -11,7 +12,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from election_estimation.data import KNESSETS
 from election_estimation.evaluate import (
     evaluate,
     greedy_budget,
@@ -25,7 +25,6 @@ from election_estimation.evaluate import (
 
 REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
 KS = [10, 20, 35, 50, 70, 100]
-TESTS = KNESSETS[1:]
 RECENT = [22, 23, 24, 25, 26]
 DRAWS = 30
 SEED = 0
@@ -48,8 +47,9 @@ def summary(results: pd.DataFrame, tests: list[int]) -> pd.DataFrame:
 
 def main(unit: str, rerun: bool = True) -> None:
     csv = REPORTS_DIR / f"baselines_{unit}.csv"
+    elections = load_all(unit)
+    tests = sorted(elections)[1:]
     if rerun:
-        elections = load_all(unit)
         methods = {
             "random_pooled": random_pooled,
             "random_pps": random_pps,
@@ -59,7 +59,7 @@ def main(unit: str, rerun: bool = True) -> None:
             "milp_budget": milp_budget(decay=DECAY, pool=MILP_POOL,
                                        time_limit=MILP_TIME_LIMIT, ks=MILP_KS),
         }
-        results = evaluate(elections, methods, KS, TESTS, draws=DRAWS, seed=SEED)
+        results = evaluate(elections, methods, KS, tests, draws=DRAWS, seed=SEED)
         REPORTS_DIR.mkdir(exist_ok=True)
         results.to_csv(csv, index=False)
     else:
@@ -95,9 +95,9 @@ def main(unit: str, rerun: bool = True) -> None:
         "",
         summary(results, RECENT).round(2).to_markdown(),
         "",
-        f"## Mean over all test elections ({TESTS[0]}-{TESTS[-1]})",
+        f"## Mean over all test elections ({tests[0]}-{tests[-1]})",
         "",
-        summary(results, TESTS).round(2).to_markdown(),
+        summary(results, tests).round(2).to_markdown(),
         "",
         "## All boxes per test election",
         "",

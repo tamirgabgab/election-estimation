@@ -7,6 +7,7 @@ Reads data/raw/*, validates the files, and writes:
   data/processed/knesset_<N>_<year>.xlsx       - Excel workbook with tables and formulas
   data/processed/ballots_long.csv.gz           - all elections, one row per (ballot, party)
   reports/*.html                               - via scripts/build_reports.py
+  data/processed/ballot_areas.csv              - via scripts/build_areas.py
 
 Usage:
   python scripts/build_data.py
@@ -523,8 +524,10 @@ def main() -> None:
     long.to_csv(PROCESSED / "ballots_long.csv.gz", index=False, encoding="utf-8")
     print(f"ballots_long.csv.gz: {len(long):,} rows")
 
+    import build_areas
     import build_reports  # imports this module, so import here to avoid a cycle
 
+    build_areas.main()
     build_reports.main()
 
 
