@@ -117,6 +117,32 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   methods interpolate the training targets (greedy reaches zero training loss with about
   as many units as stacked target rows, e.g. 42 units for 44 rows), so their weights
   overfit. Regularization is the next modelling step.
+- **Weight regularization** (`scripts/run_regularization.py <unit>` →
+  `reports/regularization_{area,base_box}.{csv,md}`): three options added to
+  `greedy_budget`, each with its strength chosen per test election by inner validation
+  (the last 2 training elections, 50 boxes, seat L1): `weight_prior` (L1 pull towards
+  size-proportional weights, `mu` in 0.003/0.01/0.03), `calibration` (extra targets per
+  bloc-profile stratum: dominant bloc x pure/mixed at 60%, weight 0.3/1.0) and `noise`
+  (4 log-normal perturbed copies of each training election, sigma 0.1/0.3). Unit costs
+  are now the most boxes in the last 2 training elections (`unit_costs`), which stopped
+  budget overshoot. Seed 0, decay 0.7, 20 greedy candidates. Mean seat L1 / share L1
+  over K22–K26:
+
+  | Unit, budget | No regularization | weight_prior | calibration | noise |
+  |---|---|---|---|---|
+  | area, 35 | 15.2 / 10.3 | **12.4 / 8.6** | 14.0 / 9.0 | 14.0 / 10.4 |
+  | area, 50 | 14.8 / 10.3 | 14.0 / 9.1 | **11.6 / 9.0** | 15.6 / 10.2 |
+  | area, 70 | 18.0 / 11.1 | 18.0 / 10.0 | **11.2 / 8.2** | 14.4 / 9.9 |
+  | base box, 35 | **8.8 / 7.4** | 11.6 / 9.1 | 12.8 / 10.4 | 18.8 / 12.8 |
+  | base box, 50 | **8.4 / 7.7** | 10.4 / 7.9 | 10.8 / 9.2 | 13.6 / 10.0 |
+  | base box, 70 | 9.6 / 8.4 | **9.6 / 7.6** | 12.4 / 9.7 | 10.0 / 8.2 |
+
+  Findings: on areas, calibration targets help at 50–70 boxes, mostly by fixing K25
+  (36 → 18 seats at 50); on base boxes no regularization beats plain greedy, which stays
+  the best panel overall (8.4 seats at 50 boxes, floor 2.8). Per-election swings are
+  large (seat L1 moves in steps of 2), so with five tests only the area-calibration gain
+  at 70 boxes is clearly beyond noise. Noise replicates hurt base boxes. Inner validation
+  picked calibration 1.0 in 4 of 5 folds; `mu` and sigma vary by fold.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -298,12 +324,12 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 In short:
 
-1. **Regularize the optimized panels** - the weights interpolate the few training
-   targets. Options: penalize weights that stray from size-proportional design weights,
-   add sub-national calibration targets (per bloc stratum or district) to the stacked
-   rows, or fit on targets with noise. Compare in the harness.
+1. **Regularization follow-up** - the single regularizations did not beat plain greedy on
+   base boxes; on areas calibration helps. Options: combine calibration with the weight
+   prior, calibrate on geographic strata (district) instead of bloc profile, give the
+   seat loss a role in the greedy choice, or move on to the neural model.
 2. **Neural model** (user: later) - Hard-Concrete gates and softmax weights with the
-   combined share / seat / bloc loss, recency weights and the regularization from step 1,
+   combined share / seat / bloc loss, recency weights and the calibration targets / weight prior,
    then LP refit.
 3. **Hyperparameters** - λ, α, β, γ, μ, decay; seat L1 is the selection metric (M8).
 4. **Analysis** - panel composition, stability across folds, bloc-scheme comparison.

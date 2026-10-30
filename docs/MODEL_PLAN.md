@@ -244,6 +244,11 @@ sign of leakage.
    greedy / MILP under a box budget, for settlement, base-box and area units
    (`reports/baselines_summary.md`). Finding: optimized weights interpolate the
    training targets, so the network step needs weight regularization.
+6b. **Regularization** – done: `weight_prior`, `calibration` and `noise` in
+   `evaluate.py`, strengths by inner validation (`scripts/run_regularization.py`,
+   `reports/regularization_*.md`). Bloc-profile calibration targets help area
+   panels (11.2 vs 18.0 seats at 70 boxes); on base boxes plain greedy stays best
+   (8.4 seats at 50 boxes). The network should use calibration targets.
 7. **Network** – `election_estimation/panel_net.py` in PyTorch:
    Hard-Concrete gates, softmax weights, combined loss, hardening and LP
    refit. CPU is sufficient (6k parameters, 10 elections).
