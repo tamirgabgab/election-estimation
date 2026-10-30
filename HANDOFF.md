@@ -75,6 +75,27 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   group of sub-boxes); boxes present in all of K16–K25 hold only 42% of K25's votes.
   Knesset 16–17 ballot ids are ten times larger (61, 62 = box 6 split); `load_ballots`
   normalizes them. See `docs/MODEL_PLAN.md` section 3.1.
+- **Seat tests** (`tests/test_metrics.py`, `python -m pytest -q tests`): the modelling
+  Bader-Ofer (`metrics.py`, rules from `ELECTIONS` via `elections.py`) reproduces the
+  official seats of all eleven elections.
+- **Evaluation harness** (`src/election_estimation/evaluate.py`): rolling folds (test
+  K17–K26, training = all earlier elections), unit as a parameter, whole-unit and
+  single-box readings, share / seat / bloc / threshold metrics.
+- **Baselines** (`scripts/run_baselines.py` → `reports/baselines_{settlement,base_box}.md`),
+  mean over test elections K22–K26:
+
+  | Method, unit, reading | Panel 50 | Panel 70 |
+  |---|---|---|
+  | All regular boxes (double-envelope gap, no sampling) | 1.95 pp, 2.8 seats | same |
+  | Random PPS, base box | 17.6 pp, 24.9 seats | 14.3 pp, 20.6 seats |
+  | Greedy, base box | 8.2 pp, 13.2 seats | 7.6 pp, 13.6 seats |
+  | Greedy, settlement, whole settlement counted | 4.5 pp, 7.6 seats | 4.6 pp, 6.4 seats |
+  | Greedy, settlement, one box per settlement | 17.3 pp, 23.0 seats | 16.0 pp, 21.4 seats |
+
+  Takeaways: optimized panels beat random ones by about half; whole settlements are
+  accurate but cost far more than 50–70 boxes (cities), and reading one box of a
+  heterogeneous settlement destroys the gain. Small homogeneous units (statistical areas,
+  M7) are needed for a 50–70 box budget.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -256,15 +277,14 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 In short:
 
-1. **Data** - replace Knesset 26 with the certified files (D14), following the
-   procedure in `CLAUDE.md`.
-2. **Ballot matching** - `src/election_estimation/matching.py`: base boxes, the
-   cross-election box index, survival and drift between consecutive elections.
-3. **Metrics** - `src/election_estimation/metrics.py` exists (L1, Bader-Ofer, soft seats,
-   blocs); add tests that it reproduces the official seats of every election.
-4. **Evaluation harness** - rolling folds (train K16..t, test t+1), metric tables, Pareto
-   curve of error vs. panel size.
-5. **Baselines** - random, stratified, greedy, MILP (`selection.py` exists).
-6. **Neural model** - Hard-Concrete gates and softmax weights with the combined
-   share / seat / bloc loss, then LP refit of the weights.
-7. **Analysis** - panel composition, stability across folds, bloc-scheme comparison.
+1. **Statistical areas** (D22) - when the user uploads the Yoavfried files: build the
+   ballot → 2022 area mapping for K16–K25 (K26 through K25 namesakes), add an `area` unit
+   to `evaluate.UNITS`, rerun `scripts/run_baselines.py area`.
+2. **Box budget** - count the cost of a panel in ballot boxes (a whole small settlement
+   is one box), so units of different size compare fairly.
+3. **Baselines** - add stratified sampling and MILP to the harness.
+4. **Neural model** - Hard-Concrete gates and softmax weights with the combined
+   share / seat / bloc loss and recency weights, then LP refit of the weights.
+5. **Hyperparameters** - λ, α, β, γ, μ, decay; seat L1 is the selection metric (M8).
+6. **Analysis** - panel composition, stability across folds, bloc-scheme comparison.
+7. **Data** - replace Knesset 26 with the certified files (D14).

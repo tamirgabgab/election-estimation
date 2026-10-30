@@ -3,6 +3,7 @@
 Usage:
     PYTHONPATH=src python scripts/run_baselines.py settlement
     PYTHONPATH=src python scripts/run_baselines.py base_box
+    PYTHONPATH=src python scripts/run_baselines.py base_box --report-only   # rewrite the .md from the .csv
 """
 
 import sys
@@ -33,22 +34,26 @@ METRICS = ["seat_L1", "share_L1", "bloc_seat_L1", "bloc_share_L1", "threshold_er
 
 def summary(results: pd.DataFrame, tests: list[int]) -> pd.DataFrame:
     sub = results[results["test"].isin(tests)]
+    sub = sub.assign(k=sub["k"].where(sub["method"] != "all_boxes", "all").astype(str))
     table = sub.groupby(["method", "reading", "k"])[METRICS].mean()
-    table.loc[("all_boxes", "unit", "all"), :] = table.xs("all_boxes", level="method").mean()
-    table = table.drop(index="all_boxes", level="method", errors="ignore")
-    return table.sort_index()
+    return table.sort_index(key=lambda i: i.map(lambda v: int(v) if v.isdigit() else -1)
+                            if i.name == "k" else i)
 
 
-def main(unit: str) -> None:
-    elections = load_all(unit)
-    methods = {
-        "random_pooled": random_pooled,
-        "random_pps": random_pps,
-        "greedy": greedy_weighted(decay=DECAY, candidates=CANDIDATES),
-    }
-    results = evaluate(elections, methods, KS, TESTS, draws=DRAWS, seed=SEED)
-    REPORTS_DIR.mkdir(exist_ok=True)
-    results.to_csv(REPORTS_DIR / f"baselines_{unit}.csv", index=False)
+def main(unit: str, rerun: bool = True) -> None:
+    csv = REPORTS_DIR / f"baselines_{unit}.csv"
+    if rerun:
+        elections = load_all(unit)
+        methods = {
+            "random_pooled": random_pooled,
+            "random_pps": random_pps,
+            "greedy": greedy_weighted(decay=DECAY, candidates=CANDIDATES),
+        }
+        results = evaluate(elections, methods, KS, TESTS, draws=DRAWS, seed=SEED)
+        REPORTS_DIR.mkdir(exist_ok=True)
+        results.to_csv(csv, index=False)
+    else:
+        results = pd.read_csv(csv)
 
     all_boxes = results[results["method"] == "all_boxes"].set_index("test")[METRICS]
     lines = [
@@ -87,4 +92,4 @@ def main(unit: str) -> None:
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "settlement")
+    main(sys.argv[1] if len(sys.argv) > 1 else "settlement", rerun="--report-only" not in sys.argv)

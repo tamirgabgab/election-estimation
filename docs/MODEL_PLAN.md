@@ -235,13 +235,13 @@ sign of leakage.
    sampling unit (M7) and build the cross-election unit index for it.
 3. **Party files** – done for every election (`data/parties/`); add a
    helper in `data.py` that produces `B_e` for a bloc scheme.
-4. **Metrics** – `metrics.py` (exists): L1, Bader-Ofer, soft seats, bloc
-   aggregation. Add a test that it reproduces the official seats of every
-   election, using the thresholds and agreements in `ELECTIONS`.
-5. **Evaluation harness** – `election_estimation/evaluate.py`: rolling
-   folds, metric table, Pareto curve plotting. Everything downstream plugs
-   into it.
-6. **Baselines** – random, stratified, greedy, MILP through the harness.
+4. **Metrics** – done: `metrics.py` and `tests/test_metrics.py` (official
+   seats of every election reproduced).
+5. **Evaluation harness** – done: `evaluate.py` (rolling folds, unit as a
+   parameter, whole-unit and single-box readings) and
+   `scripts/run_baselines.py`; results in `reports/baselines_*.md`.
+6. **Baselines** – random (uniform, PPS) and greedy done; stratified and
+   MILP to add.
 7. **Network** – `election_estimation/panel_net.py` in PyTorch:
    Hard-Concrete gates, softmax weights, combined loss, hardening and LP
    refit. CPU is sufficient (6k parameters, 10 elections).
@@ -264,7 +264,7 @@ src/election_estimation/
     metrics.py     L1, Bader-Ofer, soft seats, blocs           (exists)
     selection.py   LP weights, greedy, MILP, random            (exists)
     matching.py    cross-election box matching diagnostics      (exists)
-    evaluate.py    rolling validation harness
+    evaluate.py    rolling validation harness                   (exists)
     panel_net.py   gated selection network
 scripts/
     explore_knesset.py                   per-election report   (exists)
