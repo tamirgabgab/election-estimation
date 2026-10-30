@@ -37,7 +37,9 @@ Follow these steps every time, in this order, so every election is handled the s
    per settlement (`settlements`). Knesset 17-18 come from the Yoavfried/Israel-Elections-Map
    project instead (one ballots file with an `is_envelope` column, `"source": "yoavfried"`
    in the config, settlements summed from the ballots); use that path for any other
-   election that only has such a file. Confirm the Knesset number, year and election date;
+   election that only has such a file. Knesset 16 has regular boxes only
+   (`"source": "regular_boxes_only"`): its envelopes row is official totals
+   (`data/official/knesset_<N>_totals.csv`) minus the regular boxes. Confirm the Knesset number, year and election date;
    ask the user if any of them is unclear. If only one of the two files arrived, ask for
    the other before building.
 2. **Inspect** - encoding (UTF-8 or Windows-1255), header names vs. `COLUMN_NAMES` in

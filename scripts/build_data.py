@@ -43,6 +43,16 @@ ENVELOPES_NAME = "מעטפות חיצוניות"
 # source "regular_boxes_only": a committee-layout ballots file without envelope votes; an
 #   envelopes row is added from data/official/knesset_<N>_totals.csv.
 ELECTIONS = {
+    16: {
+        "year": 2003,
+        "date": "2003-01-28",
+        "threshold": 0.015,
+        "seats": 120,
+        # The six published agreements; Shinui + Greens had no effect (Greens failed).
+        "surplus_agreements": [("אמת", "מרצ"), ("יש", "רק"), ("ל", "כן"), ("ב", "ם"), ("שס", "ג"), ("ו", "ד")],
+        # harelc/elections-vote-transfer ballot16.csv: regular boxes only.
+        "source": "regular_boxes_only",
+    },
     17: {
         "year": 2006,
         "date": "2006-03-28",

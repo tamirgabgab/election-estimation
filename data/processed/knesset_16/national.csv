@@ -1,0 +1,29 @@
+﻿letter,name_he,name_en,family,bloc,votes,share,passed_threshold,seats
+מחל,הליכוד,Likud,Likud,right,925279,0.29389200232247603,True,38
+אמת,העבודה-מימד,Labor-Meimad,Labor-Meimad,center_left,455183,0.14457762825391218,True,19
+יש,שינוי,Shinui,Shinui,center_left,386535,0.12277328796797321,True,15
+שס,"ש""ס",Shas,Shas,haredi,258879,0.08222651510435261,True,11
+ל,האיחוד הלאומי,National Union,National Union,right,173973,0.05525822300089824,True,7
+מרצ,מרצ,Meretz,Meretz,center_left,164122,0.05212929635836263,True,6
+ג,יהדות התורה,United Torah Judaism,United Torah Judaism,haredi,135087,0.04290704632628248,True,5
+ב,"המפד""ל",National Religious Party,National Religious Party,right,132370,0.04204405843796969,True,6
+ו,"חד""ש-תע""ל",Hadash-Ta'al,Hadash-Ta'al,arab,93819,0.029799286232468674,True,3
+ם,עם אחד,One Nation,One Nation,center_left,86808,0.027572415387801412,True,3
+ד,"בל""ד",Balad,Balad,arab,71299,0.02264636490570976,True,3
+כן,ישראל בעלייה,Yisrael BaAliyah,Yisrael BaAliyah,right,67719,0.02150926639994613,True,2
+עם,"רע""ם",United Arab List (Ra'am),Ra'am,arab,65551,0.020820654790869163,True,2
+קנ,,,,other,37855,0.012023705009967082,False,0
+נץ,,,,other,36202,0.011498670420573988,False,0
+צף,,,,other,20571,0.006533869654207709,False,0
+רק,,,,other,12833,0.004076085230297386,False,0
+נ,,,,other,6763,0.002148099774994251,False,0
+זנ,,,,other,5614,0.0017831483271946954,False,0
+פה,,,,other,2051,0.0006514494512070396,False,0
+צ,,,,other,2033,0.0006457321961501275,False,0
+ק,,,,other,2014,0.0006396973158122758,False,0
+קך,,,,other,1593,0.0005059770725367207,False,0
+ט,,,,other,1265,0.00040179598038854464,False,0
+קץ,,,,other,1214,0.00038559709106062703,False,0
+ז,,,,other,890,0.0002826865000362093,False,0
+ף,,,,other,842,0.00026744048655111036,False,0
+זך,,,,other,0,0.0,False,0

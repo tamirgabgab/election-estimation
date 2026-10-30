@@ -11,6 +11,9 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 ## Done
 
 - **Election data** in `data/raw/`, byte-identical to the committee's files:
+  Knesset 16 (2003): `harelc/elections-vote-transfer` `ballot16.csv` (committee layout,
+  regular boxes only); the envelopes row is official totals minus the regular boxes,
+  from `data/official/knesset_16_totals.csv` (see D12),
   Knesset 17 (2006) and 18 (2009): one ballots file each from the Yoavfried/Israel-Elections-Map
   project (`public-data/v1/ballots/k17.csv`, `k18.csv`; envelopes included, totals equal the
   official ones; settlements are summed from the ballots),
@@ -24,6 +27,8 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   - validates `voters = invalid + valid`, party sums = `valid`, unique ballot ids,
     and ballots summed per settlement = settlements file;
   - reads UTF-8 and Windows-1255 files, drops empty trailing columns;
+  - for Knesset 16, adds the envelopes row with `add_envelopes_from_official`; read_raw
+    skips its trailing DOS end-of-file row and its "0.0" counts;
   - reads the Yoavfried schema for Knesset 17-18 (`read_yoavfried`): envelope rows by
     `is_envelope`, their registered voters set to 0 (the project copies actual voters there
     in K18); settlements summed with `settlements_from_ballots`;
@@ -38,10 +43,10 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
     settlements file has no envelopes row (its totals are regular votes only), so the row
     is summed from the ballots file (code 875 there);
   - computes national shares and seats (threshold + Bader-Ofer with surplus
-    agreements), reproducing the official result of all nine elections;
+    agreements), reproducing the official result of all ten elections;
   - writes per-election CSVs, an Excel workbook with tables and formulas (checked
     in LibreOffice, no errors), and `ballots_long.csv.gz` for all elections.
-- **Party tables** `data/parties/knesset_{17..25}_parties.csv`: lists that passed the
+- **Party tables** `data/parties/knesset_{16..25}_parties.csv`: lists that passed the
   threshold are named and have a `family` and a `bloc` (right, haredi, center-left, arab);
   small lists are marked `verified = no`, bloc `other`.
 - **HTML reports** in `reports/` (built by `scripts/build_reports.py`): one results page
@@ -57,6 +62,7 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
 | Knesset | Date | Registered | Turnout | Valid | Regular boxes | Envelope rows | Envelope votes | Split box ids | Lists / passed | Regular vs national L1 (pp) |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 16 | 2003-01-28 | 4,720,075 | 67.81% | 3,148,364 | 7,736 | 1 | 155,933 (4.95%) | 0 | 28 / 13 | 1.66 |
 | 17 | 2006-03-28 | 5,011,053 | 63.59% | 3,137,064 | 8,277 | 149 | 171,390 (5.46%) | 0 | 31 / 12 | 1.68 |
 | 18 | 2009-02-10 | 5,278,985 | 64.72% | 3,373,490 | 9,263 | 1 | 184,391 (5.47%) | 6 | 34 / 12 | 1.28 |
 | 19 | 2013-01-22 | 5,656,705 | 67.77% | 3,792,742 | 9,881 | 228 | 212,949 (5.61%) | 4 | 34 / 12 | 1.55 |
@@ -68,6 +74,7 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 | 25 | 2022-11-01 | 6,788,804 | 70.63% | 4,764,742 | 11,707 | 838 | 458,714 (9.63%) | 7,342 | 40 / 10 | 2.18 |
 
 Envelope bias examples (regular boxes vs. envelopes):
+- Knesset 16: Shinui 12.00% vs 17.51%, Likud 29.15% vs 34.01%, UTJ 4.44% vs 1.48%, Shas 8.38% vs 5.28% (envelopes derived from official totals).
 - Knesset 17: National Union-NRP 6.96% vs 10.32%, Kadima 21.94% vs 23.46%, Ra'am-Ta'al 3.16% vs 0.62%, UTJ 4.83% vs 2.30%.
 - Knesset 18: Likud 21.41% vs 25.17%, Yisrael Beiteinu 11.60% vs 13.30%, Ra'am-Ta'al 3.53% vs 0.75%, Hadash 3.46% vs 0.94%.
 - Knesset 19: Jewish Home 8.77% vs 15.11%, Yesh Atid 14.22% vs 16.23%, Ra'am-Ta'al 3.80% vs 1.14%, UTJ 5.33% vs 2.37%.
@@ -139,7 +146,9 @@ move answered items to "Decisions" below with the answer.
 | B12 | Likud-Yisrael Beiteinu (K19, joint list) | right | right |
 | B13 | Hatnua (K19, Livni) and Kadima (K17-19): centrist lists | center-left | center-left; center (see B2) |
 | B14 | Gil Pensioners (K17, 7 seats, in the Kadima-led coalition) | other | other; center-left |
-| B15 | National Union (K18) and National Union-NRP (K17) | right | right |
+| B15 | National Union (K16, K18) and National Union-NRP (K17) | right | right |
+| B16 | Shinui (K16, secular liberal) and One Nation (K16, Amir Peretz, later merged into Labor) | center-left | center-left; center (see B2) |
+| B17 | Yisrael BaAliyah (K16, Sharansky, later merged into Likud) and NRP (K16) | right | right |
 
 ### Party families (`family` column; used for party averages in the report)
 
@@ -155,7 +164,9 @@ move answered items to "Decisions" below with the answer.
 | F8 | Jewish Home (K19-20, under Bennett) and Jewish Home (K25, a much smaller list) | One family "Jewish Home" | Keep; split; link K19-20 to Yamina / New Right |
 | F9 | Likud-Yisrael Beiteinu (K19) | Own family | Keep; count under Likud (and Yisrael Beiteinu is then missing in K19) |
 | F10 | Hatnua (K19), later part of Zionist Union (K20) | Own family | Keep; link to Zionist Union |
-| F12 | Labor-Meimad (K17) | Own family | Merge into Labor; keep |
+| F12 | Labor-Meimad (K16-17) | Own family | Merge into Labor; keep |
+| F15 | United Arab List (K16) | Family "Ra'am" (shared with K24-25) | Keep; split |
+| F16 | Hadash-Ta'al (K16) | Family "Hadash-Ta'al" (shared with K21, K25) | Keep; split |
 | F13 | Meretz-Yachad (K17) and New Movement-Meretz (K18): Meretz under other names | Family "Meretz" | Keep; split |
 | F14 | National Union-NRP (K17), National Union (K18), Jewish Home (K18-20) | Own families, Jewish Home shared with K19-20 and K25 | Keep; build a lineage (see F5, F8) |
 | F11 | Hadash, Balad and Ra'am-Ta'al (K19) ran separately; Joint List (K20, K22-24) united them | Each name is its own family | Keep; see F6 |
@@ -171,7 +182,8 @@ move answered items to "Decisions" below with the answer.
 | D5 | Knesset 26 (October 2026) | Not added | Add provisional results now; wait for the final results (~2026-11-04) |
 | D6 | How far back to go | Plan: Knesset 16-26 | K17-18 usable (Yoavfried, with envelopes; or official files if the user downloads them); K16 only without envelopes so far; K14-15 unknown |
 | D11 | Knesset 17 eligible voters per box were recovered by the Yoavfried project from archived reports (total 5,011,053), not taken from the official file | Used as is | Keep; replace with official numbers if found |
-| D12 | Knesset 16 (2003): only `harelc/ballot16.csv`, regular boxes without the ~156k envelope votes; Knesset 14-15: no file found | Not added | Add K16 with an envelopes row = official national totals minus regular boxes (needs official per-list votes); wait for official files |
+| D12 | Knesset 16 envelopes row: official totals minus regular boxes. Official votes of the 17 largest lists and the totals come from Wikidata / IFES ElectionGuide (found by web search; Wikipedia itself is blocked here); the 1,707 envelope votes of the 11 smallest lists are split in proportion to their regular votes (estimate) | Added this way | Keep; replace with the official envelope file if found |
+| D13 | Knesset 14-15 (1996, 1999): no ballot-level file found; maybe on odata.org.il | Not added | User downloads from odata.org.il; skip |
 | D10 | Source for K16-18: official data.gov.il / odata files downloaded by the user, or the GitHub copies | Yoavfried for K17-18 (added); replace with official files if the user gets them | Keep; switch to official |
 | D7 | Knesset 20: Kulanu needs a surplus agreement to reach its official 10 seats; the partner is unknown (Shas, UTJ, Yisrael Beiteinu, Meretz, Yesh Atid or Zionist Union all work) | Placeholder: Kulanu + Yisrael Beiteinu | User confirms the real partner |
 | D8 | Knesset 20 split boxes share one number; their order (`-1`, `-2`) follows the file | File order | Keep; ignore the difference (merge, see M5) |
@@ -194,9 +206,9 @@ None yet.
 
 ## Next steps
 
-1. **Data** - Knesset 16 (threshold 1.5%, see D12) and earlier, and Knesset 26 once final
+1. **Data** - Knesset 14-15 if files are found (D13); Knesset 26 once final, and Knesset 26 once final
    (expected around 2026-11-04), following the procedure in `CLAUDE.md`.
-2. **First held-out pairs** - Knesset 17 → 18 through 24 → 25 are available: run the
+2. **First held-out pairs** - Knesset 16 → 17 through 24 → 25 are available: run the
    baselines with selection on `t` and evaluation on `t+1`.
 3. **Ballot matching** - merge split boxes (`283.1` + `283.2` → `283`) and match boxes
    across elections by settlement + ballot number, or via statistical areas.

@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>כנסת 16 – תוצאות</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --ring: rgba(11, 11, 11, 0.10);
+  --wash: rgba(11, 11, 11, 0.04);
+  --bloc-right: #2a78d6;
+  --bloc-haredi: #eb6834;
+  --bloc-center_left: #1baf7a;
+  --bloc-arab: #eda100;
+  --bloc-other: #b9b8b1;
+  --on-right: #ffffff;
+  --on-haredi: #ffffff;
+  --on-center_left: #ffffff;
+  --on-arab: #0b0b0b;
+  --on-other: #0b0b0b;
+  --good: #006300;
+  --critical: #d03b3b;
+  --accent: #2a78d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --ring: rgba(255, 255, 255, 0.10);
+    --wash: rgba(255, 255, 255, 0.05);
+    --bloc-right: #3987e5;
+    --bloc-haredi: #d95926;
+    --bloc-center_left: #199e70;
+    --bloc-arab: #c98500;
+    --bloc-other: #5a5955;
+    --on-other: #f0efec;
+    --good: #0ca30c;
+    --critical: #e66767;
+    --accent: #3987e5;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --ring: rgba(255, 255, 255, 0.10);
+  --wash: rgba(255, 255, 255, 0.05);
+  --bloc-right: #3987e5;
+  --bloc-haredi: #d95926;
+  --bloc-center_left: #199e70;
+  --bloc-arab: #c98500;
+  --bloc-other: #5a5955;
+  --on-other: #f0efec;
+  --good: #0ca30c;
+  --critical: #e66767;
+  --accent: #3987e5;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 28px; margin: 0 0 4px; }
+h2 { font-size: 19px; margin: 0 0 12px; }
+.sub { color: var(--ink-2); margin: 0 0 20px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-bottom: 20px; }
+.tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 3px; }
+.tabs button, .seg button {
+  border: 0; background: transparent; color: var(--ink-2); font: inherit;
+  padding: 6px 14px; border-radius: 8px; cursor: pointer;
+}
+.tabs button[aria-selected="true"], .seg button[aria-pressed="true"] { background: var(--wash); color: var(--ink); font-weight: 600; }
+select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--axis); background: var(--surface); color: var(--ink); }
+.seg { display: inline-flex; gap: 2px; border: 1px solid var(--ring); border-radius: 10px; padding: 3px; background: var(--surface); }
+.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 14px; padding: 14px 16px; }
+.tile .label { color: var(--ink-2); font-size: 13px; }
+.tile .value { font-size: 24px; font-weight: 600; }
+.tile .note { color: var(--muted); font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--ink-2); font-size: 13px; margin: 8px 0 12px; }
+.legend span::before {
+  content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+  background: var(--sw); margin-inline-end: 6px; vertical-align: -1px;
+}
+.stack { position: relative; display: flex; gap: 2px; height: 40px; }
+.stack .seg-fill {
+  height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden;
+  font-size: 13px; font-weight: 600; white-space: nowrap; min-width: 0;
+}
+.stack .seg-fill:first-child { border-start-start-radius: 4px; border-end-start-radius: 4px; }
+.stack .seg-fill:last-of-type { border-start-end-radius: 4px; border-end-end-radius: 4px; }
+.majority { position: absolute; top: -6px; bottom: -6px; width: 0; border-inline-start: 2px dashed var(--ink); pointer-events: none; }
+.majority span { position: absolute; top: -20px; transform: translateX(50%); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.stack-rows { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 14px 12px; align-items: center; margin-top: 24px; }
+.stack-rows .row-label { color: var(--ink-2); font-size: 13px; white-space: nowrap; }
+.bars { display: grid; grid-template-columns: minmax(110px, max-content) 1fr; gap: 6px 10px; align-items: center; }
+.bars .name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bars .track { height: 18px; display: flex; align-items: center; gap: 8px; }
+.bars .fill { height: 100%; border-start-end-radius: 4px; border-end-end-radius: 4px; min-width: 2px; }
+.bars .num { font-variant-numeric: tabular-nums; font-weight: 600; text-align: start; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 7px 10px; text-align: start; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th { color: var(--ink-2); font-weight: 600; font-size: 13px; }
+td.n { font-variant-numeric: tabular-nums; }
+tr.dim td { color: var(--muted); }
+tr.total td { font-weight: 600; border-top: 1px solid var(--axis); }
+.share-cell { display: flex; align-items: center; gap: 8px; min-width: 220px; }
+.share-cell .val { width: 56px; font-variant-numeric: tabular-nums; }
+.share-track { position: relative; flex: 1; height: 12px; }
+.share-track .fill { height: 100%; background: var(--accent); border-start-end-radius: 4px; border-end-end-radius: 4px; min-width: 1px; }
+tr.dim .share-track .fill { background: var(--axis); }
+.share-track .thr { position: absolute; top: -3px; bottom: -3px; border-inline-start: 2px solid var(--critical); }
+.status { font-weight: 600; }
+.status.ok { color: var(--good); }
+.status.no { color: var(--critical); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-inline-end: 6px; vertical-align: -1px; }
+.more { margin-top: 10px; font: inherit; color: var(--accent); background: none; border: 0; cursor: pointer; padding: 4px 0; }
+.notes { color: var(--ink-2); font-size: 13px; }
+.notes p { margin: 4px 0; }
+.checks { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; }
+.checks label { cursor: pointer; }
+#tip {
+  position: fixed; pointer-events: none; z-index: 10; display: none;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--ring);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); border-radius: 8px; padding: 8px 10px; font-size: 13px; max-width: 260px;
+}
+#tip b { display: block; margin-bottom: 2px; }
+[hidden] { display: none !important; }
+@media (max-width: 600px) {
+  h1 { font-size: 22px; }
+  .tile .value { font-size: 20px; }
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+  .stack-rows { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .stack-rows .row-label { margin-top: 10px; }
+  .bars { grid-template-columns: minmax(80px, 120px) 1fr; }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title"></h1>
+  <p class="sub" id="subtitle"></p>
+
+  <div class="toolbar" id="toolbar" hidden>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-view="election" aria-selected="true">תוצאות לפי כנסת</button>
+      <button role="tab" data-view="compare" aria-selected="false">השוואה בין כנסות</button>
+    </div>
+    <label id="knesset-picker">כנסת:
+      <select id="knesset-select"></select>
+    </label>
+  </div>
+
+  <section id="view-election"></section>
+
+  <section id="view-compare" hidden>
+    <div class="card">
+      <h2>הגדרות השוואה</h2>
+      <div class="toolbar" style="margin-bottom: 8px">
+        <div class="seg" id="group-seg">
+          <button data-group="bloc" aria-pressed="true">לפי גושים</button>
+          <button data-group="family" aria-pressed="false">לפי מפלגות</button>
+        </div>
+        <div class="seg" id="metric-seg">
+          <button data-metric="seats" aria-pressed="true">מנדטים</button>
+          <button data-metric="share" aria-pressed="false">אחוז קולות</button>
+        </div>
+      </div>
+      <div class="checks" id="compare-checks"></div>
+      <p class="notes">הממוצע מחושב על הכנסות המסומנות. במפלגות, הממוצע הוא רק על הכנסות שבהן המפלגה רצה, ומספרן מופיע בעמודה "כנסות".</p>
+    </div>
+    <div class="card" id="compare-chart-card">
+      <h2 id="compare-chart-title"></h2>
+      <div class="legend" id="compare-legend"></div>
+      <div class="stack-rows" id="compare-chart"></div>
+    </div>
+    <div class="card">
+      <h2 id="compare-table-title"></h2>
+      <div class="table-wrap"><table id="compare-table"></table></div>
+    </div>
+  </section>
+
+  <div class="notes card" id="footer"></div>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const DATA = {"multi":false,"elections":[{"knesset":16,"year":2003,"date":"2003-01-28","threshold":0.015,"source":"regular_boxes_only","seats_total":120,"surplus_agreements":[["העבודה-מימד","מרצ"],["שינוי","רק"],["האיחוד הלאומי","ישראל בעלייה"],["המפד\"ל","עם אחד"],["ש\"ס","יהדות התורה"],["חד\"ש-תע\"ל","בל\"ד"]],"registered":4720075,"voters":3200773,"invalid":52409,"valid":3148364,"regular_boxes":7736,"envelope_rows":1,"parties":[{"letter":"מחל","name_he":"הליכוד","name_en":"Likud","family":"Likud","bloc":"right","votes":925279,"share":0.293892,"passed":true,"seats":38},{"letter":"אמת","name_he":"העבודה-מימד","name_en":"Labor-Meimad","family":"Labor-Meimad","bloc":"center_left","votes":455183,"share":0.144578,"passed":true,"seats":19},{"letter":"יש","name_he":"שינוי","name_en":"Shinui","family":"Shinui","bloc":"center_left","votes":386535,"share":0.122773,"passed":true,"seats":15},{"letter":"שס","name_he":"ש\"ס","name_en":"Shas","family":"Shas","bloc":"haredi","votes":258879,"share":0.082227,"passed":true,"seats":11},{"letter":"ל","name_he":"האיחוד הלאומי","name_en":"National Union","family":"National Union","bloc":"right","votes":173973,"share":0.055258,"passed":true,"seats":7},{"letter":"מרצ","name_he":"מרצ","name_en":"Meretz","family":"Meretz","bloc":"center_left","votes":164122,"share":0.052129,"passed":true,"seats":6},{"letter":"ג","name_he":"יהדות התורה","name_en":"United Torah Judaism","family":"United Torah Judaism","bloc":"haredi","votes":135087,"share":0.042907,"passed":true,"seats":5},{"letter":"ב","name_he":"המפד\"ל","name_en":"National Religious Party","family":"National Religious Party","bloc":"right","votes":132370,"share":0.042044,"passed":true,"seats":6},{"letter":"ו","name_he":"חד\"ש-תע\"ל","name_en":"Hadash-Ta'al","family":"Hadash-Ta'al","bloc":"arab","votes":93819,"share":0.029799,"passed":true,"seats":3},{"letter":"ם","name_he":"עם אחד","name_en":"One Nation","family":"One Nation","bloc":"center_left","votes":86808,"share":0.027572,"passed":true,"seats":3},{"letter":"ד","name_he":"בל\"ד","name_en":"Balad","family":"Balad","bloc":"arab","votes":71299,"share":0.022646,"passed":true,"seats":3},{"letter":"כן","name_he":"ישראל בעלייה","name_en":"Yisrael BaAliyah","family":"Yisrael BaAliyah","bloc":"right","votes":67719,"share":0.021509,"passed":true,"seats":2},{"letter":"עם","name_he":"רע\"ם","name_en":"United Arab List (Ra'am)","family":"Ra'am","bloc":"arab","votes":65551,"share":0.020821,"passed":true,"seats":2},{"letter":"קנ","name_he":"","name_en":"","family":"","bloc":"other","votes":37855,"share":0.012024,"passed":false,"seats":0},{"letter":"נץ","name_he":"","name_en":"","family":"","bloc":"other","votes":36202,"share":0.011499,"passed":false,"seats":0},{"letter":"צף","name_he":"","name_en":"","family":"","bloc":"other","votes":20571,"share":0.006534,"passed":false,"seats":0},{"letter":"רק","name_he":"","name_en":"","family":"","bloc":"other","votes":12833,"share":0.004076,"passed":false,"seats":0},{"letter":"נ","name_he":"","name_en":"","family":"","bloc":"other","votes":6763,"share":0.002148,"passed":false,"seats":0},{"letter":"זנ","name_he":"","name_en":"","family":"","bloc":"other","votes":5614,"share":0.001783,"passed":false,"seats":0},{"letter":"פה","name_he":"","name_en":"","family":"","bloc":"other","votes":2051,"share":0.000651,"passed":false,"seats":0},{"letter":"צ","name_he":"","name_en":"","family":"","bloc":"other","votes":2033,"share":0.000646,"passed":false,"seats":0},{"letter":"ק","name_he":"","name_en":"","family":"","bloc":"other","votes":2014,"share":0.00064,"passed":false,"seats":0},{"letter":"קך","name_he":"","name_en":"","family":"","bloc":"other","votes":1593,"share":0.000506,"passed":false,"seats":0},{"letter":"ט","name_he":"","name_en":"","family":"","bloc":"other","votes":1265,"share":0.000402,"passed":false,"seats":0},{"letter":"קץ","name_he":"","name_en":"","family":"","bloc":"other","votes":1214,"share":0.000386,"passed":false,"seats":0},{"letter":"ז","name_he":"","name_en":"","family":"","bloc":"other","votes":890,"share":0.000283,"passed":false,"seats":0},{"letter":"ף","name_he":"","name_en":"","family":"","bloc":"other","votes":842,"share":0.000267,"passed":false,"seats":0},{"letter":"זך","name_he":"","name_en":"","family":"","bloc":"other","votes":0,"share":0.0,"passed":false,"seats":0}]}]};
+
+const BLOCS = [
+  { id: "right", label: "ימין" },
+  { id: "haredi", label: "חרדים" },
+  { id: "center_left", label: "מרכז-שמאל" },
+  { id: "arab", label: "ערבים" },
+  { id: "other", label: "אחר" },
+];
+const BLOC_LABEL = Object.fromEntries(BLOCS.map(b => [b.id, b.label]));
+const fmtInt = n => new Intl.NumberFormat("he-IL").format(n);
+const fmtPct = (x, d = 2) => (x * 100).toFixed(d) + "%";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const blocVar = id => `var(--bloc-${id})`;
+const partyName = p => p.name_he || `רשימה ${p.letter}`;
+
+// ---------- tooltip ----------
+const tip = document.getElementById("tip");
+document.addEventListener("mousemove", e => {
+  const el = e.target.closest("[data-tip]");
+  if (!el) { tip.style.display = "none"; return; }
+  tip.innerHTML = el.dataset.tip;
+  tip.style.display = "block";
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + w > innerWidth - 8) x = e.clientX - w - 14;
+  if (y + h > innerHeight - 8) y = e.clientY - h - 14;
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+});
+
+// ---------- aggregation ----------
+function blocTotals(el) {
+  const t = Object.fromEntries(BLOCS.map(b => [b.id, { votes: 0, seats: 0, share: 0, lists: [] }]));
+  for (const p of el.parties) {
+    const b = t[p.bloc];
+    b.votes += p.votes; b.seats += p.seats; b.share += p.share;
+    if (p.seats > 0) b.lists.push(p);
+  }
+  return t;
+}
+
+function stackBar(segments, total, opts = {}) {
+  // segments: [{id, value, label, tipHtml}]
+  let html = `<div class="stack">`;
+  for (const s of segments) {
+    if (s.value <= 0) continue;
+    const w = (s.value / total) * 100;
+    // fitLabels() later picks the longest label that fits the rendered width.
+    html += `<div class="seg-fill" style="flex: 0 0 calc(${w}% - 2px); background: ${blocVar(s.id)}; color: var(--on-${s.id})"
+      data-full="${esc(s.label)} ${esc(s.valueText)}" data-short="${esc(s.valueText)}" data-tip="${esc(s.tipHtml)}"></div>`;
+  }
+  if (opts.majority) {
+    const pos = (opts.majority / total) * 100;
+    const label = opts.majorityLabel === false ? "" : `<span>${opts.majority} – רוב</span>`;
+    html += `<div class="majority" style="inset-inline-start: ${pos}%">${label}</div>`;
+  }
+  return html + `</div>`;
+}
+
+function fitLabels() {
+  for (const el of document.querySelectorAll(".seg-fill[data-full]")) {
+    const span = document.createElement("span");
+    el.replaceChildren(span);
+    for (const text of [el.dataset.full, el.dataset.short, ""]) {
+      span.textContent = text;
+      if (span.offsetWidth <= el.clientWidth - 8) break;
+    }
+  }
+}
+addEventListener("resize", fitLabels);
+
+function blocLegend() {
+  return BLOCS.map(b => `<span style="--sw: ${blocVar(b.id)}">${b.label}</span>`).join("");
+}
+
+// ---------- single election view ----------
+function renderElection(el) {
+  const blocs = blocTotals(el);
+  const seated = el.parties.filter(p => p.seats > 0).sort((a, b) => b.seats - a.seats || b.votes - a.votes);
+  const maxSeats = Math.max(...seated.map(p => p.seats));
+  const thresholdVotes = Math.ceil(el.valid * el.threshold);
+
+  const tiles = [
+    ["בעלי זכות בחירה", fmtInt(el.registered), ""],
+    ["מצביעים", fmtInt(el.voters), ""],
+    ["אחוז הצבעה", fmtPct(el.voters / el.registered), ""],
+    ["קולות כשרים", fmtInt(el.valid), ""],
+    ["קולות פסולים", fmtInt(el.invalid), fmtPct(el.invalid / el.voters) + " מהמצביעים"],
+    ["אחוז החסימה", fmtPct(el.threshold), fmtInt(thresholdVotes) + " קולות"],
+    ["קלפיות", fmtInt(el.regular_boxes), "ועוד " + fmtInt(el.envelope_rows) + " שורות מעטפות כפולות"],
+    ["רשימות", fmtInt(el.parties.length), seated.length + " עברו את אחוז החסימה"],
+  ];
+
+  const blocSegments = BLOCS.map(b => ({
+    id: b.id, value: blocs[b.id].seats, label: b.label, valueText: String(blocs[b.id].seats),
+    tipHtml: `<b>${b.label}</b>${blocs[b.id].seats} מנדטים · ${fmtPct(blocs[b.id].share)} מהקולות<br>` +
+      blocs[b.id].lists.map(p => `${esc(partyName(p))}: ${p.seats}`).join("<br>"),
+  }));
+
+  const seatBars = seated.map(p => `
+    <div class="name" title="${esc(partyName(p))}">${esc(partyName(p))}</div>
+    <div class="track"><div class="fill" style="width: calc((100% - 32px) * ${p.seats / maxSeats}); background: ${blocVar(p.bloc)}"
+      data-tip="<b>${esc(partyName(p))}</b>${p.seats} מנדטים · ${fmtPct(p.share)}<br>גוש: ${BLOC_LABEL[p.bloc]}"></div>
+      <div class="num">${p.seats}</div></div>`).join("");
+
+  const sorted = [...el.parties].sort((a, b) => b.votes - a.votes);
+  const maxShare = sorted[0].share;
+  const thrPos = Math.min(100, (el.threshold / maxShare) * 100);
+  const rows = sorted.map((p, i) => `
+    <tr class="${p.passed ? "" : "dim"}" data-rank="${i}" ${!p.passed && i >= 15 ? "hidden" : ""}>
+      <td><span class="dot" style="background: ${blocVar(p.bloc)}"></span>${esc(partyName(p))}</td>
+      <td>${esc(p.letter)}</td>
+      <td>${BLOC_LABEL[p.bloc]}</td>
+      <td class="n">${fmtInt(p.votes)}</td>
+      <td><div class="share-cell"><span class="val">${fmtPct(p.share)}</span>
+        <div class="share-track"><div class="fill" style="width: ${(p.share / maxShare) * 100}%"></div>
+        <div class="thr" style="inset-inline-start: ${thrPos}%"></div></div></div></td>
+      <td>${p.passed ? '<span class="status ok">✓ עברה</span>' : '<span class="status no">✗ לא עברה</span>'}</td>
+      <td class="n">${p.seats}</td>
+    </tr>`).join("");
+  const hiddenCount = sorted.filter((p, i) => !p.passed && i >= 15).length;
+
+  const blocRows = BLOCS.map(b => `
+    <tr><td><span class="dot" style="background: ${blocVar(b.id)}"></span>${b.label}</td>
+      <td class="n">${fmtInt(blocs[b.id].votes)}</td><td class="n">${fmtPct(blocs[b.id].share)}</td>
+      <td class="n">${blocs[b.id].seats}</td></tr>`).join("");
+
+  document.getElementById("view-election").innerHTML = `
+    <div class="tiles">${tiles.map(([l, v, n]) => `
+      <div class="tile"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join("")}
+    </div>
+    <div class="card">
+      <h2>מנדטים לפי גושים</h2>
+      <div class="legend">${blocLegend()}</div>
+      <div style="padding-top: 18px">${stackBar(blocSegments, el.seats_total, { majority: Math.floor(el.seats_total / 2) + 1 })}</div>
+      <div class="table-wrap" style="margin-top: 16px"><table>
+        <thead><tr><th>גוש</th><th>קולות</th><th>אחוז</th><th>מנדטים</th></tr></thead>
+        <tbody>${blocRows}</tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>מנדטים לפי רשימות</h2>
+      <div class="legend">${blocLegend()}</div>
+      <div class="bars">${seatBars}</div>
+    </div>
+    <div class="card">
+      <h2>אחוזי הצבעה לרשימות</h2>
+      <p class="notes">הקו האדום מסמן את אחוז החסימה (${fmtPct(el.threshold)}). רשימות שלא עברו מוצגות באפור.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>רשימה</th><th>אותיות</th><th>גוש</th><th>קולות</th><th>אחוז מהכשרים</th><th>אחוז החסימה</th><th>מנדטים</th></tr></thead>
+        <tbody>${rows}
+          <tr class="total"><td>סה"כ</td><td></td><td></td><td class="n">${fmtInt(el.valid)}</td><td>100.00%</td><td></td><td class="n">${el.seats_total}</td></tr>
+        </tbody></table></div>
+      ${hiddenCount ? `<button class="more" id="show-all">הצג עוד ${hiddenCount} רשימות קטנות</button>` : ""}
+    </div>`;
+
+  const more = document.getElementById("show-all");
+  if (more) more.onclick = () => {
+    document.querySelectorAll("#view-election tr[hidden]").forEach(tr => tr.hidden = false);
+    more.remove();
+  };
+
+  const agreements = el.surplus_agreements.map(pair => pair.map(esc).join(" + ")).join(" · ");
+  document.getElementById("footer").innerHTML = `
+    <p>תאריך הבחירות: ${el.date}. המנדטים חושבו בשיטת בדר-עופר, והתוצאה זהה לתוצאה הרשמית. הסכמי העודפים (${agreements || "אין"}) נבחרו כך שישחזרו את התוצאה הרשמית, ולא אומתו מול רשימת ההסכמים הרשמית.</p>
+    <p>הגושים הם חלוקה אידיאולוגית שנקבעה בקבצי <code>data/parties</code> ואפשר לשנות אותה שם. רשימות קטנות שלא זוהו משויכות ל"אחר".</p>
+    <p>${el.source === "yoavfried"
+      ? "מקור: קובץ קלפיות של פרויקט Israel-Elections-Map, שנבנה מהחבילה הרשמית ב-data.gov.il. טבלת היישובים חושבה מסכום הקלפיות."
+      : "מקור: קובצי התוצאות של ועדת הבחירות המרכזית (קלפיות ויישובים)."}</p>`;
+}
+
+// ---------- comparison view ----------
+const compareState = { group: "bloc", metric: "seats", selected: new Set(DATA.elections.map(e => e.knesset)) };
+
+function familyRows(elections) {
+  // One row per party family; unnamed lists fold into "other lists".
+  const rows = new Map();
+  for (const el of elections) {
+    for (const p of el.parties) {
+      const key = p.family || "__other__";
+      if (!rows.has(key)) rows.set(key, { key, label: key === "__other__" ? "רשימות אחרות" : partyName(p), bloc: p.bloc, values: {} });
+      const r = rows.get(key);
+      if (key !== "__other__") { r.label = partyName(p); r.bloc = p.bloc; }  // latest name wins
+      const v = r.values[el.knesset] || { seats: 0, share: 0, votes: 0 };
+      v.seats += p.seats; v.share += p.share; v.votes += p.votes;
+      r.values[el.knesset] = v;
+    }
+  }
+  return [...rows.values()];
+}
+
+function blocRowsAll(elections) {
+  return BLOCS.map(b => ({
+    key: b.id, label: b.label, bloc: b.id,
+    values: Object.fromEntries(elections.map(el => {
+      const t = blocTotals(el)[b.id];
+      return [el.knesset, { seats: t.seats, share: t.share, votes: t.votes }];
+    })),
+  }));
+}
+
+function renderCompare() {
+  const all = [...DATA.elections].sort((a, b) => a.knesset - b.knesset);
+  const sel = all.filter(e => compareState.selected.has(e.knesset));
+  const metric = compareState.metric;
+  const fmt = v => metric === "seats" ? String(v) : fmtPct(v);
+  const metricLabel = metric === "seats" ? "מנדטים" : "אחוז קולות";
+
+  // Chart: one stacked bar per election, always by bloc (parties are too many series).
+  document.getElementById("compare-chart-title").textContent = `${metricLabel} לפי גושים בכל כנסת`;
+  document.getElementById("compare-legend").innerHTML = blocLegend();
+  document.getElementById("compare-chart").innerHTML = all.map((el, i) => {
+    const t = blocTotals(el);
+    const total = metric === "seats" ? el.seats_total : 1;
+    const segs = BLOCS.map(b => ({
+      id: b.id, value: t[b.id][metric], label: b.label, valueText: fmt(t[b.id][metric]),
+      tipHtml: `<b>${b.label} · כנסת ${el.knesset}</b>${t[b.id].seats} מנדטים · ${fmtPct(t[b.id].share)}`,
+    }));
+    const dim = compareState.selected.has(el.knesset) ? "" : ' style="opacity: 0.35"';
+    return `<div class="row-label"${dim}>כנסת ${el.knesset} (${el.year})</div>
+      <div${dim}>${stackBar(segs, total, metric === "seats" ? { majority: Math.floor(el.seats_total / 2) + 1, majorityLabel: i === 0 } : {})}</div>`;
+  }).join("");
+
+  // Table
+  const rows = compareState.group === "bloc" ? blocRowsAll(all) : familyRows(all);
+  for (const r of rows) {
+    const vals = sel.map(el => r.values[el.knesset]).filter(Boolean);
+    r.n = vals.length;
+    r.avg = vals.length ? vals.reduce((s, v) => s + v[metric], 0) / vals.length : null;
+  }
+  if (compareState.group === "family") {
+    rows.sort((a, b) => (a.key === "__other__") - (b.key === "__other__") || (b.avg ?? -1) - (a.avg ?? -1));
+  }
+  const fmtAvg = v => v == null ? "–" : (metric === "seats" ? v.toFixed(1) : fmtPct(v));
+  const head = `<thead><tr><th>${compareState.group === "bloc" ? "גוש" : "מפלגה"}</th>` +
+    all.map(el => `<th>כנסת ${el.knesset}</th>`).join("") + `<th>ממוצע</th><th>כנסות</th></tr></thead>`;
+  const body = rows.map(r => `<tr><td><span class="dot" style="background: ${blocVar(r.bloc)}"></span>${esc(r.label)}</td>` +
+    all.map(el => {
+      const v = r.values[el.knesset];
+      const off = compareState.selected.has(el.knesset) ? "" : ' style="color: var(--muted)"';
+      return `<td class="n"${off}>${v ? fmt(v[metric]) : "–"}</td>`;
+    }).join("") + `<td class="n"><b>${fmtAvg(r.avg)}</b></td><td class="n">${r.n}</td></tr>`).join("");
+  document.getElementById("compare-table-title").textContent =
+    `${metricLabel} ${compareState.group === "bloc" ? "לפי גושים" : "לפי מפלגות"} וממוצע על ${sel.length} כנסות`;
+  document.getElementById("compare-table").innerHTML = head + `<tbody>${body}</tbody>`;
+  fitLabels();
+}
+
+// ---------- wiring ----------
+function showElection(knesset) {
+  const el = DATA.elections.find(e => e.knesset === knesset);
+  document.getElementById("title").textContent = `תוצאות הבחירות לכנסת ה-${el.knesset}`;
+  document.getElementById("subtitle").textContent = `${el.date} · תוצאות סופיות לפי קובצי ועדת הבחירות`;
+  renderElection(el);
+  fitLabels();
+}
+
+function setView(view) {
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.view === view));
+  document.getElementById("view-election").hidden = view !== "election";
+  document.getElementById("view-compare").hidden = view !== "compare";
+  document.getElementById("knesset-picker").hidden = view !== "election";
+  document.getElementById("footer").hidden = view !== "election";
+  if (view === "compare") {
+    document.getElementById("title").textContent = "השוואה בין כנסות";
+    document.getElementById("subtitle").textContent = `${DATA.elections.length} מערכות בחירות · ממוצע לפי מפלגות או גושים`;
+    renderCompare();
+  } else {
+    showElection(Number(document.getElementById("knesset-select").value));
+  }
+}
+
+const latest = Math.max(...DATA.elections.map(e => e.knesset));
+if (DATA.multi) {
+  document.getElementById("toolbar").hidden = false;
+  const select = document.getElementById("knesset-select");
+  select.innerHTML = [...DATA.elections].sort((a, b) => b.knesset - a.knesset)
+    .map(e => `<option value="${e.knesset}">כנסת ${e.knesset} (${e.year})</option>`).join("");
+  select.onchange = () => showElection(Number(select.value));
+  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setView(b.dataset.view));
+  document.getElementById("compare-checks").innerHTML = [...DATA.elections].sort((a, b) => a.knesset - b.knesset)
+    .map(e => `<label><input type="checkbox" value="${e.knesset}" checked> כנסת ${e.knesset}</label>`).join("");
+  document.getElementById("compare-checks").onchange = ev => {
+    const k = Number(ev.target.value);
+    ev.target.checked ? compareState.selected.add(k) : compareState.selected.delete(k);
+    renderCompare();
+  };
+  for (const [segId, key] of [["group-seg", "group"], ["metric-seg", "metric"]]) {
+    document.getElementById(segId).onclick = ev => {
+      const b = ev.target.closest("button");
+      if (!b) return;
+      compareState[key] = b.dataset[key];
+      document.querySelectorAll(`#${segId} button`).forEach(x => x.setAttribute("aria-pressed", x === b));
+      renderCompare();
+    };
+  }
+}
+showElection(latest);
+</script>
+</body>
+</html>
