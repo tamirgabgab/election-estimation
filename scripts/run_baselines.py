@@ -14,10 +14,13 @@ import pandas as pd
 from election_estimation.data import KNESSETS
 from election_estimation.evaluate import (
     evaluate,
+    greedy_budget,
     greedy_weighted,
     load_all,
+    milp_budget,
     random_pooled,
     random_pps,
+    stratified,
 )
 
 REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
@@ -28,7 +31,10 @@ DRAWS = 30
 SEED = 0
 DECAY = 0.7
 CANDIDATES = 40
-METRICS = ["seat_L1", "share_L1", "bloc_seat_L1", "bloc_share_L1", "threshold_errors",
+MILP_TIME_LIMIT = 45
+MILP_POOL = 400
+MILP_KS = (50, 70)
+METRICS = ["boxes", "seat_L1", "share_L1", "bloc_seat_L1", "bloc_share_L1", "threshold_errors",
            "max_list_error"]
 
 
@@ -47,7 +53,11 @@ def main(unit: str, rerun: bool = True) -> None:
         methods = {
             "random_pooled": random_pooled,
             "random_pps": random_pps,
+            "stratified": stratified,
             "greedy": greedy_weighted(decay=DECAY, candidates=CANDIDATES),
+            "greedy_budget": greedy_budget(decay=DECAY, candidates=CANDIDATES),
+            "milp_budget": milp_budget(decay=DECAY, pool=MILP_POOL,
+                                       time_limit=MILP_TIME_LIMIT, ks=MILP_KS),
         }
         results = evaluate(elections, methods, KS, TESTS, draws=DRAWS, seed=SEED)
         REPORTS_DIR.mkdir(exist_ok=True)
@@ -65,13 +75,21 @@ def main(unit: str, rerun: bool = True) -> None:
         "pass / fail is predicted wrongly.",
         "",
         f"Settings: seed {SEED}, {DRAWS} draws for random panels and single-box readings,",
-        f"greedy recency decay {DECAY}, {CANDIDATES} candidates per step, panel sizes {KS}.",
+        f"recency decay {DECAY}, {CANDIDATES} greedy candidates per step, panel sizes {KS};",
+        f"MILP: pool {MILP_POOL}, time limit {MILP_TIME_LIMIT}s, budgets {list(MILP_KS)}.",
         "`unit` reading counts whole panel units; `single_box` counts one random box per unit.",
+        "`k` is the number of panel units, except for the `*_budget` methods, where it is the",
+        "budget in ballot boxes (unit cost = its boxes in the last training election).",
+        "`boxes` is the number of ballot boxes actually counted in the test election:",
+        "compare methods at equal `boxes`, not equal `k`."
         "",
         "Methods: `all_boxes` pools every regular box (no sampling; its error is the",
         "double-envelope gap); `random_pooled` draws units uniformly and pools their votes;",
         "`random_pps` draws units in proportion to size and averages their shares;",
-        "`greedy` is column generation with LP weights on the stacked training elections.",
+        "`stratified` draws by size within strata (dominant bloc, pure / mixed) and weights",
+        "strata by votes; `greedy` is column generation with LP weights on the stacked",
+        "training elections; `greedy_budget` and `milp_budget` select under a box budget",
+        "(MILP keeps the greedy solution when it finds nothing better in time).",
         "",
         f"## Mean over recent test elections ({RECENT[0]}-{RECENT[-1]})",
         "",

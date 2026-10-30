@@ -36,37 +36,64 @@ def fit_weights(X: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, float, np.nda
 
 
 def greedy_selection(
-    X: np.ndarray, y: np.ndarray, max_boxes: int, candidates: int = 200
+    X: np.ndarray,
+    y: np.ndarray,
+    max_boxes: int,
+    candidates: int = 200,
+    costs: np.ndarray | None = None,
+    budget: float | None = None,
 ) -> list[dict]:
     """Forward selection guided by column generation.
 
-    At each step the `candidates` boxes with the most negative reduced cost
+    At each step the `candidates` columns with the most negative reduced cost
     under the current LP duals are each tried with a full refit, and the one
-    that lowers the loss the most is added.
+    that lowers the loss the most is added. With `costs` and `budget`, the
+    shortlist and the choice use loss decrease per unit of cost, and columns
+    that no longer fit in the budget are skipped.
     """
-    start = int(np.argmin(np.abs(X - y[:, None]).sum(axis=0)))
-    selected = [start]
+    n = X.shape[1]
+    costs = np.ones(n) if costs is None else np.asarray(costs, dtype=float)
+    budget = float(max_boxes) if budget is None else float(budget)
+    affordable = np.flatnonzero(costs <= budget)
+    assert len(affordable), "no column fits in the budget"
+    dist = np.abs(X[:, affordable] - y[:, None]).sum(axis=0)
+    selected = [int(affordable[np.argmin(dist)])]
+    spent = costs[selected[0]]
     history = []
     w, loss, duals = fit_weights(X[:, selected], y)
     while True:
-        history.append({"k": len(selected), "loss": loss, "boxes": list(selected), "weights": w})
+        history.append({"k": len(selected), "cost": spent, "loss": loss,
+                        "boxes": list(selected), "weights": w})
         if loss < 1e-9 or len(selected) >= max_boxes:
             break
         pi, mu = duals[:-1], duals[-1]
-        reduced_cost = -(pi @ X + mu)
+        reduced_cost = -(pi @ X + mu) / costs
         reduced_cost[selected] = np.inf
+        reduced_cost[costs > budget - spent] = np.inf
+        shortlist = [j for j in np.argsort(reduced_cost)[:candidates] if np.isfinite(reduced_cost[j])]
+        if not shortlist:
+            break
         best = None
-        for j in np.argsort(reduced_cost)[:candidates]:
+        for j in shortlist:
             trial = fit_weights(X[:, selected + [int(j)]], y)
-            if best is None or trial[1] < best[1][1]:
-                best = (int(j), trial)
-        selected.append(best[0])
-        w, loss, duals = best[1]
+            gain = (loss - trial[1]) / costs[j]
+            if best is None or gain > best[0]:
+                best = (gain, int(j), trial)
+        selected.append(best[1])
+        spent += costs[best[1]]
+        w, loss, duals = best[2]
     return history
 
 
-def exact_selection(X: np.ndarray, y: np.ndarray, k: int, time_limit: float = 60.0) -> dict:
-    """Best set of at most k boxes, solved as a MILP with HiGHS."""
+def exact_selection(
+    X: np.ndarray,
+    y: np.ndarray,
+    k: float,
+    time_limit: float = 60.0,
+    costs: np.ndarray | None = None,
+) -> dict:
+    """Best set of columns with total cost at most k (default cost 1 each:
+    at most k columns), solved as a MILP with HiGHS."""
     m, n = X.shape
     # Variables: w (n), z (n, binary), e_plus (m), e_minus (m).
     c = np.concatenate([np.zeros(2 * n), np.ones(2 * m)])
@@ -75,7 +102,8 @@ def exact_selection(X: np.ndarray, y: np.ndarray, k: int, time_limit: float = 60
     fit = hstack([Xs, zeros_mn, -identity(m), identity(m)])
     total = hstack([csr_matrix(np.ones((1, n))), csr_matrix((1, n + 2 * m))])
     link = hstack([identity(n), -identity(n), csr_matrix((n, 2 * m))])  # w_i <= z_i
-    card = hstack([csr_matrix((1, n)), csr_matrix(np.ones((1, n))), csr_matrix((1, 2 * m))])
+    costs = np.ones(n) if costs is None else np.asarray(costs, dtype=float)
+    card = hstack([csr_matrix((1, n)), csr_matrix(costs[None, :]), csr_matrix((1, 2 * m))])
     A = vstack([fit, total, link, card]).tocsr()
     lb = np.concatenate([y, [1.0], np.full(n, -np.inf), [0]])
     ub = np.concatenate([y, [1.0], np.zeros(n), [k]])
