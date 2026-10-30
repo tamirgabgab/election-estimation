@@ -134,6 +134,12 @@ Follow these steps every time, in this order, so every election is handled the s
 - Match the style of `scripts/build_data.py`: short docstrings, type hints, asserts for
   data invariants.
 
+## Usage limits
+
+- Follow the `save-usage` skill (`.claude/skills/save-usage/`) for heavy tasks: narrow
+  reads, short output, background builds, subagents only when they pay off. It also holds
+  the official limit rules (plans, Claude Code, API) as of 2026-10-30.
+
 ## Git
 
 - Work on the session's designated branch; commit with clear messages and push.

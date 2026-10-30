@@ -36,6 +36,7 @@ Full write-up: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 | [`scripts/explore_knesset.py`](scripts/explore_knesset.py) | Per-election exploration and in-sample selection experiment (`PYTHONPATH=src`) |
 | [`HANDOFF.md`](HANDOFF.md) | Current status and next steps |
 | [`CLAUDE.md`](CLAUDE.md) | Working rules for this project |
+| [`.claude/skills/save-usage/`](.claude/skills/save-usage) | Skill for saving Claude usage, with the official limit rules and tips |
 
 ## Quick start
 
