@@ -23,6 +23,8 @@ the committee's `expc` file).
 
 | File | Rows | Source file | Encoding |
 |------|------|-------------|----------|
+| `knesset_17_2006_ballots.csv` | 8,426 | Yoavfried/Israel-Elections-Map `public-data/v1/ballots/k17.csv` | UTF-8 |
+| `knesset_18_2009_ballots.csv` | 9,264 | Yoavfried/Israel-Elections-Map `public-data/v1/ballots/k18.csv` | UTF-8 |
 | `knesset_19_2013_ballots.csv` | 10,109 | `expbkalpi.csv` | UTF-8 |
 | `knesset_19_2013_settlements.csv` | 1,184 | `expcity.csv` | UTF-8 |
 | `knesset_20_2015_ballots.csv` | 10,414 | `expbkal20.csv` | UTF-8 |
@@ -40,6 +42,14 @@ the committee's `expc` file).
 
 Raw files keep the committee's original encoding; `read_raw` detects it and drops the
 empty trailing column of the older files.
+
+Knesset 17-18 have no committee file in this repo. Their ballots file comes from the
+[Israel-Elections-Map](https://github.com/Yoavfried/Israel-Elections-Map) project, which
+built it from the official data.gov.il package (normalized English columns, party letters
+as published, an `is_envelope` column, plus the project's geography columns, which the
+build ignores). There is no settlements file: the build sums the ballots per settlement.
+Envelope rows get code 9999 and 0 registered voters. Knesset 17 eligible voters per box
+were recovered by the project from archived reports, not from the official file.
 
 Knesset 19-21 use an older layout: the ballot column is `מספר קלפי`, and there are no
 `סמל ועדה`, `ברזל`, `ריכוז` or `שופט` columns. These columns are empty in their processed
@@ -95,6 +105,12 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 - Summing ballots per settlement gives exactly the settlements file.
 - Seat allocation (threshold + Bader-Ofer with surplus agreements) reproduces the
   official result:
+  - Knesset 17: Kadima 29, Labor-Meimad 19, Shas 12, Likud 12, Yisrael Beiteinu 11,
+    National Union-NRP 9, Gil Pensioners 7, UTJ 6, Meretz-Yachad 5, Ra'am-Ta'al 4,
+    Hadash 3, Balad 3 (threshold 2%).
+  - Knesset 18: Kadima 28, Likud 27, Yisrael Beiteinu 15, Labor 13, Shas 11, UTJ 5,
+    National Union 4, Hadash 4, Ra'am-Ta'al 4, New Movement-Meretz 3, Jewish Home 3,
+    Balad 3 (threshold 2%).
   - Knesset 19: Likud-Yisrael Beiteinu 31, Yesh Atid 19, Labor 15, Jewish Home 12, Shas 11,
     UTJ 7, Hatnua 6, Meretz 6, Ra'am-Ta'al 4, Hadash 4, Balad 3, Kadima 2 (threshold 2%).
   - Knesset 20: Likud 30, Zionist Union 24, Joint List 13, Yesh Atid 11, Kulanu 10,
@@ -119,9 +135,9 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 - `family` - the same party across elections (used by the cross-election report).
 - `bloc` - `right`, `haredi`, `center_left`, `arab` or `other`. This is an ideological
   grouping chosen for this project and can be edited; rebuild after changing it.
-  Current choice: right = Likud, Likud-Yisrael Beiteinu, Yamina, Union of Right-Wing Parties, Kulanu, Religious Zionism, New Hope, Yisrael Beiteinu,
+  Current choice: right = Likud, Likud-Yisrael Beiteinu, National Union, National Union-NRP, Yamina, Union of Right-Wing Parties, Kulanu, Religious Zionism, New Hope, Yisrael Beiteinu,
   Jewish Home; haredi = Shas, UTJ; center-left = Blue and White, Yesh Atid, National
-  Unity, Zionist Union, Hatnua, Kadima, Labor, Labor-Gesher, Labor-Gesher-Meretz, Meretz, Democratic Union; arab = Joint List, Ra'am, Ra'am-Balad, Ra'am-Ta'al, Hadash, Hadash-Ta'al, Balad.
+  Unity, Zionist Union, Hatnua, Kadima, Labor, Labor-Gesher, Labor-Gesher-Meretz, Meretz, Democratic Union; other (named) = Gil Pensioners; arab = Joint List, Ra'am, Ra'am-Balad, Ra'am-Ta'al, Hadash, Hadash-Ta'al, Balad.
 
 ## Notes for modeling
 

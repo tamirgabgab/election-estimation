@@ -34,7 +34,10 @@ for the model design.
 Follow these steps every time, in this order, so every election is handled the same way.
 
 1. **Identify** - `expb*.csv` = one row per ballot box (`ballots`), `expc*.csv` = one row
-   per settlement (`settlements`). Confirm the Knesset number, year and election date;
+   per settlement (`settlements`). Knesset 17-18 come from the Yoavfried/Israel-Elections-Map
+   project instead (one ballots file with an `is_envelope` column, `"source": "yoavfried"`
+   in the config, settlements summed from the ballots); use that path for any other
+   election that only has such a file. Confirm the Knesset number, year and election date;
    ask the user if any of them is unclear. If only one of the two files arrived, ask for
    the other before building.
 2. **Inspect** - encoding (UTF-8 or Windows-1255), header names vs. `COLUMN_NAMES` in
@@ -47,7 +50,8 @@ Follow these steps every time, in this order, so every election is handled the s
    file without the envelopes row, which is then summed from the ballots); split boxes sharing one
    number → `unsuffixed_split_boxes` (keys get `-1`, `-2`). Never edit the raw file.
 3. **Copy raw** - byte-for-byte to `data/raw/knesset_<N>_<year>_ballots.csv` and
-   `data/raw/knesset_<N>_<year>_settlements.csv`; verify with `cmp`.
+   `data/raw/knesset_<N>_<year>_settlements.csv` (ballots only for a `yoavfried` source);
+   verify with `cmp`.
 4. **Party table** - `data/parties/knesset_<N>_parties.csv` with columns
    `letter,name_he,name_en,family,bloc,verified` and one row per letter column in the file.
    Name the lists that passed the threshold (`verified = yes` only when sure); all other

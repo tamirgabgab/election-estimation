@@ -37,7 +37,25 @@ ENVELOPES_NAME = "מעטפות חיצוניות"
 # envelopes_codes: raw settlement code of the envelopes row in each file, when not 9999;
 #   None means the file has no envelopes row (it is then summed from the ballots file).
 # unsuffixed_split_boxes: split ballot boxes share one ballot number (no ".1", ".2").
+# source "yoavfried": one ballots file from the Yoavfried/Israel-Elections-Map project
+#   (no settlements file; settlements are summed from the ballots).
 ELECTIONS = {
+    17: {
+        "year": 2006,
+        "date": "2006-03-28",
+        "threshold": 0.02,
+        "seats": 120,
+        "surplus_agreements": [("אמת", "מרצ"), ("שס", "ג"), ("מחל", "טב")],
+        "source": "yoavfried",
+    },
+    18: {
+        "year": 2009,
+        "date": "2009-02-10",
+        "threshold": 0.02,
+        "seats": 120,
+        "surplus_agreements": [("מחל", "ט"), ("אמת", "מרצ"), ("שס", "ג")],
+        "source": "yoavfried",
+    },
     19: {
         "year": 2013,
         "date": "2013-01-22",
@@ -143,6 +161,51 @@ def read_raw(path: Path) -> pd.DataFrame:
 
 def party_columns(df: pd.DataFrame) -> list[str]:
     return [c for c in df.columns if c not in BASE_COLUMNS]
+
+
+YOAVFRIED_COLUMNS = {
+    "source_locality_code": "settlement_code",
+    "source_locality_name": "settlement_name",
+    "source_kalpi": "ballot_id",
+    "eligible_voters": "registered",
+    "actual_voters": "voters",
+    "invalid_votes": "invalid",
+    "valid_votes": "valid",
+}
+
+
+def read_yoavfried(path: Path) -> pd.DataFrame:
+    """Read a ballots file of the Yoavfried/Israel-Elections-Map project (Knesset 17-18).
+
+    Party letter columns sit between `is_envelope` and the geography columns. Envelope
+    rows are marked by `is_envelope` (their locality code is blank or 0); they get code
+    9999 and 0 registered voters, as in the committee's own files.
+    """
+    df = pd.read_csv(path, dtype=str, keep_default_na=False, encoding="utf-8-sig")
+    cols = list(df.columns)
+    parties = cols[cols.index("is_envelope") + 1:cols.index("geography_assignment_status")]
+    envelopes = df["is_envelope"] == "True"
+    assert envelopes.any() and df["is_envelope"].isin(["True", "False"]).all()
+    df = df.rename(columns=YOAVFRIED_COLUMNS)[list(YOAVFRIED_COLUMNS.values()) + parties]
+    df.loc[envelopes, ["settlement_code", "settlement_name", "registered"]] = \
+        [str(ENVELOPES_CODE), ENVELOPES_NAME, "0"]
+    df = df.apply(lambda col: col.str.strip())
+    for col in df.columns:
+        if col not in ("settlement_name", "ballot_id"):
+            df[col] = df[col].astype(int)
+    for col in OPTIONAL_BALLOT_COLUMNS:
+        df[col] = pd.Series(pd.NA, index=df.index, dtype="Int64")
+    return df[[c for c in BASE_ORDER if c in df] + parties]
+
+
+def settlements_from_ballots(ballots: pd.DataFrame) -> pd.DataFrame:
+    """Sum ballot rows per settlement, for sources without a settlements file."""
+    counts = ["registered", "voters", "invalid", "valid", *party_columns(ballots)]
+    grouped = ballots.groupby("settlement_code", sort=False)
+    settlements = grouped[counts].sum().reset_index()
+    settlements.insert(0, "settlement_name", grouped["settlement_name"].first().values)
+    settlements.insert(0, "committee_code", pd.Series(pd.NA, index=settlements.index, dtype="Int64"))
+    return settlements
 
 
 def normalize_envelopes(ballots: pd.DataFrame, settlements: pd.DataFrame, cfg: dict) -> pd.DataFrame:
@@ -353,8 +416,12 @@ def write_excel(path, ballots, settlements, national, names, parties, knesset, c
 
 def build_election(knesset: int, cfg: dict) -> pd.DataFrame:
     stem = f"knesset_{knesset}_{cfg['year']}"
-    ballots = read_raw(RAW / f"{stem}_ballots.csv")
-    settlements = read_raw(RAW / f"{stem}_settlements.csv")
+    if cfg.get("source") == "yoavfried":
+        ballots = read_yoavfried(RAW / f"{stem}_ballots.csv")
+        settlements = settlements_from_ballots(ballots)
+    else:
+        ballots = read_raw(RAW / f"{stem}_ballots.csv")
+        settlements = read_raw(RAW / f"{stem}_settlements.csv")
     parties = party_columns(ballots)
     assert parties == party_columns(settlements), "party columns differ between files"
     settlements = normalize_envelopes(ballots, settlements, cfg)

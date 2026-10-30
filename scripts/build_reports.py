@@ -40,6 +40,7 @@ def election_data(knesset: int) -> dict:
         "year": cfg["year"],
         "date": cfg["date"],
         "threshold": cfg["threshold"],
+        "source": cfg.get("source", "committee"),
         "seats_total": cfg["seats"],
         "surplus_agreements": [[names[a] or a, names[b] or b] for a, b in cfg["surplus_agreements"]],
         "registered": int(ballots["registered"].sum()),
