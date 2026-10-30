@@ -65,7 +65,7 @@ letters, name_he, name_en, bloc, surplus_partner, notes
 - `surplus_partner`: letters of the list sharing a surplus-vote agreement.
 
 The K25 file exists as a draft and needs review of ambiguous assignments
-(Yisrael Beiteinu in particular).
+(Yisrael Beiteinu was moved to `right` on the owner's decision).
 
 ## 4. Blocs
 
@@ -82,6 +82,16 @@ they serve four purposes.
    profile (dominant bloc, bloc entropy), by locality size and by district.
 4. **Diagnostics.** The chosen panel is described by its bloc composition
    and compared with the national one.
+
+Assignment rules (decided):
+
+- Lists are assigned by **ideology** on the right/left axis, not by the
+  coalition camp they joined in a given election. Example: Yisrael Beiteinu
+  is `right` although it sat in the anti-Netanyahu camp in 2022.
+- National Unity (Gantz, K25) is `center_left`; Yashar! (Eisenkot, K26,
+  letters `דרך`) is `center_left`.
+- Lists under 1% nationally are not assigned individually; they fall into
+  `other`.
 
 Bloc schemes are configurable. Two schemes are evaluated from the start:
 
@@ -228,7 +238,7 @@ reports/                                 generated markdown
 
 - Box survival across 20 years may be low; fallback units are described
   in 3.1.
-- Bloc assignment is a political judgement (e.g. Yisrael Beiteinu); keep
+- Bloc assignment is a political judgement (e.g. Yisrael Beiteinu, assigned to right); keep
   it explicit in the party files and test sensitivity to the scheme.
 - Double-envelope composition changes (wartime elections have more
   soldiers' votes); check the panel's compensation per fold.
