@@ -78,21 +78,63 @@ Decision: work with Knesset 16-26 (11 elections with ballot-level data). Useful
 projects: `harelc/elections-vote-transfer` (ballot matching across elections),
 `Yoavfried/israel-election-map` (mapping to 2022 statistical areas).
 
-## Open questions
+## Open questions for the user
 
-- Meaning of the `ריכוז` (`concentration`) and `שופט` (`judge`) columns.
-- Names of the small lists (Knesset 21-25). Knesset 21 list `נ` got 3.22%, 1,454 votes
-  short of the threshold (probably New Right, not verified); "other" is 8.49% of valid votes.
-- Proposed blocs for lists new in Knesset 21: Union of Right-Wing Parties → right,
-  Kulanu → right (center-right, sat in the Likud-led coalition), Ra'am-Balad → arab.
-- Knesset 21 files have no committee code, ballot uid, `ריכוז` or `שופט`.
-- Proposed blocs for lists new in Knesset 22: Labor-Gesher and Democratic Union →
-  center-left (their own families, not merged with Labor / Meretz).
-- Bloc assignment is a judgement call (e.g. Yisrael Beiteinu and New Hope as right); the
-  user may want to change it in `data/parties/`.
-- Surplus agreements in `ELECTIONS` are the ones that reproduce the official seats; other
-  agreements that changed no seat may be missing.
-- Sample unit: ballot box or settlement (current plan: ballot box).
+Every open question is listed here with the value currently used, so work can go on
+until the user decides. IDs are stable: refer to them (e.g. "B3") when answering, and
+move answered items to "Decisions" below with the answer.
+
+### Blocs (`bloc` column in `data/parties/`)
+
+| ID | Question | Current value | Options |
+|----|----------|---------------|---------|
+| B1 | Scheme: ideological blocs, or coalition blocs (Netanyahu bloc vs. the rest)? | Ideological: right, haredi, center-left, arab, other | Keep; switch; or add a second column `coalition_bloc` and let the report choose |
+| B2 | Split center-left into "center" and "left"? | One bloc | Keep; split (center = Blue and White, Yesh Atid, National Unity, Kulanu?; left = Labor, Meretz, Democratic Union) |
+| B3 | Yisrael Beiteinu (K21-25): secular right, but outside the Netanyahu bloc since 2019 | right | right; center-left |
+| B4 | New Hope (K24): right-wing party in the anti-Netanyahu coalition | right | right; center-left |
+| B5 | Kulanu (K21): center-right, sat in the Likud-led coalition | right | right; center-left |
+| B6 | Blue and White (K21-23, joint list with Telem's right-leaning members; K24 Gantz only) | center-left | center-left; split center/left (see B2) |
+| B7 | National Unity (K25): Blue and White + New Hope + Eisenkot | center-left | center-left; center (see B2) |
+| B8 | Labor-Gesher (K22): Gesher was center-right | center-left | center-left |
+| B9 | Yamina (K24) and Ra'am (K24) joined the Bennett-Lapid coalition | right / arab | keep ideological; only matters under B1 |
+| B10 | Arab bloc: keep Ra'am (Islamist, joined a coalition) with Hadash-Ta'al and Balad? | arab | keep; split "arab" into two |
+
+### Party families (`family` column; used for party averages in the report)
+
+| ID | Question | Current value | Options |
+|----|----------|---------------|---------|
+| F1 | Labor-Gesher (K22) and Labor-Gesher-Meretz (K23) | Own families | Merge into Labor; keep |
+| F2 | Democratic Union (K22) | Own family | Merge into Meretz; keep |
+| F3 | Blue and White K21-23 (Gantz + Lapid) and K24 (Gantz only) | One family "Blue and White" | Keep; split K21-23 from K24 |
+| F4 | National Unity (K25), led by Gantz | Own family | Merge into Blue and White; keep |
+| F5 | Right-wing religious lists: Union of Right-Wing Parties (K21), Yamina (K22-24), Religious Zionism (K24-25), Jewish Home (K25) | Each name is its own family; Yamina K22-24 one family | Keep; build a lineage (e.g. URWP → Religious Zionism) |
+| F6 | Arab lists: Hadash-Ta'al and Ra'am-Balad (K21), Joint List (K22-24), Ra'am, Hadash-Ta'al, Balad (K25) | Each name is its own family | Keep; one "Joint List" family across all |
+
+### Data
+
+| ID | Question | Current value | Options |
+|----|----------|---------------|---------|
+| D1 | Meaning of the `ריכוז` (`concentration`) and `שופט` (`judge`) columns | Kept as published | User explains; drop them |
+| D2 | Names of small lists (below threshold), e.g. K21 `נ` (3.22%, 1,454 votes short, probably New Right) | Empty, `verified = no`, bloc other ("other" = 8.49% in K21) | User sends the official list names; leave empty |
+| D3 | Surplus agreements: only those that reproduce the official seats are recorded | Partial list per election | User sends the official lists of agreements |
+| D4 | Knesset 21 has no committee code / ballot uid / ריכוז / שופט | Empty | Fill committee code from K22 by settlement code; keep empty |
+| D5 | Knesset 26 (October 2026) | Not added | Add provisional results now; wait for the final results (~2026-11-04) |
+| D6 | How far back to go | Plan: Knesset 16-26 | Stop earlier (e.g. 20) if older files are hard to get |
+
+### Modeling
+
+| ID | Question | Current value | Options |
+|----|----------|---------------|---------|
+| M1 | Sample unit | Ballot box | Ballot box; settlement |
+| M2 | Target metric | L1 on shares of valid votes (pp) | Also seat error; also bloc error |
+| M3 | Double envelopes (5.5%-9.6% of valid votes, growing) | Model them as a separate term from past elections | Ignore; separate term |
+| M4 | Budget: a maximum number of sample boxes, or only the `λ` trade-off? | `λ` trade-off, chosen on the Pareto curve | Fixed maximum (e.g. 100 boxes); `λ` only |
+| M5 | Split boxes (`283.1`, `283.2`): one sampling unit or separate? | Not decided | Merge per base number; keep separate |
+| M6 | Training window: all past elections, or only the last few? | Not decided | All; last k; weighted by recency |
+
+### Decisions
+
+None yet.
 
 ## Next steps
 

@@ -11,6 +11,10 @@ for the model design.
 - Ask guiding questions before big changes (new model family, data layout changes).
 - End each work round with a short summary by sections, and update `HANDOFF.md`
   (done, key facts, next steps) before committing.
+- Every open question (blocs, families, data, modeling) goes into the "Open questions for
+  the user" tables in `HANDOFF.md`, with a stable ID, the value currently used and the
+  options. Keep working with the current value; when the user answers, apply it and move
+  the item to "Decisions".
 
 ## Data rules
 
@@ -48,7 +52,8 @@ Follow these steps every time, in this order, so every election is handled the s
      already used in earlier elections when it is the same party (e.g. Likud); a joint or
      new list gets its own family (default: `name_en`).
    - `bloc` is one of `right`, `haredi`, `center_left`, `arab`, `other`. Reuse the bloc of
-     the same family in earlier elections; for a new list, propose one and tell the user.
+     the same family in earlier elections; for a new list, propose one, tell the user and
+     add it to the bloc / family questions in `HANDOFF.md`.
 5. **Config** - add `ELECTIONS[<N>]` in `scripts/build_data.py`: `year`, `date`,
    `threshold`, `seats`, `surplus_agreements`. Thresholds: 1.5% up to Knesset 16 (2003),
    2% for Knesset 17-19 (2006-2013), 3.25% from Knesset 20 (2015). The surplus agreements
