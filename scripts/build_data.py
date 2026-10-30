@@ -34,9 +34,19 @@ ENVELOPES_NAME = "מעטפות חיצוניות"
 # surplus_agreements: only agreements between lists that passed the threshold matter.
 # Each list is verified to reproduce the official seat allocation; it may omit
 # agreements that did not change any seat.
-# envelopes_codes: raw settlement code of the envelopes row in each file, when not 9999.
+# envelopes_codes: raw settlement code of the envelopes row in each file, when not 9999;
+#   None means the file has no envelopes row (it is then summed from the ballots file).
 # unsuffixed_split_boxes: split ballot boxes share one ballot number (no ".1", ".2").
 ELECTIONS = {
+    19: {
+        "year": 2013,
+        "date": "2013-01-22",
+        "threshold": 0.02,
+        "seats": 120,
+        "surplus_agreements": [("מחל", "טב"), ("אמת", "מרץ"), ("שס", "ג")],
+        # The settlements file leaves out the envelope votes (code 875 in the ballots file).
+        "envelopes_codes": {"ballots": 875, "settlements": None},
+    },
     20: {
         "year": 2015,
         "date": "2015-03-17",
@@ -135,13 +145,27 @@ def party_columns(df: pd.DataFrame) -> list[str]:
     return [c for c in df.columns if c not in BASE_COLUMNS]
 
 
-def normalize_envelopes(ballots: pd.DataFrame, settlements: pd.DataFrame, cfg: dict) -> None:
+def normalize_envelopes(ballots: pd.DataFrame, settlements: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    """Give the envelopes rows code 9999 in both files; returns the settlements table."""
     codes = cfg.get("envelopes_codes", {"ballots": ENVELOPES_CODE, "settlements": ENVELOPES_CODE})
     for df, code in ((ballots, codes["ballots"]), (settlements, codes["settlements"])):
+        if code is None:
+            continue
         rows = df["settlement_code"] == code
         assert rows.any(), f"no envelopes rows with code {code}"
         df.loc[rows, "settlement_code"] = ENVELOPES_CODE
         df.loc[rows, "settlement_name"] = ENVELOPES_NAME
+    if codes["settlements"] is None:
+        assert not (settlements["settlement_code"] == ENVELOPES_CODE).any()
+        envelopes = ballots[ballots["settlement_code"] == ENVELOPES_CODE]
+        assert len(envelopes), "no envelopes rows in the ballots file"
+        row = envelopes[[c for c in settlements.columns if c not in ("settlement_name", "settlement_code",
+                                                                       "committee_code")]].sum()
+        row["settlement_name"], row["settlement_code"] = ENVELOPES_NAME, ENVELOPES_CODE
+        settlements["committee_code"] = settlements["committee_code"].astype("Int64")  # NA for the new row
+        added = pd.DataFrame([row]).reindex(columns=settlements.columns).astype(settlements.dtypes.to_dict())
+        settlements = pd.concat([settlements, added], ignore_index=True)
+    return settlements
 
 
 def validate(ballots: pd.DataFrame, settlements: pd.DataFrame, parties: list[str], cfg: dict) -> None:
@@ -333,7 +357,7 @@ def build_election(knesset: int, cfg: dict) -> pd.DataFrame:
     settlements = read_raw(RAW / f"{stem}_settlements.csv")
     parties = party_columns(ballots)
     assert parties == party_columns(settlements), "party columns differ between files"
-    normalize_envelopes(ballots, settlements, cfg)
+    settlements = normalize_envelopes(ballots, settlements, cfg)
     validate(ballots, settlements, parties, cfg)
 
     names = pd.read_csv(PARTIES / f"knesset_{knesset}_parties.csv", dtype=str, keep_default_na=False)

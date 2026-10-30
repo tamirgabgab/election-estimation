@@ -39,10 +39,12 @@ Follow these steps every time, in this order, so every election is handled the s
    the other before building.
 2. **Inspect** - encoding (UTF-8 or Windows-1255), header names vs. `COLUMN_NAMES` in
    `scripts/build_data.py`, row counts, trailing empty columns, the envelopes row in each
-   file (`מעטפות חיצוניות`; code 9999, but 99999 in Knesset 21 and 875 / 0 in Knesset 20),
-   duplicate ballot ids. New or renamed base columns → extend `COLUMN_NAMES`/`read_raw`;
+   file (`מעטפות חיצוניות`; code 9999, but 99999 in Knesset 21, 875 / 0 in Knesset 20, and
+   875 / missing in Knesset 19), duplicate ballot ids, and that the national shares
+   (envelopes included) match the official ones. New or renamed base columns → extend `COLUMN_NAMES`/`read_raw`;
    missing ones → `OPTIONAL_*_COLUMNS` (left empty); another envelopes code →
-   `envelopes_codes` in the election's config (normalized to 9999); split boxes sharing one
+   `envelopes_codes` in the election's config (normalized to 9999; `None` for a settlements
+   file without the envelopes row, which is then summed from the ballots); split boxes sharing one
    number → `unsuffixed_split_boxes` (keys get `-1`, `-2`). Never edit the raw file.
 3. **Copy raw** - byte-for-byte to `data/raw/knesset_<N>_<year>_ballots.csv` and
    `data/raw/knesset_<N>_<year>_settlements.csv`; verify with `cmp`.

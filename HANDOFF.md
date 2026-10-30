@@ -11,6 +11,7 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 ## Done
 
 - **Election data** in `data/raw/`, byte-identical to the committee's files:
+  Knesset 19 (2013, `expbkalpi`/`expcity`, UTF-8, older column layout),
   Knesset 20 (2015, `expbkal20`/`expc-5`, UTF-8 / Windows-1255, older column layout),
   Knesset 21 (2019-04, `expb_5`/`expc_5`, Windows-1255, older column layout),
   Knesset 22 (2019-09, `expb_4`/`expc_4`, Windows-1255),
@@ -20,19 +21,21 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   - validates `voters = invalid + valid`, party sums = `valid`, unique ballot ids,
     and ballots summed per settlement = settlements file;
   - reads UTF-8 and Windows-1255 files, drops empty trailing columns;
-  - accepts the Knesset 20-21 layout (`מספר קלפי`, no committee / ברזל / ריכוז / שופט
+  - accepts the Knesset 19-21 layout (`מספר קלפי`, no committee / ברזל / ריכוז / שופט
     columns, which stay empty);
   - Knesset 20 publishes split boxes under one number (58 pairs); their `ballot_key`
     gets `-1` / `-2` in file order;
   - standardizes column names to English, keeps `ballot_id` as text;
   - normalizes the double-envelopes row to code 9999 (raw: 99999 in Knesset 21; 875 in
     the Knesset 20 ballots file and 0 with no name in its settlements file), flags it with
-    `is_envelopes`, and asserts exactly one envelopes row per election;
+    `is_envelopes`, and asserts exactly one envelopes row per election; the Knesset 19
+    settlements file has no envelopes row (its totals are regular votes only), so the row
+    is summed from the ballots file (code 875 there);
   - computes national shares and seats (threshold + Bader-Ofer with surplus
-    agreements), reproducing the official result of all six elections;
+    agreements), reproducing the official result of all seven elections;
   - writes per-election CSVs, an Excel workbook with tables and formulas (checked
     in LibreOffice, no errors), and `ballots_long.csv.gz` for all elections.
-- **Party tables** `data/parties/knesset_{20..25}_parties.csv`: lists that passed the
+- **Party tables** `data/parties/knesset_{19..25}_parties.csv`: lists that passed the
   threshold are named and have a `family` and a `bloc` (right, haredi, center-left, arab);
   small lists are marked `verified = no`, bloc `other`.
 - **HTML reports** in `reports/` (built by `scripts/build_reports.py`): one results page
@@ -48,6 +51,7 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
 | Knesset | Date | Registered | Turnout | Valid | Regular boxes | Envelope rows | Envelope votes | Split box ids | Lists / passed | Regular vs national L1 (pp) |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 19 | 2013-01-22 | 5,656,705 | 67.77% | 3,792,742 | 9,881 | 228 | 212,949 (5.61%) | 4 | 34 / 12 | 1.55 |
 | 20 | 2015-03-17 | 5,881,696 | 72.34% | 4,210,884 | 10,119 | 295 | 232,681 (5.53%) | 116 | 26 / 10 | 1.55 |
 | 21 | 2019-04-09 | 6,339,729 | 68.46% | 4,309,270 | 10,460 | 305 | 238,822 (5.54%) | 1,563 | 43 / 11 | 1.39 |
 | 22 | 2019-09-17 | 6,391,218 | 69.86% | 4,436,806 | 10,539 | 362 | 280,216 (6.32%) | 1,725 | 32 / 9 | 1.56 |
@@ -56,6 +60,7 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 | 25 | 2022-11-01 | 6,788,804 | 70.63% | 4,764,742 | 11,707 | 838 | 458,714 (9.63%) | 7,342 | 40 / 10 | 2.18 |
 
 Envelope bias examples (regular boxes vs. envelopes):
+- Knesset 19: Jewish Home 8.77% vs 15.11%, Yesh Atid 14.22% vs 16.23%, Ra'am-Ta'al 3.80% vs 1.14%, UTJ 5.33% vs 2.37%.
 - Knesset 20: Joint List 11.04% vs 3.14%, UTJ 5.12% vs 2.69%, Likud 23.27% vs 25.65%, Jewish Home 6.41% vs 12.39%.
 - Knesset 21: Hadash-Ta'al 4.65% vs 1.76%, UTJ 5.92% vs 3.38%, Blue and White 25.97% vs 28.77%, Likud 26.29% vs 29.34%.
 - Knesset 22: Joint List 11.02% vs 4.27%, Yisrael Beiteinu 7.12% vs 5.00%, Yamina 5.67% vs 8.85%, Blue and White 25.66% vs 30.21%.
@@ -105,6 +110,8 @@ move answered items to "Decisions" below with the answer.
 | B9 | Yamina (K24) and Ra'am (K24) joined the Bennett-Lapid coalition | right / arab | keep ideological; only matters under B1 |
 | B10 | Arab bloc: keep Ra'am (Islamist, joined a coalition) with Hadash-Ta'al and Balad? | arab | keep; split "arab" into two |
 | B11 | Zionist Union (K20, Labor + Hatnua) | center-left | center-left |
+| B12 | Likud-Yisrael Beiteinu (K19, joint list) | right | right |
+| B13 | Hatnua (K19, Livni) and Kadima (K19, Mofaz): centrist lists | center-left | center-left; center (see B2) |
 
 ### Party families (`family` column; used for party averages in the report)
 
@@ -117,20 +124,24 @@ move answered items to "Decisions" below with the answer.
 | F5 | Right-wing religious lists: Union of Right-Wing Parties (K21), Yamina (K22-24), Religious Zionism (K24-25), Jewish Home (K25) | Each name is its own family; Yamina K22-24 one family | Keep; build a lineage (e.g. URWP → Religious Zionism) |
 | F6 | Arab lists: Hadash-Ta'al and Ra'am-Balad (K21), Joint List (K20, K22-24), Ra'am, Hadash-Ta'al, Balad (K25) | Each name is its own family | Keep; one "Joint List" family across all |
 | F7 | Zionist Union (K20, Labor + Hatnua) | Own family | Merge into Labor; keep |
-| F8 | Jewish Home (K20, under Bennett) and Jewish Home (K25, a much smaller list) | One family "Jewish Home" | Keep; split; link K20 to Yamina / New Right |
+| F8 | Jewish Home (K19-20, under Bennett) and Jewish Home (K25, a much smaller list) | One family "Jewish Home" | Keep; split; link K19-20 to Yamina / New Right |
+| F9 | Likud-Yisrael Beiteinu (K19) | Own family | Keep; count under Likud (and Yisrael Beiteinu is then missing in K19) |
+| F10 | Hatnua (K19), later part of Zionist Union (K20) | Own family | Keep; link to Zionist Union |
+| F11 | Hadash, Balad and Ra'am-Ta'al (K19) ran separately; Joint List (K20, K22-24) united them | Each name is its own family | Keep; see F6 |
 
 ### Data
 
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
 | D1 | Meaning of the `ריכוז` (`concentration`) and `שופט` (`judge`) columns | Kept as published | User explains; drop them |
-| D2 | Names of small lists (below threshold), e.g. K21 `נ` (3.22%, 1,454 votes short, probably New Right) and K20 `קץ` (2.97%, 11,696 votes short, probably Yachad) | Empty, `verified = no`, bloc other ("other" = 8.49% in K21) | User sends the official list names; leave empty |
+| D2 | Names of small lists (below threshold), e.g. K21 `נ` (3.22%, 1,454 votes short, probably New Right), K20 `קץ` (2.97%, 11,696 votes short, probably Yachad) and K19 `נץ` (1.76%, threshold 2%) | Empty, `verified = no`, bloc other ("other" = 8.49% in K21) | User sends the official list names; leave empty |
 | D3 | Surplus agreements: only those that reproduce the official seats are recorded | Partial list per election | User sends the official lists of agreements |
-| D4 | Knesset 20-21 have no committee code / ballot uid / ריכוז / שופט | Empty | Fill committee code from K22 by settlement code; keep empty |
+| D4 | Knesset 19-21 have no committee code / ballot uid / ריכוז / שופט | Empty | Fill committee code from K22 by settlement code; keep empty |
 | D5 | Knesset 26 (October 2026) | Not added | Add provisional results now; wait for the final results (~2026-11-04) |
 | D6 | How far back to go | Plan: Knesset 16-26 | Stop earlier (e.g. 20) if older files are hard to get |
 | D7 | Knesset 20: Kulanu needs a surplus agreement to reach its official 10 seats; the partner is unknown (Shas, UTJ, Yisrael Beiteinu, Meretz, Yesh Atid or Zionist Union all work) | Placeholder: Kulanu + Yisrael Beiteinu | User confirms the real partner |
 | D8 | Knesset 20 split boxes share one number; their order (`-1`, `-2`) follows the file | File order | Keep; ignore the difference (merge, see M5) |
+| D9 | Knesset 19 settlements file leaves out the envelope votes; the build adds an envelopes row summed from the ballots file | Derived row | Keep |
 
 ### Modeling
 
@@ -149,9 +160,9 @@ None yet.
 
 ## Next steps
 
-1. **Data** - add `expb` / `expc` for Knesset 16-19 (threshold 2% for 17-19, 1.5% for 16), and Knesset 26 once final
+1. **Data** - add `expb` / `expc` for Knesset 16-18 (threshold 2% for 17-18, 1.5% for 16), and Knesset 26 once final
    (expected around 2026-11-04), following the procedure in `CLAUDE.md`.
-2. **First held-out pairs** - Knesset 20 → 21 through 24 → 25 are available: run the
+2. **First held-out pairs** - Knesset 19 → 20 through 24 → 25 are available: run the
    baselines with selection on `t` and evaluation on `t+1`.
 3. **Ballot matching** - merge split boxes (`283.1` + `283.2` → `283`) and match boxes
    across elections by settlement + ballot number, or via statistical areas.
