@@ -12,11 +12,13 @@ def l1(a, b) -> float:
 
 
 def _dhondt(votes: pd.Series, n_seats: int) -> pd.Series:
-    seats = pd.Series(0, index=votes.index, dtype=int)
-    for _ in range(n_seats):
-        quotients = votes / (seats + 1)
-        seats[quotients.idxmax()] += 1
-    return seats
+    """Highest-averages allocation: the n_seats largest quotients votes / d."""
+    if n_seats == 0:
+        return pd.Series(0, index=votes.index, dtype=int)
+    quotients = votes.to_numpy(dtype=float)[:, None] / np.arange(1, n_seats + 1)[None, :]
+    top = np.argpartition(quotients.ravel(), -n_seats)[-n_seats:]
+    seats = np.bincount(top // n_seats, minlength=len(votes))
+    return pd.Series(seats, index=votes.index, dtype=int)
 
 
 def bader_ofer(
@@ -24,15 +26,18 @@ def bader_ofer(
     agreements: list[tuple[str, str]] = (),
     threshold: float = THRESHOLD,
     total: int = TOTAL_SEATS,
+    never_pass: tuple[str, ...] = (),
 ) -> pd.Series:
     """Seat allocation as used for the Knesset (D'Hondt with surplus agreements).
 
     `votes` maps list letters to vote counts or shares. Lists under the
     threshold get no seats. Each surplus agreement pairs two lists; both must
-    pass the threshold for it to apply. Returns seats for every input list.
-    Verified to reproduce the official 25th Knesset result.
+    pass the threshold for it to apply. Entries in `never_pass` (e.g. an
+    aggregated "other") count towards the total but get no seats. Returns
+    seats for every input list. Reproduces the official result of every
+    election (tests/test_metrics.py).
     """
-    passing = votes[votes / votes.sum() >= threshold]
+    passing = votes[(votes / votes.sum() >= threshold) & ~votes.index.isin(never_pass)]
     groups = {p: [p] for p in passing.index}
     for a, b in agreements:
         if a in groups and b in groups:
