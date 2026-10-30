@@ -6,6 +6,7 @@ Reads data/raw/*, validates the files, and writes:
   data/processed/knesset_<N>/national.csv      - national votes, shares and seats per party
   data/processed/knesset_<N>_<year>.xlsx       - Excel workbook with tables and formulas
   data/processed/ballots_long.csv.gz           - all elections, one row per (ballot, party)
+  reports/*.html                               - via scripts/build_reports.py
 
 Usage:
   python scripts/build_data.py
@@ -32,6 +33,13 @@ ENVELOPES_CODE = 9999
 # Each list is verified to reproduce the official seat allocation; it may omit
 # agreements that did not change any seat.
 ELECTIONS = {
+    23: {
+        "year": 2020,
+        "date": "2020-03-02",
+        "threshold": 0.0325,
+        "seats": 120,
+        "surplus_agreements": [("מחל", "טב"), ("פה", "אמת"), ("שס", "ג")],
+    },
     24: {
         "year": 2021,
         "date": "2021-03-23",
@@ -133,13 +141,13 @@ def bader_ofer(votes: pd.Series, threshold: float, seats: int, agreements) -> pd
 def build_national(settlements, parties, names, cfg) -> pd.DataFrame:
     votes = settlements[parties].sum()
     national = pd.DataFrame({"letter": parties, "votes": votes.values})
-    national = national.merge(names[["letter", "name_he", "name_en"]], on="letter", how="left")
+    national = national.merge(names[["letter", "name_he", "name_en", "family", "bloc"]], on="letter", how="left")
     national["share"] = national["votes"] / national["votes"].sum()
     national["passed_threshold"] = national["share"] >= cfg["threshold"]
     seats = bader_ofer(votes, cfg["threshold"], cfg["seats"], cfg["surplus_agreements"])
     national["seats"] = seats.values
     national = national.sort_values("votes", ascending=False).reset_index(drop=True)
-    return national[["letter", "name_he", "name_en", "votes", "share", "passed_threshold", "seats"]]
+    return national[["letter", "name_he", "name_en", "family", "bloc", "votes", "share", "passed_threshold", "seats"]]
 
 
 def add_keys(ballots: pd.DataFrame, settlements: pd.DataFrame) -> None:
@@ -295,6 +303,10 @@ def main() -> None:
     long = pd.concat([build_election(k, cfg) for k, cfg in ELECTIONS.items()], ignore_index=True)
     long.to_csv(PROCESSED / "ballots_long.csv.gz", index=False, encoding="utf-8")
     print(f"ballots_long.csv.gz: {len(long):,} rows")
+
+    import build_reports  # imports this module, so import here to avoid a cycle
+
+    build_reports.main()
 
 
 if __name__ == "__main__":

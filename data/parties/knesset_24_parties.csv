@@ -1,40 +1,40 @@
-letter,name_he,name_en,verified
-מחל,הליכוד,Likud,yes
-פה,יש עתיד,Yesh Atid,yes
-שס,ש"ס,Shas,yes
-כן,כחול לבן,Blue and White,yes
-ב,ימינה,Yamina,yes
-אמת,העבודה,Labor,yes
-ג,יהדות התורה,United Torah Judaism,yes
-ל,ישראל ביתנו,Yisrael Beiteinu,yes
-ט,הציונות הדתית,Religious Zionism,yes
-ודעם,הרשימה המשותפת,Joint List,yes
-ת,תקווה חדשה,New Hope,yes
-מרצ,מרצ,Meretz,yes
-עם,רע"מ,Ra'am,yes
-ז,,,no
-זץ,,,no
-י,,,no
-יז,,,no
-ינ,,,no
-יף,,,no
-יק,,,no
-יר,,,no
-כ,,,no
-כך,,,no
-נ,,,no
-ני,,,no
-נר,,,no
-ףז,,,no
-צי,,,no
-צכ,,,no
-צף,,,no
-ץ,,,no
-ק,,,no
-קי,,,no
-קך,,,no
-קץ,,,no
-ר,,,no
-רנ,,,no
-רף,,,no
-רק,,,no
+letter,name_he,name_en,family,bloc,verified
+מחל,הליכוד,Likud,Likud,right,yes
+פה,יש עתיד,Yesh Atid,Yesh Atid,center_left,yes
+שס,"ש""ס",Shas,Shas,haredi,yes
+כן,כחול לבן,Blue and White,Blue and White,center_left,yes
+ב,ימינה,Yamina,Yamina,right,yes
+אמת,העבודה,Labor,Labor,center_left,yes
+ג,יהדות התורה,United Torah Judaism,United Torah Judaism,haredi,yes
+ל,ישראל ביתנו,Yisrael Beiteinu,Yisrael Beiteinu,right,yes
+ט,הציונות הדתית,Religious Zionism,Religious Zionism,right,yes
+ודעם,הרשימה המשותפת,Joint List,Joint List,arab,yes
+ת,תקווה חדשה,New Hope,New Hope,right,yes
+מרצ,מרצ,Meretz,Meretz,center_left,yes
+עם,"רע""מ",Ra'am,Ra'am,arab,yes
+ז,,,,other,no
+זץ,,,,other,no
+י,,,,other,no
+יז,,,,other,no
+ינ,,,,other,no
+יף,,,,other,no
+יק,,,,other,no
+יר,,,,other,no
+כ,,,,other,no
+כך,,,,other,no
+נ,,,,other,no
+ני,,,,other,no
+נר,,,,other,no
+ףז,,,,other,no
+צי,,,,other,no
+צכ,,,,other,no
+צף,,,,other,no
+ץ,,,,other,no
+ק,,,,other,no
+קי,,,,other,no
+קך,,,,other,no
+קץ,,,,other,no
+ר,,,,other,no
+רנ,,,,other,no
+רף,,,,other,no
+רק,,,,other,no

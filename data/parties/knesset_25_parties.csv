@@ -1,41 +1,41 @@
-letter,name_he,name_en,verified
-מחל,הליכוד,Likud,yes
-פה,יש עתיד,Yesh Atid,yes
-ט,הציונות הדתית,Religious Zionism,yes
-כן,המחנה הממלכתי,National Unity,yes
-שס,ש"ס,Shas,yes
-ג,יהדות התורה,United Torah Judaism,yes
-ל,ישראל ביתנו,Yisrael Beiteinu,yes
-עם,רע"מ,Ra'am,yes
-ום,חד"ש-תע"ל,Hadash-Ta'al,yes
-אמת,העבודה,Labor,yes
-מרצ,מרצ,Meretz,yes
-ד,בל"ד,Balad,yes
-ב,הבית היהודי,Jewish Home,yes
-אצ,,,no
-ז,,,no
-זך,,,no
-זנ,,,no
-זץ,,,no
-י,,,no
-יז,,,no
-ינ,,,no
-יץ,,,no
-יק,,,no
-ך,,,no
-נז,,,no
-ני,,,no
-נף,,,no
-נץ,,,no
-נק,,,no
-נר,,,no
-ף,,,no
-צ,,,no
-ץ,,,no
-ק,,,no
-קי,,,no
-קך,,,no
-קנ,,,no
-קץ,,,no
-רז,,,no
-ת,,,no
+letter,name_he,name_en,family,bloc,verified
+מחל,הליכוד,Likud,Likud,right,yes
+פה,יש עתיד,Yesh Atid,Yesh Atid,center_left,yes
+ט,הציונות הדתית,Religious Zionism,Religious Zionism,right,yes
+כן,המחנה הממלכתי,National Unity,National Unity,center_left,yes
+שס,"ש""ס",Shas,Shas,haredi,yes
+ג,יהדות התורה,United Torah Judaism,United Torah Judaism,haredi,yes
+ל,ישראל ביתנו,Yisrael Beiteinu,Yisrael Beiteinu,right,yes
+עם,"רע""מ",Ra'am,Ra'am,arab,yes
+ום,"חד""ש-תע""ל",Hadash-Ta'al,Hadash-Ta'al,arab,yes
+אמת,העבודה,Labor,Labor,center_left,yes
+מרצ,מרצ,Meretz,Meretz,center_left,yes
+ד,"בל""ד",Balad,Balad,arab,yes
+ב,הבית היהודי,Jewish Home,Jewish Home,right,yes
+אצ,,,,other,no
+ז,,,,other,no
+זך,,,,other,no
+זנ,,,,other,no
+זץ,,,,other,no
+י,,,,other,no
+יז,,,,other,no
+ינ,,,,other,no
+יץ,,,,other,no
+יק,,,,other,no
+ך,,,,other,no
+נז,,,,other,no
+ני,,,,other,no
+נף,,,,other,no
+נץ,,,,other,no
+נק,,,,other,no
+נר,,,,other,no
+ף,,,,other,no
+צ,,,,other,no
+ץ,,,,other,no
+ק,,,,other,no
+קי,,,,other,no
+קך,,,,other,no
+קנ,,,,other,no
+קץ,,,,other,no
+רז,,,,other,no
+ת,,,,other,no

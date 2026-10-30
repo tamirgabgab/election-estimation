@@ -23,6 +23,8 @@ the committee's `expc` file).
 
 | File | Rows | Source file | Encoding |
 |------|------|-------------|----------|
+| `knesset_23_2020_ballots.csv` | 11,179 | `expb_3.csv` | Windows-1255 |
+| `knesset_23_2020_settlements.csv` | 1,214 | `expc_3.csv` | Windows-1255 |
 | `knesset_24_2021_ballots.csv` | 12,926 | `expb_2.csv` | Windows-1255 |
 | `knesset_24_2021_settlements.csv` | 1,215 | `expc_2.csv` | Windows-1255 |
 | `knesset_25_2022_ballots.csv` | 12,545 | `expb_1.csv` | UTF-8 |
@@ -40,6 +42,8 @@ empty trailing column of the older files.
 | `knesset_<N>/national.csv` | National votes, share, threshold and seats per party |
 | `knesset_<N>_<year>.xlsx` | Excel workbook: `National`, `Settlements`, `Ballots`, `Parties` tables with formulas |
 | `ballots_long.csv.gz` | All elections, one row per (ballot, party): `votes` and `share` of valid votes |
+
+`knesset_<N>/national.csv` also carries each list's `family` and `bloc`.
 
 CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 
@@ -70,11 +74,25 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
 - Summing ballots per settlement gives exactly the settlements file.
 - Seat allocation (threshold + Bader-Ofer with surplus agreements) reproduces the
   official result:
+  - Knesset 23: Likud 36, Blue and White 33, Joint List 15, Shas 9, UTJ 7,
+    Labor-Gesher-Meretz 7, Yisrael Beiteinu 7, Yamina 6.
   - Knesset 24: Likud 30, Yesh Atid 17, Shas 9, Blue and White 8, Yamina 7, Labor 7,
     UTJ 7, Yisrael Beiteinu 7, Religious Zionism 6, Joint List 6, New Hope 6, Meretz 6, Ra'am 4.
   - Knesset 25: Likud 32, Yesh Atid 24, Religious Zionism 14, National Unity 12, Shas 11,
     UTJ 7, Yisrael Beiteinu 6, Ra'am 5, Hadash-Ta'al 5, Labor 4.
 - `scripts/check_excel.py` recalculates each workbook in LibreOffice: 0 formula errors.
+- `scripts/check_reports.js` opens every HTML report: no JavaScript errors, seats add up.
+
+## Party tables
+
+`data/parties/knesset_<N>_parties.csv`: `letter,name_he,name_en,family,bloc,verified`.
+
+- `family` - the same party across elections (used by the cross-election report).
+- `bloc` - `right`, `haredi`, `center_left`, `arab` or `other`. This is an ideological
+  grouping chosen for this project and can be edited; rebuild after changing it.
+  Current choice: right = Likud, Yamina, Religious Zionism, New Hope, Yisrael Beiteinu,
+  Jewish Home; haredi = Shas, UTJ; center-left = Blue and White, Yesh Atid, National
+  Unity, Labor, Labor-Gesher-Meretz, Meretz; arab = Joint List, Ra'am, Hadash-Ta'al, Balad.
 
 ## Notes for modeling
 

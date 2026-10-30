@@ -25,6 +25,10 @@ Full write-up: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 | [`scripts/build_data.py`](scripts/build_data.py) | Validates raw files and builds `data/processed/` |
 | [`scripts/check_excel.py`](scripts/check_excel.py) | Recalculates the workbooks in LibreOffice and checks for formula errors |
 | [`scripts/summarize_elections.py`](scripts/summarize_elections.py) | Key facts table per election |
+| [`reports/index.html`](reports/index.html) | Results of every election, comparison and averages by party or bloc |
+| [`reports/`](reports) | One HTML results page per election, `knesset_<N>_<year>.html` |
+| [`scripts/build_reports.py`](scripts/build_reports.py) | Builds the HTML reports (run by `build_data.py`) |
+| [`scripts/check_reports.js`](scripts/check_reports.js) | Opens the reports in a headless browser and checks them |
 | [`data/README.md`](data/README.md) | Columns, checks, data notes |
 | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | Problem, pitfalls, models, handling changing parties, evaluation |
 | [`HANDOFF.md`](HANDOFF.md) | Current status and next steps |
@@ -39,7 +43,7 @@ python scripts/build_data.py
 
 ## Approach in short
 
-1. **Data** - ballot-level results for Knesset 16-26, validated and unified.
+1. **Data** - ballot-level results (now Knesset 23-25, target 16-26), validated and unified.
 2. **Baselines** - random sample, MILP / greedy selection of boxes.
 3. **Swing model** - predict the change from the previous election.
 4. **Neural model** - learnable per-box gates with an L0 (Hard-Concrete) penalty.
