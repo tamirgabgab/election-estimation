@@ -136,9 +136,19 @@ Follow these steps every time, in this order, so every election is handled the s
 
 ## Usage limits
 
-- Follow the `save-usage` skill (`.claude/skills/save-usage/`) for heavy tasks: narrow
-  reads, short output, background builds, subagents only when they pay off. It also holds
-  the official limit rules (plans, Claude Code, API) as of 2026-10-30.
+- Follow the `save-usage` skill (`.claude/skills/save-usage/`, generic, copied as is
+  between projects) for heavy tasks: narrow reads, short output, background builds,
+  subagents only when they pay off. It also holds the official limit rules (plans,
+  Claude Code, API) as of 2026-10-30.
+- `python scripts/build_data.py` takes over 2 minutes and rewrites all workbooks: run it
+  once per change, in the background, and read only its summary lines. Report-only
+  changes need just `python scripts/build_reports.py`.
+- Never open `reports/index.html` (about 1.3 MB) or `data/processed/ballots_long.csv.gz`
+  (about 56 MB) whole; query them with scripts.
+- `scripts/check_excel.py` is slow: check only the workbooks that changed.
+  `scripts/check_reports.js` prints a line per page: filter with `grep -c ": ok"` and
+  `grep FAIL`.
+- Read `HANDOFF.md` by section (`grep -n "^#"`, then `sed -n`).
 
 ## Git
 

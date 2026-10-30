@@ -45,19 +45,18 @@ and detail: [tips.md](tips.md).
 
 - Check with `/usage` (suggest it to the user; the CLI shows reset times and the biggest
   consumers).
-- Finish the current step, commit and push, update the handoff notes, then tell the user
-  what is left. A weekly limit is not helped by switching models; an Opus or Sonnet limit is.
+- Finish the current step, commit and push (if the project uses git), update the
+  project's status or handoff notes if it keeps them, then tell the user what is left.
+  A weekly limit is not helped by switching models; an Opus or Sonnet limit is.
 - Do not start a large fan-out or a full rebuild late in a window.
 
-## In this repository
+## Project-specific rules
 
-- `python scripts/build_data.py` (over 2 minutes): once per change, in the background;
-  report-only changes need just `python scripts/build_reports.py`.
-- Do not open `reports/index.html` (about 1.3 MB) or `data/processed/ballots_long.csv.gz`
-  (about 56 MB); query them with scripts.
-- `scripts/check_excel.py`: only the changed workbooks. `scripts/check_reports.js`: filter
-  with `grep -c ": ok"` and `grep FAIL`.
-- Read `HANDOFF.md` by section.
+- Look for a "Usage limits" section in the project's `CLAUDE.md` (slow commands, files too
+  large to open, noisy checks) and follow it together with this skill.
+- When you notice such a cost in a project (a build that takes minutes, a generated file of
+  megabytes, a test run that prints hundreds of lines), propose adding a line for it to
+  that section.
 
 ## Keeping this skill current
 

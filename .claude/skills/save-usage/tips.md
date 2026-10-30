@@ -2,8 +2,8 @@
 
 Practical guidance built on the rules in [limits-plans.md](limits-plans.md) (subscription
 and Claude Code) and [limits-api.md](limits-api.md) (API). Ordered by impact. "Official"
-marks tips stated by Anthropic; the rest are conclusions from the rules and from this
-project's history.
+marks tips stated by Anthropic; the rest are conclusions from the rules and from
+experience.
 
 ## 1. Context is the main cost
 
@@ -89,16 +89,12 @@ Every request re-sends the whole conversation, so its length multiplies everythi
 - Set `max_tokens`, request short answers, use `low`/`medium` effort where quality holds.
 - Handle 429 by honoring `retry-after`; ramp traffic up gradually; set a monthly spend limit.
 
-## 8. In this project
+## 8. Per project
 
-- `python scripts/build_data.py` takes over two minutes and rewrites all workbooks: run it
-  once at the end of a change, in the background, and read only its summary lines. For
-  report-only changes run `python scripts/build_reports.py`.
-- `reports/index.html` is about 1.3 MB and `data/processed/ballots_long.csv.gz` about 56 MB:
-  never read them whole.
-- `scripts/check_excel.py` is slow: check only the workbooks that changed.
-- `scripts/check_reports.js` prints 24 lines; filter with `grep -c ": ok"` and `grep FAIL`.
-- Read `HANDOFF.md` by section (`grep -n "^#"`, then `sed -n`), not whole.
-- Web research (party names, leaders, sources): one well-briefed background agent per
-  topic, writing results to a file in the scratchpad, instead of many searches in the
-  main conversation.
+- Every project has its own expensive spots: a build that takes minutes, generated files of
+  megabytes, a test suite with long output, a data folder that must not be read whole.
+  List them in a short "Usage limits" section of the project's `CLAUDE.md`, with the cheap
+  alternative for each (run only the part that changed, query with a script, filter the
+  output).
+- Large research (web, many files): one well-briefed background agent per topic that writes
+  its results to a file, instead of many searches in the main conversation.
