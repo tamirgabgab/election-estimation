@@ -12,7 +12,7 @@ import pandas as pd
 
 from election_estimation.data import (
     load_ballots,
-    load_localities,
+    load_settlements,
     party_columns,
     share_matrix,
     validate,
@@ -31,24 +31,24 @@ def md_table(df: pd.DataFrame) -> str:
 
 def main(knesset: int) -> None:
     ballots = load_ballots(knesset)
-    localities = load_localities(knesset)
+    settlements = load_settlements(knesset)
     parties = party_columns(ballots)
-    double = ballots["is_double_envelope"]
+    double = ballots["is_envelopes"]
     lines = [f"# Knesset {knesset} - exploration", ""]
 
     lines += ["## Data checks", ""]
-    lines += [f"- {k}: {v}" for k, v in validate(ballots, localities).items()]
-    totals = ballots[["eligible", "voters", "invalid", "valid"]].sum()
+    lines += [f"- {k}: {v}" for k, v in validate(ballots).items()]
+    totals = ballots[["registered", "voters", "invalid", "valid"]].sum()
     lines += [
         "",
         "## Overview",
         "",
         f"- Ballot rows: {len(ballots):,} ({(~double).sum():,} regular, {double.sum():,} double-envelope)",
         f"- Split sub-boxes (e.g. 283.1): {ballots['is_split'].sum():,}",
-        f"- Localities: {len(localities):,}",
+        f"- Settlements: {len(settlements):,}",
         f"- Party lists: {len(parties)}",
-        f"- Eligible: {totals['eligible']:,}, voters: {totals['voters']:,}, "
-        f"turnout: {totals['voters'] / totals['eligible']:.2%}",
+        f"- Registered: {totals['registered']:,}, voters: {totals['voters']:,}, "
+        f"turnout: {totals['voters'] / totals['registered']:.2%}",
         f"- Valid: {totals['valid']:,}, invalid: {totals['invalid']:,}",
         f"- Double-envelope valid votes: {ballots.loc[double, 'valid'].sum():,} "
         f"({ballots.loc[double, 'valid'].sum() / totals['valid']:.2%})",
@@ -117,7 +117,7 @@ def main(knesset: int) -> None:
               md_table(table.round(3).astype(object).fillna("")), ""]
 
     exact = history[-1]
-    chosen = ballots.loc[X_df.index[exact["boxes"]], ["locality_name", "box", "valid"]].copy()
+    chosen = ballots.loc[X_df.index[exact["boxes"]], ["settlement_name", "ballot_id", "valid"]].copy()
     chosen["weight_pct"] = exact["weights"] * 100
     chosen["L1_to_national"] = dist[exact["boxes"]] * 100
     lines += [f"### The {exact['k']} boxes that reproduce the national result", "",

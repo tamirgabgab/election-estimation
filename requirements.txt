@@ -1,4 +1,6 @@
 numpy
-pandas
+pandas>=2.0
 scipy
 tabulate
+xlsxwriter>=3.0
+openpyxl>=3.1

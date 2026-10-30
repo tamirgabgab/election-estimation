@@ -10,7 +10,7 @@ average of the panel's vote shares predicts the national result of a
 **future** election as closely as possible, both in party shares and in
 Knesset seats. On election night only the panel boxes need to be counted.
 
-Deliverable: a table `(locality_id, base_box, weight)` plus a report of the
+Deliverable: a table `(settlement_code, base_box, weight)` plus a report of the
 expected error on held-out elections.
 
 ## 2. Decisions taken
@@ -26,46 +26,51 @@ expected error on held-out elections.
 
 ## 3. Data
 
-Source: Central Elections Committee files per Knesset, `expb.csv` (boxes)
-and `expc.csv` (localities), stored under `data/raw/knesset_NN/`.
+All eleven elections, Knesset 16 (2003) to Knesset 26 (2026), are in the
+repo. Raw files are in `data/raw/`, and `scripts/build_data.py` validates them
+and writes `data/processed/knesset_<N>/{ballots,settlements,national}.csv`.
+Sources, layouts and caveats are in [data/README.md](../data/README.md);
+`election_estimation.data` loads the processed tables for modelling.
 
-| Knesset | Year | Status |
-|---|---|---|
-| 16–24 | 2003–2021 | To download (data.gov.il / votesNN.bechirot.gov.il) |
-| 25 | 2022 | In repo, validated |
-| 26 | 2026 | Provisional only; wait for the final files (expected ~4 Nov 2026) |
+| Knesset | Status |
+|---|---|
+| 16 | Regular boxes only; envelopes row = official totals minus boxes |
+| 17–18 | From the Yoavfried project (built from the official package) |
+| 19–25 | Official committee files |
+| 26 | Provisional; replace with the certified files (expected ~4 Nov 2026) |
 
-Checks run on every file (already in `election_estimation.data.validate`):
-party sum equals valid votes, voters equal valid plus invalid, turnout at
-most 100%, locality file equals the box aggregate.
+Thresholds differ: 1.5% (K16), 2% (K17–19), 3.25% (K20 onward). The
+threshold and surplus agreements of each election are in `ELECTIONS` in
+`scripts/build_data.py`, and the seat allocation reproduces the official
+result of every election.
 
 ### 3.1 Box matching across elections
 
 The weakest assumption in the design is that a base box keeps its identity.
-Matching key: `(locality_id, base_box)`. Required measurements before
+Matching key: `(settlement_code, base box number)`, the `base_box` column of
+`election_estimation.data.load_ballots`. Required measurements before
 modelling:
 
 - Survival rate of base boxes between consecutive elections.
 - Size drift: change in eligible voters for matched boxes.
-- Fallback for unmatched boxes: aggregate to locality level.
+- Fallback for unmatched boxes: aggregate to settlement level.
 
-If survival is poor, switch the unit to the locality for small localities
+If survival is poor, switch the unit to the settlement for small settlements
 and to CBS statistical areas for large cities.
 
 ### 3.2 Party metadata per election
 
-File `data/parties/knesset_NN.csv`, one row per list, hand-maintained:
+File `data/parties/knesset_<N>_parties.csv`, one row per list, hand-maintained:
 
 ```
-letters, name_he, name_en, bloc, surplus_partner, notes
+letter, name_he, name_en, family, bloc, verified, leader_he
 ```
 
-- `letters`: ballot letters, the column name in the CEC files.
+- `letter`: ballot letters, the column name in the committee files.
+- `family`: the same party across elections.
 - `bloc`: one of `right`, `center_left`, `arab`, `haredi`, `other`.
-- `surplus_partner`: letters of the list sharing a surplus-vote agreement.
 
-The K25 file exists as a draft and needs review of ambiguous assignments
-(Yisrael Beiteinu was moved to `right` on the owner's decision).
+Bloc decisions and open bloc questions are tracked in `HANDOFF.md`.
 
 ## 4. Blocs
 
@@ -79,7 +84,7 @@ they serve four purposes.
 2. **Evaluation.** Every report shows party-level, bloc-level and seat
    errors side by side.
 3. **Stratification.** The stratified baseline samples boxes by their bloc
-   profile (dominant bloc, bloc entropy), by locality size and by district.
+   profile (dominant bloc, bloc entropy), by settlement size and by district.
 4. **Diagnostics.** The chosen panel is described by its bloc composition
    and compared with the national one.
 
@@ -154,7 +159,7 @@ All baselines run under the same validation protocol and panel size.
 1. **Random**: k random base boxes, votes pooled. In-sample on K25,
    60 boxes give roughly 15 percentage points L1.
 2. **Stratified**: k boxes sampled proportionally across strata built from
-   bloc profile, locality size and district; votes pooled.
+   bloc profile, settlement size and district; votes pooled.
 3. **Greedy column generation** (`selection.greedy_selection`): cheap upper
    bound on the optimizable error.
 4. **MILP** (`selection.exact_selection`): same objective without the
@@ -192,15 +197,15 @@ sign of leakage.
 
 ## 8. Implementation steps
 
-1. **Data ingestion** – download K16–K24, run `validate` on each, record
-   file provenance in `data/raw/README.md`.
+1. **Data ingestion** – done for K16–K26 (`scripts/build_data.py`); replace
+   K26 with the certified files when published.
 2. **Box matching** – `election_estimation/matching.py`: merge sub-boxes,
    build the cross-election box index, report survival and drift.
-3. **Party files** – `data/parties/knesset_NN.csv` for every election,
-   including surplus agreements; a loader in `data.py` that produces `B_e`.
+3. **Party files** – done for every election (`data/parties/`); add a
+   helper in `data.py` that produces `B_e` for a bloc scheme.
 4. **Metrics** – `metrics.py` (exists): L1, Bader-Ofer, soft seats, bloc
-   aggregation. Add a test that Bader-Ofer reproduces official seats for
-   every election with a party file.
+   aggregation. Add a test that it reproduces the official seats of every
+   election, using the thresholds and agreements in `ELECTIONS`.
 5. **Evaluation harness** – `election_estimation/evaluate.py`: rolling
    folds, metric table, Pareto curve plotting. Everything downstream plugs
    into it.
@@ -219,8 +224,9 @@ sign of leakage.
 ## 9. Repository layout (target)
 
 ```
-data/raw/knesset_NN/expb.csv, expc.csv   CEC files
-data/parties/knesset_NN.csv              lists, blocs, surplus agreements
+data/raw/                                committee files (immutable)
+data/processed/knesset_<N>/              built by scripts/build_data.py
+data/parties/knesset_<N>_parties.csv     lists, families, blocs, leaders
 src/election_estimation/
     data.py        loading, validation, share matrices        (exists)
     metrics.py     L1, Bader-Ofer, soft seats, blocs           (exists)
@@ -231,7 +237,7 @@ src/election_estimation/
 scripts/
     explore_knesset.py                   per-election report   (exists)
     run_baselines.py, train_panel.py, make_report.py
-reports/                                 generated markdown
+reports/                                 HTML results pages, model reports
 ```
 
 ## 10. Risks and open questions

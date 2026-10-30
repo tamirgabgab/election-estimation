@@ -1,0 +1,44 @@
+﻿letter,name_he,name_en,family,bloc,votes,share,passed_threshold,seats
+מחל,הליכוד,Likud,Likud,right,1140370,0.2646318285927779,True,35
+פה,כחול לבן,Blue and White,Blue and White,center_left,1125881,0.2612695421730363,True,35
+שס,"ש""ס",Shas,Shas,haredi,258275,0.059934745328095014,True,8
+ג,יהדות התורה,United Torah Judaism,United Torah Judaism,haredi,249049,0.05779377945684536,True,8
+ום,"חד""ש-תע""ל",Hadash-Ta'al,Hadash-Ta'al,arab,193442,0.04488973770499412,True,6
+אמת,העבודה,Labor,Labor,center_left,190870,0.04429288487377212,True,6
+ל,ישראל ביתנו,Yisrael Beiteinu,Yisrael Beiteinu,right,173004,0.04014693904071919,True,5
+טב,איחוד מפלגות הימין,Union of Right-Wing Parties,Union of Right-Wing Parties,right,159468,0.037005803767227397,True,5
+מרצ,מרצ,Meretz,Meretz,center_left,156473,0.03631079045870878,True,4
+כ,כולנו,Kulanu,Kulanu,right,152756,0.035448231370974664,True,4
+דעם,"רע""ם-בל""ד",Ra'am-Balad,Ra'am-Balad,arab,143666,0.03333882536949414,True,4
+נ,,,,other,138598,0.03216275610486231,False,0
+ז,,,,other,118031,0.027390021975879905,False,0
+נר,,,,other,74701,0.0173349546442901,False,0
+ן,,,,other,4618,0.0010716432249545747,False,0
+ר,,,,other,4135,0.0009595592757009888,False,0
+צק,,,,other,3843,0.0008917983788437484,False,0
+נץ,,,,other,3394,0.000787604397032444,False,0
+ק,,,,other,3281,0.0007613818581801558,False,0
+זץ,,,,other,2417,0.0005608838619998283,False,0
+י,,,,other,1438,0.00033369921123531366,False,0
+נז,,,,other,1316,0.00030538815158948036,False,0
+זי,,,,other,1168,0.00027104358742896127,False,0
+קף,,,,other,1140,0.0002645459671823766,False,0
+ףז,,,,other,819,0.00019005539221260214,False,0
+ףי,,,,other,733,0.00017009841574094916,False,0
+קי,,,,other,701,0.00016267256403056665,False,0
+ףץ,,,,other,624,0.00014480410835245876,False,0
+קן,,,,other,603,0.00013993089316752025,False,0
+ךק,,,,other,562,0.00013041652066359268,False,0
+ץ,,,,other,556,0.00012902417346789596,False,0
+ףך,,,,other,518,0.00012020597456181674,False,0
+יץ,,,,other,428,9.932076662636595e-05,False,0
+ןך,,,,other,404,9.375137784357907e-05,False,0
+ףנ,,,,other,401,9.305520424573072e-05,False,0
+ןנ,,,,other,385,8.934227839053946e-05,False,0
+ץי,,,,other,368,8.539729466939877e-05,False,0
+יז,,,,other,353,8.191642668015697e-05,False,0
+ין,,,,other,265,6.149533447660508e-05,False,0
+זך,,,,other,216,5.012449904508188e-05,False,0
+זנ,,,,other,0,0.0,False,0
+נך,,,,other,0,0.0,False,0
+ץז,,,,other,0,0.0,False,0

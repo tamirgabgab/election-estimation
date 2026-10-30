@@ -1,0 +1,35 @@
+﻿letter,name_he,name_en,family,bloc,votes,share,passed_threshold,seats
+כן,קדימה,Kadima,Kadima,center_left,758032,0.2247026076852162,True,28
+מחל,הליכוד,Likud,Likud,right,729054,0.216112690418528,True,27
+ל,ישראל ביתנו,Yisrael Beiteinu,Yisrael Beiteinu,right,394577,0.1169640342790404,True,15
+אמת,העבודה,Labor,Labor,center_left,334900,0.09927404557298228,True,13
+שס,"ש""ס",Shas,Shas,haredi,286300,0.08486760002252859,True,11
+ג,יהדות התורה,United Torah Judaism,United Torah Judaism,haredi,147954,0.04385784454674536,True,5
+עם,"רע""ם-תע""ל",Ra'am-Ta'al,Ra'am-Ta'al,arab,113954,0.0337792612398436,True,4
+ט,האיחוד הלאומי,National Union,National Union,right,112570,0.03336900361346854,True,4
+ו,"חד""ש",Hadash,Hadash,arab,112130,0.0332385748883204,True,4
+מרצ,התנועה החדשה-מרצ,New Movement-Meretz,Meretz,center_left,99611,0.02952758122893502,True,3
+ב,הבית היהודי,Jewish Home,Jewish Home,right,96765,0.028683944520363186,True,3
+ד,"בל""ד",Balad,Balad,arab,83739,0.024822661398136648,True,3
+ה,,,,other,27737,0.008222048975986293,False,0
+זך,,,,other,17571,0.005208552567222668,False,0
+קנ,,,,other,13132,0.003892704587830407,False,0
+רק,,,,other,12378,0.003669197181553821,False,0
+חי,,,,other,6722,0.001992595205558635,False,0
+צי,,,,other,4752,0.0014086302315999158,False,0
+פ,,,,other,3696,0.001095601291244379,False,0
+ק,,,,other,2645,0.0007840544954927982,False,0
+נ,,,,other,2572,0.0007624151842750386,False,0
+יק,,,,other,2346,0.000695422248176221,False,0
+קץ,,,,other,1887,0.0005593613735330473,False,0
+ץ,,,,other,1520,0.0004505719596026667,False,0
+קפ,,,,other,1008,0.0002988003521575579,False,0
+פק,,,,other,921,0.00027301103604872106,False,0
+ים,,,,other,856,0.0002537431561972912,False,0
+אר,,,,other,815,0.00024158957044485087,False,0
+נפ,,,,other,802,0.0002377359944745649,False,0
+פי,,,,other,678,0.00020097880829645262,False,0
+ינ,,,,other,632,0.00018734307794005615,False,0
+נץ,,,,other,623,0.0001846752176529351,False,0
+נר,,,,other,611,0.00018111807060344035,False,0
+פח,,,,other,0,0.0,False,0

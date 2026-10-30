@@ -1,47 +1,27 @@
-"""Loading and normalizing Central Elections Committee result files.
+"""Loading the processed election tables for modelling.
 
-The CEC publishes two CSV files per Knesset election:
-  expb.csv - one row per ballot box (קלפי)
-  expc.csv - one row per locality (יישוב); an exact aggregation of expb.csv
-
-Every column that is not a metadata column holds the vote count of one party
-list, keyed by its ballot letters (e.g. "מחל", "פה", "שס").
+`scripts/build_data.py` turns the committee's raw files into
+`data/processed/knesset_<N>/{ballots,settlements,national}.csv` with English
+metadata columns. Every other column holds the valid votes of one list, keyed
+by its ballot letters (e.g. "מחל", "פה", "שס"). See data/README.md.
 """
 
 from pathlib import Path
 
 import pandas as pd
 
-DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "raw"
+ROOT = Path(__file__).resolve().parents[2]
+PROCESSED_DIR = ROOT / "data" / "processed"
+PARTIES_DIR = ROOT / "data" / "parties"
+KNESSETS = list(range(16, 27))
 
-# Locality code the CEC uses for double envelopes (soldiers, prisoners,
-# hospitals, diplomats). These votes belong to no geographic place.
-DOUBLE_ENVELOPES_CODE = 9999
-
-COLUMN_NAMES = {
-    "סמל ועדה": "committee_id",
-    "ברזל": "iron_id",
-    "שם ישוב": "locality_name",
-    "סמל ישוב": "locality_id",
-    "קלפי": "box",
-    "ריכוז": "center_id",
-    "שופט": "judge",
-    "בזב": "eligible",
-    "מצביעים": "voters",
-    "פסולים": "invalid",
-    "כשרים": "valid",
-    "חיצוניות": "external",
-    "קלפי אחרת": "other_box",
-}
-DERIVED_COLUMNS = ["is_double_envelope", "base_box", "is_split"]
-META_COLUMNS = list(COLUMN_NAMES.values()) + DERIVED_COLUMNS
-
-
-def _read(path: Path) -> pd.DataFrame:
-    df = pd.read_csv(path, encoding="utf-8-sig")
-    # Trailing commas in the CEC files produce an empty "Unnamed" column.
-    df = df.loc[:, ~df.columns.str.startswith("Unnamed")]
-    return df.rename(columns=COLUMN_NAMES)
+META_COLUMNS = [
+    "ballot_key", "committee_code", "ballot_uid", "settlement_name", "settlement_code",
+    "ballot_id", "concentration", "judge", "registered", "voters", "invalid", "valid",
+    "is_envelopes", "external", "other_ballot",
+    # Added by load_ballots.
+    "base_box", "is_split",
+]
 
 
 def party_columns(df: pd.DataFrame) -> list[str]:
@@ -49,34 +29,43 @@ def party_columns(df: pd.DataFrame) -> list[str]:
 
 
 def load_ballots(knesset: int) -> pd.DataFrame:
-    """Ballot-box results with English metadata columns and party columns."""
-    df = _read(DATA_DIR / f"knesset_{knesset}" / "expb.csv")
-    df["is_double_envelope"] = df["locality_id"] == DOUBLE_ENVELOPES_CODE
+    """One row per ballot box, including the double-envelopes rows."""
+    df = pd.read_csv(
+        PROCESSED_DIR / f"knesset_{knesset}" / "ballots.csv",
+        encoding="utf-8-sig",
+        dtype={"ballot_id": str, "ballot_key": str},
+        low_memory=False,
+    )
+    df["is_envelopes"] = df["is_envelopes"].astype(str).str.lower() == "true"
     # Large boxes are split alphabetically into sub-boxes 283.1, 283.2, ...
-    # The integer part identifies the original box.
-    df["base_box"] = df["box"].astype(float).astype(int)
-    df["is_split"] = df["box"].astype(float) != df["base_box"]
+    # The part before the dot identifies the original (base) box.
+    base = df["ballot_id"].str.split(".").str[0]
+    df["base_box"] = df["settlement_code"].astype(str) + "_" + base
+    df["is_split"] = df["ballot_id"].str.contains(".", regex=False)
     return df
 
 
-def load_localities(knesset: int) -> pd.DataFrame:
-    return _read(DATA_DIR / f"knesset_{knesset}" / "expc.csv")
+def load_settlements(knesset: int) -> pd.DataFrame:
+    return pd.read_csv(PROCESSED_DIR / f"knesset_{knesset}" / "settlements.csv",
+                       encoding="utf-8-sig", low_memory=False)
 
 
-def validate(ballots: pd.DataFrame, localities: pd.DataFrame) -> dict[str, bool]:
+def load_parties(knesset: int) -> pd.DataFrame:
+    """Party table: letter, name_he, name_en, family, bloc, verified, leader_he."""
+    return pd.read_csv(PARTIES_DIR / f"knesset_{knesset}_parties.csv", dtype=str,
+                       keep_default_na=False).set_index("letter")
+
+
+def validate(ballots: pd.DataFrame) -> dict[str, bool]:
     parties = party_columns(ballots)
-    by_locality = ballots.groupby("locality_id")[parties].sum().sort_index()
-    loc = localities.set_index("locality_id")[parties].sort_index()
-    regular = ballots[~ballots["is_double_envelope"]]
+    regular = ballots[~ballots["is_envelopes"]]
     return {
         "valid_equals_party_sum": bool((ballots[parties].sum(axis=1) == ballots["valid"]).all()),
         "voters_equal_valid_plus_invalid": bool(
             (ballots["voters"] == ballots["valid"] + ballots["invalid"]).all()
         ),
-        "no_turnout_above_100pct": bool((regular["voters"] <= regular["eligible"]).all()),
-        "localities_file_is_ballot_aggregate": bool(
-            by_locality.index.equals(loc.index) and (by_locality.values == loc.values).all()
-        ),
+        "no_turnout_above_100pct": bool((regular["voters"] <= regular["registered"]).all()),
+        "unique_ballot_keys": bool(ballots["ballot_key"].is_unique),
     }
 
 
@@ -98,7 +87,7 @@ def share_matrix(
         out["other"] = votes[minor].sum(axis=1)
         return out
 
-    regular = ballots[~ballots["is_double_envelope"] & (ballots["valid"] > 0)]
+    regular = ballots[~ballots["is_envelopes"] & (ballots["valid"] > 0)]
     counts = collapse(regular[parties])
     shares = counts.div(counts.sum(axis=1), axis=0)
     target = collapse(ballots[parties].sum().to_frame().T).iloc[0]
