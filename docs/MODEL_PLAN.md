@@ -17,10 +17,10 @@ expected error on held-out elections.
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Unit of selection | Base ballot box (sub-boxes 283.1, 283.2 merged into 283) | Alphabetical splits change between elections and carry surname bias; 6,306 base boxes in K25 |
+| Unit of selection | CBS statistical area, or the settlement where there are no areas (M7) | Base boxes are renumbered in K24 and do not persist; areas are stable geography |
 | Usage scenario | Fixed panel chosen in advance | Must generalize to elections not seen in training |
 | Prediction form | Fixed weight per box, convex combination | Transparent, works for new parties, robust with ~10 training elections |
-| Loss | L1 on party shares + α·L1 on seats + β·L1 on bloc shares + L0 penalty on panel size | Shares, seats and blocs are all evaluation targets |
+| Loss | L1 on party shares + α·L1 on seats + β·L1 on bloc shares + L0 penalty on panel size; seats weigh most (M8) | Seats per list are the primary target; shares and blocs stabilize training |
 | Party handling | No cross-election party mapping for the main model; blocs for the bloc terms | Weights belong to boxes, not parties |
 | Double envelopes | Part of the national target, never selectable | The model compensates through its box weights |
 
@@ -57,6 +57,36 @@ modelling:
 
 If survival is poor, switch the unit to the settlement for small settlements
 and to CBS statistical areas for large cities.
+
+Findings (2026-10-30, `reports/box_matching.md`, `election_estimation.matching`):
+
+- Keys survive well from K16 to K23 (87–99% of votes per consecutive pair).
+  Knesset 16–17 number boxes ten times larger (61, 62 = box 6 split), which the
+  loader normalizes.
+- K24 (2021) reorganized the numbering: base boxes fell from 9,388 to 5,614,
+  and a base box became a group of alphabetical sub-boxes (about 1,170
+  registered voters on average instead of about 690). K23→K24 vote survival is
+  56%, K24→K25 74%, K25→K26 84%.
+- Matched keys usually name the same place, but not always: after removing
+  the national bloc swing, a box is closer to its namesake than to a random box
+  of the same settlement in 74–88% of pairs.
+- A box key present in every election of a long window is rare: base boxes
+  that exist in all of K16–K25 hold 42% of K25's votes, and for K26 the figure
+  is 31%.
+- Settlement codes survive almost completely (99–100% of votes).
+
+Conclusion: the base box is not a stable unit across the whole period, and its
+size changes after K23.
+
+Decision (M7): the sampling unit is the CBS statistical area (2022 areas),
+and the whole settlement where a settlement has no areas. Ballot boxes of
+K16–K25 are mapped to areas by the Yoavfried/Israel-Elections-Map project;
+K26 boxes are mapped through their K25 namesakes. On election night one
+representative ballot box is counted per panel area (M9), so held-out
+evaluation must simulate reading a single box of each area, not the area
+total. Note: the K17–K18 files already carry statistical areas of their own
+vintage (1995, 2008), with about 5% of boxes unresolved; areas of different
+vintages need the project's crosswalk to the 2022 areas.
 
 ### 3.2 Party metadata per election
 
@@ -126,10 +156,11 @@ w_i   = g_i * softmax(a)_i / Σ_j g_j * softmax(a)_j
 ŷ_e   = Σ_i w_i * x_{i,e}
 ```
 
-Loss, summed over training elections:
+Loss, summed over training elections with recency weights ρ_e (M6; recent
+elections weigh more, decay tuned in validation):
 
 ```
-L = Σ_e [ ‖y_e − ŷ_e‖₁
+L = Σ_e ρ_e [ ‖y_e − ŷ_e‖₁
         + α · ‖seats_soft(y_e) − seats_soft(ŷ_e)‖₁
         + β · ‖B_eᵀ y_e − B_eᵀ ŷ_e‖₁
         + γ · ‖seats_soft(B_eᵀ y_e) − seats_soft(B_eᵀ ŷ_e)‖₁ ]
@@ -188,7 +219,7 @@ number of parties whose threshold status is predicted wrongly.
 
 Hyperparameters (λ, α, β, γ, μ, learning rate, gate temperature) are tuned
 with an inner split on the training elections only, never on the test
-election. The final output is a Pareto curve of held-out error against
+election. The primary selection metric is the seat L1 error per list (M8). The final output is a Pareto curve of held-out error against
 panel size; λ is chosen where the panel has 50–70 boxes.
 
 Expectation: 2–4 percentage points party L1 and 2–5 seats on unseen
@@ -199,8 +230,9 @@ sign of leakage.
 
 1. **Data ingestion** – done for K16–K26 (`scripts/build_data.py`); replace
    K26 with the certified files when published.
-2. **Box matching** – `election_estimation/matching.py`: merge sub-boxes,
-   build the cross-election box index, report survival and drift.
+2. **Box matching** – done: `election_estimation/matching.py` and
+   `scripts/box_matching_report.py` (findings in 3.1). Next: decide the
+   sampling unit (M7) and build the cross-election unit index for it.
 3. **Party files** – done for every election (`data/parties/`); add a
    helper in `data.py` that produces `B_e` for a bloc scheme.
 4. **Metrics** – `metrics.py` (exists): L1, Bader-Ofer, soft seats, bloc
@@ -231,7 +263,7 @@ src/election_estimation/
     data.py        loading, validation, share matrices        (exists)
     metrics.py     L1, Bader-Ofer, soft seats, blocs           (exists)
     selection.py   LP weights, greedy, MILP, random            (exists)
-    matching.py    cross-election box index
+    matching.py    cross-election box matching diagnostics      (exists)
     evaluate.py    rolling validation harness
     panel_net.py   gated selection network
 scripts/

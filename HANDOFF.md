@@ -69,6 +69,12 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   greedy column generation, MILP, random baseline) and `scripts/explore_knesset.py`
   (K25 in-sample experiment: 14 boxes reproduce the national result exactly, so only
   held-out evaluation is meaningful).
+- **Box matching diagnostics** (`src/election_estimation/matching.py`,
+  `scripts/box_matching_report.py` → `reports/box_matching.md`): base-box keys survive
+  well K16→K23 but K24 reorganized the numbering (base boxes 9,388 → 5,614, each now a
+  group of sub-boxes); boxes present in all of K16–K25 hold only 42% of K25's votes.
+  Knesset 16–17 ballot ids are ten times larger (61, 62 = box 6 split); `load_ballots`
+  normalizes them. See `docs/MODEL_PLAN.md` section 3.1.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -147,7 +153,6 @@ move answered items to "Decisions" below with the answer.
 
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
-| B2 | Split center-left into "center" and "left"? | One bloc | Keep; split (center = Blue and White, Yesh Atid, National Unity, Kulanu?; left = Labor, Meretz, Democratic Union) |
 | B4 | New Hope (K24): right-wing party in the anti-Netanyahu coalition | right | right; center-left |
 | B5 | Kulanu (K20-21): center-right, sat in the Likud-led coalition | right | right; center-left |
 | B6 | Blue and White (K21-23, joint list with Telem's right-leaning members; K24 Gantz only) | center-left | center-left; split center/left (see B2) |
@@ -208,14 +213,13 @@ move answered items to "Decisions" below with the answer.
 | D7 | Knesset 20: Kulanu needs a surplus agreement to reach its official 10 seats; the partner is unknown (Shas, UTJ, Yisrael Beiteinu, Meretz, Yesh Atid or Zionist Union all work) | Placeholder: Kulanu + Yisrael Beiteinu | User confirms the real partner |
 | D8 | Knesset 20 split boxes share one number; their order (`-1`, `-2`) follows the file | File order | Keep; ignore the difference (merge, see M5) |
 | D9 | Knesset 19 settlements file leaves out the envelope votes; the build adds an envelopes row summed from the ballots file | Derived row | Keep |
-| D20 | Three regular boxes report more voters than registered: K18 מי עמי box 1 (282 / 198), K22 כרמים box 1 (231 / 211), K22 תלם box 1 (221 / 212) | Kept as published | Keep; cap at registered; drop the boxes |
 | D21 | Exact official name of K26 `די` (described by the user as the Reservists' and economic party of Yaron Zelekha and Yoaz Hendel) and its #1 | Name "המילואימניקים והמפלגה הכלכלית", leader empty | Confirm from the committee's list |
+| D22 | Ballot → statistical-area mapping for K16 and K19–K25: the user downloads the Yoavfried/Israel-Elections-Map ballot files (with geography columns) and the 2022-area crosswalk, and uploads them; licence not yet checked. The K17–K18 raw files already carry areas of their own vintage (1995 / 2008), 5% of boxes unresolved (`statistical_area_pending`) | Waiting for files | User uploads; open github.com in the network settings |
 
 ### Modeling
 
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
-| M6 | Training window: all past elections, or only the last few? | Not decided | All; last k; weighted by recency |
 
 ### Decisions
 
@@ -237,6 +241,13 @@ Answered by the user on 2026-10-30.
 | M2 | Loss and evaluation: L1 on party shares, L1 on seats (Bader-Ofer), L1 on bloc shares and bloc seats |
 | M3 | Double envelopes are part of the national target, never candidates; the box weights compensate for them |
 | M4 | Panel size about 50-70 boxes (order of sqrt of the number of settlements); scenario: a fixed panel chosen in advance, prediction = fixed weighted average |
+
+| M6 | Training window: all elections before the test election, weighted towards recent ones (decay rate tuned in validation) |
+| M7 | Sampling unit: CBS statistical area (2022 areas, mapping from the Yoavfried project), the whole settlement where there are no areas; replaces M1's base box |
+| M8 | Main accuracy target: seats per list (including who passes the threshold); the seat term gets the largest weight in the loss and is the primary selection metric |
+| D20 | The three boxes with more voters than registered are kept as published |
+| M9 | On election night one representative ballot box is counted per panel area; evaluation must include the noise of reading a single box instead of the whole area |
+| B2 | Center-left stays one bloc (no center / left split) |
 
 The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 
