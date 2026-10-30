@@ -58,6 +58,27 @@ modelling:
 If survival is poor, switch the unit to the settlement for small settlements
 and to CBS statistical areas for large cities.
 
+Findings (2026-10-30, `reports/box_matching.md`, `election_estimation.matching`):
+
+- Keys survive well from K16 to K23 (87–99% of votes per consecutive pair).
+  Knesset 16–17 number boxes ten times larger (61, 62 = box 6 split), which the
+  loader normalizes.
+- K24 (2021) reorganized the numbering: base boxes fell from 9,388 to 5,614,
+  and a base box became a group of alphabetical sub-boxes (about 1,170
+  registered voters on average instead of about 690). K23→K24 vote survival is
+  56%, K24→K25 74%, K25→K26 84%.
+- Matched keys usually name the same place, but not always: after removing
+  the national bloc swing, a box is closer to its namesake than to a random box
+  of the same settlement in 74–88% of pairs.
+- A box key present in every election of a long window is rare: base boxes
+  that exist in all of K16–K25 hold 42% of K25's votes, and for K26 the figure
+  is 31%.
+- Settlement codes survive almost completely (99–100% of votes).
+
+Conclusion: the base box is not a stable unit across the whole period, and its
+size changes after K23. The sampling unit has to be revisited (open question M7
+in `HANDOFF.md`) before the baselines are built.
+
 ### 3.2 Party metadata per election
 
 File `data/parties/knesset_<N>_parties.csv`, one row per list, hand-maintained:
@@ -199,8 +220,9 @@ sign of leakage.
 
 1. **Data ingestion** – done for K16–K26 (`scripts/build_data.py`); replace
    K26 with the certified files when published.
-2. **Box matching** – `election_estimation/matching.py`: merge sub-boxes,
-   build the cross-election box index, report survival and drift.
+2. **Box matching** – done: `election_estimation/matching.py` and
+   `scripts/box_matching_report.py` (findings in 3.1). Next: decide the
+   sampling unit (M7) and build the cross-election unit index for it.
 3. **Party files** – done for every election (`data/parties/`); add a
    helper in `data.py` that produces `B_e` for a bloc scheme.
 4. **Metrics** – `metrics.py` (exists): L1, Bader-Ofer, soft seats, bloc
@@ -231,7 +253,7 @@ src/election_estimation/
     data.py        loading, validation, share matrices        (exists)
     metrics.py     L1, Bader-Ofer, soft seats, blocs           (exists)
     selection.py   LP weights, greedy, MILP, random            (exists)
-    matching.py    cross-election box index
+    matching.py    cross-election box matching diagnostics      (exists)
     evaluate.py    rolling validation harness
     panel_net.py   gated selection network
 scripts/

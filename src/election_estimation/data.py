@@ -14,6 +14,11 @@ ROOT = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = ROOT / "data" / "processed"
 PARTIES_DIR = ROOT / "data" / "parties"
 KNESSETS = list(range(16, 27))
+TENFOLD_BALLOT_IDS = {16, 17}
+BLOC_SCHEMES = {
+    "four_blocs": {},
+    "three_blocs": {"haredi": "right"},
+}
 
 META_COLUMNS = [
     "ballot_key", "committee_code", "ballot_uid", "settlement_name", "settlement_code",
@@ -38,10 +43,17 @@ def load_ballots(knesset: int) -> pd.DataFrame:
     )
     df["is_envelopes"] = df["is_envelopes"].astype(str).str.lower() == "true"
     # Large boxes are split alphabetically into sub-boxes 283.1, 283.2, ...
-    # The part before the dot identifies the original (base) box.
-    base = df["ballot_id"].str.split(".").str[0]
+    # The part before the dot identifies the original (base) box. Knesset 16-17
+    # number boxes ten times larger, with the split in the last digit
+    # (61, 62 = box 6 split in two), so their base number is id // 10.
+    if knesset in TENFOLD_BALLOT_IDS:
+        number = df["ballot_id"].astype(int)
+        base = (number // 10).astype(str)
+        df["is_split"] = number % 10 != 0
+    else:
+        base = df["ballot_id"].str.split(".").str[0]
+        df["is_split"] = df["ballot_id"].str.contains(".", regex=False)
     df["base_box"] = df["settlement_code"].astype(str) + "_" + base
-    df["is_split"] = df["ballot_id"].str.contains(".", regex=False)
     return df
 
 
@@ -54,6 +66,36 @@ def load_parties(knesset: int) -> pd.DataFrame:
     """Party table: letter, name_he, name_en, family, bloc, verified, leader_he."""
     return pd.read_csv(PARTIES_DIR / f"knesset_{knesset}_parties.csv", dtype=str,
                        keep_default_na=False).set_index("letter")
+
+
+def bloc_of(knesset: int, scheme: str = "four_blocs") -> dict[str, str]:
+    """Ballot letters -> bloc under a bloc scheme (see BLOC_SCHEMES)."""
+    merge = BLOC_SCHEMES[scheme]
+    blocs = load_parties(knesset)["bloc"].replace("", "other")
+    return {letter: merge.get(bloc, bloc) for letter, bloc in blocs.items()}
+
+
+def bloc_votes(ballots: pd.DataFrame, knesset: int, scheme: str = "four_blocs") -> pd.DataFrame:
+    """Vote counts per bloc for every row of `ballots`."""
+    parties = party_columns(ballots)
+    mapping = bloc_of(knesset, scheme)
+    blocs = pd.Index([mapping.get(p, "other") for p in parties])
+    return ballots[parties].T.groupby(blocs).sum().T
+
+
+def base_boxes(knesset: int, scheme: str = "four_blocs") -> pd.DataFrame:
+    """Regular boxes merged into base boxes, with totals and bloc vote counts."""
+    ballots = load_ballots(knesset)
+    regular = ballots[~ballots["is_envelopes"]]
+    totals = regular.groupby("base_box").agg(
+        settlement_code=("settlement_code", "first"),
+        settlement_name=("settlement_name", "first"),
+        sub_boxes=("ballot_id", "size"),
+        registered=("registered", "sum"),
+        valid=("valid", "sum"),
+    )
+    blocs = bloc_votes(regular, knesset, scheme).groupby(regular["base_box"]).sum()
+    return totals.join(blocs)
 
 
 def validate(ballots: pd.DataFrame) -> dict[str, bool]:

@@ -69,6 +69,12 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   greedy column generation, MILP, random baseline) and `scripts/explore_knesset.py`
   (K25 in-sample experiment: 14 boxes reproduce the national result exactly, so only
   held-out evaluation is meaningful).
+- **Box matching diagnostics** (`src/election_estimation/matching.py`,
+  `scripts/box_matching_report.py` → `reports/box_matching.md`): base-box keys survive
+  well K16→K23 but K24 reorganized the numbering (base boxes 9,388 → 5,614, each now a
+  group of sub-boxes); boxes present in all of K16–K25 hold only 42% of K25's votes.
+  Knesset 16–17 ballot ids are ten times larger (61, 62 = box 6 split); `load_ballots`
+  normalizes them. See `docs/MODEL_PLAN.md` section 3.1.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -216,6 +222,7 @@ move answered items to "Decisions" below with the answer.
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
 | M6 | Training window: all past elections, or only the last few? | Not decided | All; last k; weighted by recency |
+| M7 | Sampling unit, given the box-matching findings (M1 chose the base box, but its size and numbering change in K24) | Base box | Base box; published sub-box; statistical area (2022 areas, Yoavfried project) with settlements for small places; train on K21–K26 only |
 
 ### Decisions
 
