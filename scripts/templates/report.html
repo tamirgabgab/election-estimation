@@ -373,7 +373,7 @@ function renderElection(el) {
 
   const agreements = el.surplus_agreements.map(pair => pair.map(esc).join(" + ")).join(" · ");
   document.getElementById("footer").innerHTML = `
-    <p>תאריך הבחירות: ${el.date}. המנדטים חושבו בשיטת בדר-עופר, והתוצאה זהה לתוצאה הרשמית. הסכמי העודפים (${agreements || "אין"}) נבחרו כך שישחזרו את התוצאה הרשמית, ולא אומתו מול רשימת ההסכמים הרשמית.</p>
+    <p>תאריך הבחירות: ${el.date}. המנדטים חושבו בשיטת בדר-עופר, והתוצאה זהה ${el.provisional ? "לחלוקה הסופית שדווחה בתקשורת" : "לתוצאה הרשמית"}. הסכמי העודפים (${agreements || "אין"}) נבחרו כך שישחזרו את התוצאה הרשמית, ולא אומתו מול רשימת ההסכמים הרשמית.</p>
     <p>הגושים הם חלוקה אידיאולוגית שנקבעה בקבצי <code>data/parties</code> ואפשר לשנות אותה שם. רשימות קטנות שלא זוהו משויכות ל"אחר".</p>
     <p>${el.source === "yoavfried"
       ? "מקור: קובץ קלפיות של פרויקט Israel-Elections-Map, שנבנה מהחבילה הרשמית ב-data.gov.il. טבלת היישובים חושבה מסכום הקלפיות."
@@ -461,7 +461,9 @@ function renderCompare() {
 function showElection(knesset) {
   const el = DATA.elections.find(e => e.knesset === knesset);
   document.getElementById("title").textContent = `תוצאות הבחירות לכנסת ה-${el.knesset}`;
-  document.getElementById("subtitle").textContent = `${el.date} · תוצאות סופיות לפי קובצי ועדת הבחירות`;
+  document.getElementById("subtitle").textContent = el.provisional
+    ? `${el.date} · תוצאות לא סופיות: הקבצים הורדו לפני פרסום התוצאות הרשמיות המאושרות`
+    : `${el.date} · תוצאות סופיות לפי קובצי ועדת הבחירות`;
   renderElection(el);
   fitLabels();
 }

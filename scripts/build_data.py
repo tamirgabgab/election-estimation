@@ -40,6 +40,8 @@ ENVELOPES_NAME = "מעטפות חיצוניות"
 # unsuffixed_split_boxes: split ballot boxes share one ballot number (no ".1", ".2").
 # source "yoavfried": one ballots file from the Yoavfried/Israel-Elections-Map project
 #   (no settlements file; settlements are summed from the ballots).
+# provisional: files taken before the committee's certified final results; replace them
+#   when the final files are published.
 # source "regular_boxes_only": a committee-layout ballots file without envelope votes; an
 #   envelopes row is added from data/official/knesset_<N>_totals.csv.
 ELECTIONS = {
@@ -119,6 +121,16 @@ ELECTIONS = {
         "seats": 120,
         "surplus_agreements": [("פה", "ל"), ("אמת", "מרצ"), ("שס", "ג")],
     },
+    26: {
+        "year": 2026,
+        "date": "2026-10-27",
+        "threshold": 0.0325,
+        "seats": 120,
+        # Agreements as reported in the press; they reproduce the reported final seats.
+        "surplus_agreements": [("מחל", "ט"), ("שס", "ג"), ("אמת", "דרך"), ("עם", "ודם"), ("ל", "רק")],
+        # Files downloaded before the committee's certified final results.
+        "provisional": True,
+    },
     25: {
         "year": 2022,
         "date": "2022-11-01",
@@ -141,6 +153,9 @@ COLUMN_NAMES = {
     "מצביעים": "voters",
     "פסולים": "invalid",
     "כשרים": "valid",
+    # Knesset 26 ballots file only; meaning not documented, all zero there.
+    "חיצוניות": "external",
+    "קלפי אחרת": "other_ballot",
 }
 BASE_ORDER = list(dict.fromkeys(COLUMN_NAMES.values()))
 BASE_COLUMNS = set(BASE_ORDER)

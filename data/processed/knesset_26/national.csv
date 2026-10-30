@@ -1,0 +1,39 @@
+﻿letter,name_he,name_en,family,bloc,votes,share,passed_threshold,seats
+מחל,הליכוד,Likud,Likud,right,1167458,0.20515245528438142,True,27
+דרך,ישר!,Yashar,Yashar,center_left,913502,0.16052584179233256,True,21
+רק,ביחד,Beyachad,Beyachad,right,531476,0.09339402901408178,True,12
+ודם,הרשימה המשותפת,Joint List,Joint List,arab,500147,0.0878887163847586,True,11
+אמת,הדמוקרטים,The Democrats,The Democrats,center_left,366352,0.06437748706877995,True,8
+ל,ישראל ביתנו,Yisrael Beiteinu,Yisrael Beiteinu,right,337413,0.059292159028306785,True,7
+עם,"רע""מ",Ra'am,Ra'am,arab,337253,0.05926404290520385,True,8
+ב,עוצמה יהודית,Otzma Yehudit,Otzma Yehudit,right,326624,0.057396253702322306,True,7
+ג,יהדות התורה,United Torah Judaism,United Torah Judaism,haredi,312604,0.05493257841542802,True,7
+שס,"ש""ס",Shas,Shas,haredi,299506,0.05263092228791437,True,6
+ט,הציונות הדתית-זהות,Religious Zionism-Zehut,Religious Zionism,right,290451,0.0510397254460579,True,6
+די,,,,other,154995,0.027236615627116947,False,0
+ך,,,,other,95663,0.01681045427747275,False,0
+נר,,,,other,11274,0.00198113232414024,False,0
+זך,,,,other,10594,0.001861638800952785,False,0
+ני,,,,other,9923,0.0017437268096898704,False,0
+בי,,,,other,5712,0.0010037455947746186,False,0
+ד,,,,other,4294,0.000754566453774897,False,0
+צדק,,,,other,2084,0.00036621250341566965,False,0
+בד,,,,other,1465,0.0002574382521612073,False,0
+צף,,,,other,1050,0.00018451205786298134,False,0
+רץ,,,,other,1011,0.00017765875285664204,False,0
+י,,,,other,955,0.00016781810977061637,False,0
+נקי,,,,other,929,0.00016324923976639017,False,0
+קך,,,,other,919,0.000161491982072457,False,0
+ה,,,,other,902,0.00015850464399277064,False,0
+פה,,,,other,872,0.0001532328709109712,False,0
+נף,,,,other,787,0.00013829618051253934,False,0
+קץ,,,,other,774,0.00013601174551042624,False,0
+בקר,,,,other,747,0.00013126714973680674,False,0
+קה,,,,other,712,0.00012511674780804068,False,0
+ק,,,,other,581,0.00010209667201751635,False,0
+ז,,,,other,508,8.926869085180431e-05,False,0
+נץ,,,,other,481,8.452409507818479e-05,False,0
+יק,,,,other,412,7.239901699004602e-05,False,0
+זץ,,,,other,255,4.481007119529547e-05,False,0
+כן,,,,other,0,0.0,False,0
+צבי,,,,other,0,0.0,False,0

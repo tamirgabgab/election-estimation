@@ -41,6 +41,8 @@ the committee's `expc` file).
 | `knesset_24_2021_settlements.csv` | 1,215 | `expc_2.csv` | Windows-1255 |
 | `knesset_25_2022_ballots.csv` | 12,545 | `expb_1.csv` | UTF-8 |
 | `knesset_25_2022_settlements.csv` | 1,216 | `expc_1.csv` | UTF-8 |
+| `knesset_26_2026_ballots.csv` | 12,926 | `expb.csv` (provisional) | UTF-8 |
+| `knesset_26_2026_settlements.csv` | 1,225 | `expc.csv` (provisional) | UTF-8 |
 
 Raw files keep the committee's original encoding; `read_raw` detects it and drops the
 empty trailing column of the older files.
@@ -61,6 +63,9 @@ as published, an `is_envelope` column, plus the project's geography columns, whi
 build ignores). There is no settlements file: the build sums the ballots per settlement.
 Envelope rows get code 9999 and 0 registered voters. Knesset 17 eligible voters per box
 were recovered by the project from archived reports, not from the official file.
+
+Knesset 26's ballots file adds two columns, `חיצוניות` (`external`) and `קלפי אחרת`
+(`other_ballot`); their meaning is not documented and they are all zero.
 
 Knesset 19-21 use an older layout: the ballot column is `מספר קלפי`, and there are no
 `סמל ועדה`, `ברזל`, `ריכוז` or `שופט` columns. These columns are empty in their processed
@@ -137,6 +142,9 @@ CSV files are UTF-8 with BOM so Excel opens the Hebrew correctly.
     Labor-Gesher-Meretz 7, Yisrael Beiteinu 7, Yamina 6.
   - Knesset 24: Likud 30, Yesh Atid 17, Shas 9, Blue and White 8, Yamina 7, Labor 7,
     UTJ 7, Yisrael Beiteinu 7, Religious Zionism 6, Joint List 6, New Hope 6, Meretz 6, Ra'am 4.
+  - Knesset 26 (provisional files; matches the final seats reported in the press): Likud 27,
+    Yashar! 21, Beyachad 12, Joint List 11, The Democrats 8, Ra'am 8, Yisrael Beiteinu 7,
+    UTJ 7, Otzma Yehudit 7, Shas 6, Religious Zionism-Zehut 6.
   - Knesset 25: Likud 32, Yesh Atid 24, Religious Zionism 14, National Unity 12, Shas 11,
     UTJ 7, Yisrael Beiteinu 6, Ra'am 5, Hadash-Ta'al 5, Labor 4.
 - `scripts/check_excel.py` recalculates each workbook in LibreOffice: 0 formula errors.

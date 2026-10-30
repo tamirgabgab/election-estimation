@@ -6,8 +6,11 @@ for the model design.
 
 ## Communication
 
-- Chat with the user in Hebrew (RTL-safe, as in the global instructions). Code,
-  comments, commit messages and docs are in English.
+- Always answer the user in Hebrew (RTL-safe, as in the global instructions). This
+  includes every text the user sees while work runs in the background: progress updates,
+  "waiting for X" notes, task and command descriptions, and short status lines. Write
+  any reasoning shown to the user in Hebrew too. Code, comments, commit messages and docs
+  are in English.
 - Ask guiding questions before big changes (new model family, data layout changes).
 - End each work round with a short summary by sections, and update `HANDOFF.md`
   (done, key facts, next steps) before committing.
