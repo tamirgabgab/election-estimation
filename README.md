@@ -33,6 +33,7 @@ Full write-up: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | Problem, pitfalls, models, handling changing parties, evaluation |
 | [`HANDOFF.md`](HANDOFF.md) | Current status and next steps |
 | [`CLAUDE.md`](CLAUDE.md) | Working rules for this project |
+| [`.claude/skills/save-usage/`](.claude/skills/save-usage) | Skill for saving Claude usage, with the official limit rules and tips |
 
 ## Quick start
 
