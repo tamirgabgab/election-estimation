@@ -49,10 +49,16 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
     in LibreOffice, no errors), and `ballots_long.csv.gz` for all elections.
 - **Party tables** `data/parties/knesset_{16..26}_parties.csv`: lists that passed the
   threshold are named and have a `family` and a `bloc` (right, haredi, center-left, arab);
-  small lists are marked `verified = no`, bloc `other`.
+  small lists are marked `verified = no`, bloc `other`. `leader_he` = #1 on the list for
+  all 124 lists that passed the threshold, found by web search (search snippets only;
+  wikipedia / gov.il are blocked here), with source URL, confidence (74 high, 50 medium)
+  and notes in `data/parties/leaders_sources.csv` (see D17).
 - **HTML reports** in `reports/` (built by `scripts/build_reports.py`): one results page
   per election (seats, vote shares, threshold pass/fail, blocs) and `index.html` with an
-  election selector and a comparison tab averaging seats or shares by bloc or party.
+  election selector, a comparison tab averaging seats or shares by bloc or party, and a
+  party lookup tab: ballot letters (`מחל`), party name or list leader → every election
+  the party family ran in (letters, name, #1, votes, share, threshold, seats), other lists
+  with the same letters, and share or votes per settlement in every election.
   Checked with `scripts/check_reports.js` (desktop and mobile, no errors).
 - **Check scripts**: `scripts/check_excel.py` (LibreOffice recalculation, 0 errors in all
   workbooks) and `scripts/summarize_elections.py` (facts table below).
@@ -195,6 +201,9 @@ move answered items to "Decisions" below with the answer.
 | D14 | Knesset 26 is provisional: the files were downloaded before the committee's certified results; seats match the final distribution reported in the press (Likud 27, Yashar 21, Beyachad 12, Joint List 11, Democrats 8, Ra'am 8, Yisrael Beiteinu 7, UTJ 7, Otzma Yehudit 7, Shas 6, Religious Zionism-Zehut 6) | `provisional: True` in `ELECTIONS`; report says "not final" | Replace the raw files with the certified ones and remove the flag |
 | D15 | Knesset 26 letters of new lists (`דרך` Yashar!, `רק` Beyachad, `ודם` Joint List, `ב` Otzma Yehudit) were matched by their seat counts to the reported results, not read from an official list | Used | Confirm against the committee's list of candidate lists |
 | D16 | Knesset 26 ballots file has two new columns, `חיצוניות` and `קלפי אחרת` (kept as `external`, `other_ballot`; all zero) | Kept, meaning unknown | User explains; drop them |
+| D17 | List leaders (`leader_he`, #1 on each list that passed): from search snippets, not from the committee's official candidate lists. 50 are "medium" (source names the party leader, not explicitly #1), e.g. most of K16-17, K21 Meretz (Zandberg), K18 Jewish Home (Hershkowitz). Notable #1s: K16 National Union = Liberman, K17 National Union-NRP = Elon, K19 Shas = Yishai, K22 Yamina = Shaked, K26 UTJ = Yaakov Asher, K26 Joint List = Yousef Jabareen | Used, sources in `data/parties/leaders_sources.csv` | Verify against the official lists (needs gov.il / knesset.gov.il access); keep |
+| D18 | Small lists have no names or leaders, so the party lookup shows them as "רשימה <letters> (כנסת N)" (e.g. K26 `צדק`) | Unnamed | Name them from the committee's list of candidate lists per election; leave |
+| D19 | Knesset 26: 38 lists were approved and two (Blue and White, Tnuat Achi) withdrew, leaving 36 on the ballot (per news sources); the ballots file has 38 letter columns, and exactly two have 0 votes everywhere: `כן` (Blue and White's letters in K24-25) and `צבי` | Kept as in the file (0 votes, unnamed) | Name them (likely Blue and White and Tnuat Achi); drop zero columns |
 | D13 | Knesset 14-15 (1996, 1999): no ballot-level file found; maybe on odata.org.il | Not added | User downloads from odata.org.il; skip |
 | D10 | Source for K16-18: official data.gov.il / odata files downloaded by the user, or the GitHub copies | Yoavfried for K17-18 (added); replace with official files if the user gets them | Keep; switch to official |
 | D7 | Knesset 20: Kulanu needs a surplus agreement to reach its official 10 seats; the partner is unknown (Shas, UTJ, Yisrael Beiteinu, Meretz, Yesh Atid or Zionist Union all work) | Placeholder: Kulanu + Yisrael Beiteinu | User confirms the real partner |

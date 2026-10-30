@@ -1,33 +1,33 @@
-letter,name_he,name_en,family,bloc,verified
-פה,כחול לבן,Blue and White,Blue and White,center_left,yes
-מחל,הליכוד,Likud,Likud,right,yes
-ודעם,הרשימה המשותפת,Joint List,Joint List,arab,yes
-שס,"ש""ס",Shas,Shas,haredi,yes
-ל,ישראל ביתנו,Yisrael Beiteinu,Yisrael Beiteinu,right,yes
-ג,יהדות התורה,United Torah Judaism,United Torah Judaism,haredi,yes
-טב,ימינה,Yamina,Yamina,right,yes
-אמת,העבודה-גשר,Labor-Gesher,Labor-Gesher,center_left,yes
-מרצ,המחנה הדמוקרטי,Democratic Union,Democratic Union,center_left,yes
-ז,,,,other,no
-זכ,,,,other,no
-זן,,,,other,no
-זץ,,,,other,no
-י,,,,other,no
-יז,,,,other,no
-ינ,,,,other,no
-יף,,,,other,no
-יק,,,,other,no
-כ,,,,other,no
-כי,,,,other,no
-כף,,,,other,no
-נ,,,,other,no
-נך,,,,other,no
-נץ,,,,other,no
-ףז,,,,other,no
-צ,,,,other,no
-צן,,,,other,no
-ץ,,,,other,no
-ק,,,,other,no
-קך,,,,other,no
-קץ,,,,other,no
-רק,,,,other,no
+letter,name_he,name_en,family,bloc,verified,leader_he
+פה,כחול לבן,Blue and White,Blue and White,center_left,yes,בני גנץ
+מחל,הליכוד,Likud,Likud,right,yes,בנימין נתניהו
+ודעם,הרשימה המשותפת,Joint List,Joint List,arab,yes,איימן עודה
+שס,"ש""ס",Shas,Shas,haredi,yes,אריה דרעי
+ל,ישראל ביתנו,Yisrael Beiteinu,Yisrael Beiteinu,right,yes,אביגדור ליברמן
+ג,יהדות התורה,United Torah Judaism,United Torah Judaism,haredi,yes,יעקב ליצמן
+טב,ימינה,Yamina,Yamina,right,yes,איילת שקד
+אמת,העבודה-גשר,Labor-Gesher,Labor-Gesher,center_left,yes,עמיר פרץ
+מרצ,המחנה הדמוקרטי,Democratic Union,Democratic Union,center_left,yes,ניצן הורוביץ
+ז,,,,other,no,
+זכ,,,,other,no,
+זן,,,,other,no,
+זץ,,,,other,no,
+י,,,,other,no,
+יז,,,,other,no,
+ינ,,,,other,no,
+יף,,,,other,no,
+יק,,,,other,no,
+כ,,,,other,no,
+כי,,,,other,no,
+כף,,,,other,no,
+נ,,,,other,no,
+נך,,,,other,no,
+נץ,,,,other,no,
+ףז,,,,other,no,
+צ,,,,other,no,
+צן,,,,other,no,
+ץ,,,,other,no,
+ק,,,,other,no,
+קך,,,,other,no,
+קץ,,,,other,no,
+רק,,,,other,no,

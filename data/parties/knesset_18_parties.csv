@@ -1,35 +1,35 @@
-letter,name_he,name_en,family,bloc,verified
-כן,קדימה,Kadima,Kadima,center_left,yes
-מחל,הליכוד,Likud,Likud,right,yes
-ל,ישראל ביתנו,Yisrael Beiteinu,Yisrael Beiteinu,right,yes
-אמת,העבודה,Labor,Labor,center_left,yes
-שס,"ש""ס",Shas,Shas,haredi,yes
-ג,יהדות התורה,United Torah Judaism,United Torah Judaism,haredi,yes
-ט,האיחוד הלאומי,National Union,National Union,right,yes
-ו,"חד""ש",Hadash,Hadash,arab,yes
-עם,"רע""ם-תע""ל",Ra'am-Ta'al,Ra'am-Ta'al,arab,yes
-מרצ,התנועה החדשה-מרצ,New Movement-Meretz,Meretz,center_left,yes
-ב,הבית היהודי,Jewish Home,Jewish Home,right,yes
-ד,"בל""ד",Balad,Balad,arab,yes
-אר,,,,other,no
-ה,,,,other,no
-זך,,,,other,no
-חי,,,,other,no
-ים,,,,other,no
-ינ,,,,other,no
-יק,,,,other,no
-נ,,,,other,no
-נפ,,,,other,no
-נץ,,,,other,no
-נר,,,,other,no
-פ,,,,other,no
-פח,,,,other,no
-פי,,,,other,no
-פק,,,,other,no
-ץ,,,,other,no
-צי,,,,other,no
-ק,,,,other,no
-קנ,,,,other,no
-קפ,,,,other,no
-קץ,,,,other,no
-רק,,,,other,no
+letter,name_he,name_en,family,bloc,verified,leader_he
+כן,קדימה,Kadima,Kadima,center_left,yes,ציפי לבני
+מחל,הליכוד,Likud,Likud,right,yes,בנימין נתניהו
+ל,ישראל ביתנו,Yisrael Beiteinu,Yisrael Beiteinu,right,yes,אביגדור ליברמן
+אמת,העבודה,Labor,Labor,center_left,yes,אהוד ברק
+שס,"ש""ס",Shas,Shas,haredi,yes,אלי ישי
+ג,יהדות התורה,United Torah Judaism,United Torah Judaism,haredi,yes,יעקב ליצמן
+ט,האיחוד הלאומי,National Union,National Union,right,yes,"יעקב כ""ץ"
+ו,"חד""ש",Hadash,Hadash,arab,yes,מוחמד ברכה
+עם,"רע""ם-תע""ל",Ra'am-Ta'al,Ra'am-Ta'al,arab,yes,אברהים צרצור
+מרצ,התנועה החדשה-מרצ,New Movement-Meretz,Meretz,center_left,yes,חיים אורון
+ב,הבית היהודי,Jewish Home,Jewish Home,right,yes,דניאל הרשקוביץ
+ד,"בל""ד",Balad,Balad,arab,yes,ג'מאל זחאלקה
+אר,,,,other,no,
+ה,,,,other,no,
+זך,,,,other,no,
+חי,,,,other,no,
+ים,,,,other,no,
+ינ,,,,other,no,
+יק,,,,other,no,
+נ,,,,other,no,
+נפ,,,,other,no,
+נץ,,,,other,no,
+נר,,,,other,no,
+פ,,,,other,no,
+פח,,,,other,no,
+פי,,,,other,no,
+פק,,,,other,no,
+ץ,,,,other,no,
+צי,,,,other,no,
+ק,,,,other,no,
+קנ,,,,other,no,
+קפ,,,,other,no,
+קץ,,,,other,no,
+רק,,,,other,no,
