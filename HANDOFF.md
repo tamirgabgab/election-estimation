@@ -214,15 +214,12 @@ move answered items to "Decisions" below with the answer.
 | D7 | Knesset 20: Kulanu needs a surplus agreement to reach its official 10 seats; the partner is unknown (Shas, UTJ, Yisrael Beiteinu, Meretz, Yesh Atid or Zionist Union all work) | Placeholder: Kulanu + Yisrael Beiteinu | User confirms the real partner |
 | D8 | Knesset 20 split boxes share one number; their order (`-1`, `-2`) follows the file | File order | Keep; ignore the difference (merge, see M5) |
 | D9 | Knesset 19 settlements file leaves out the envelope votes; the build adds an envelopes row summed from the ballots file | Derived row | Keep |
-| D20 | Three regular boxes report more voters than registered: K18 מי עמי box 1 (282 / 198), K22 כרמים box 1 (231 / 211), K22 תלם box 1 (221 / 212) | Kept as published | Keep; cap at registered; drop the boxes |
 | D21 | Exact official name of K26 `די` (described by the user as the Reservists' and economic party of Yaron Zelekha and Yoaz Hendel) and its #1 | Name "המילואימניקים והמפלגה הכלכלית", leader empty | Confirm from the committee's list |
 
 ### Modeling
 
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
-| M6 | Training window: all past elections, or only the last few? | Not decided | All; last k; weighted by recency |
-| M7 | Sampling unit, given the box-matching findings (M1 chose the base box, but its size and numbering change in K24) | Base box | Base box; published sub-box; statistical area (2022 areas, Yoavfried project) with settlements for small places; train on K21–K26 only |
 
 ### Decisions
 
@@ -244,6 +241,11 @@ Answered by the user on 2026-10-30.
 | M2 | Loss and evaluation: L1 on party shares, L1 on seats (Bader-Ofer), L1 on bloc shares and bloc seats |
 | M3 | Double envelopes are part of the national target, never candidates; the box weights compensate for them |
 | M4 | Panel size about 50-70 boxes (order of sqrt of the number of settlements); scenario: a fixed panel chosen in advance, prediction = fixed weighted average |
+
+| M6 | Training window: all elections before the test election, weighted towards recent ones (decay rate tuned in validation) |
+| M7 | Sampling unit: CBS statistical area (2022 areas, mapping from the Yoavfried project), the whole settlement where there are no areas; replaces M1's base box |
+| M8 | Main accuracy target: seats per list (including who passes the threshold); the seat term gets the largest weight in the loss and is the primary selection metric |
+| D20 | The three boxes with more voters than registered are kept as published |
 
 The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 

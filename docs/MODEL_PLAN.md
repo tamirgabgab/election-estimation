@@ -17,10 +17,10 @@ expected error on held-out elections.
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Unit of selection | Base ballot box (sub-boxes 283.1, 283.2 merged into 283) | Alphabetical splits change between elections and carry surname bias; 6,306 base boxes in K25 |
+| Unit of selection | CBS statistical area, or the settlement where there are no areas (M7) | Base boxes are renumbered in K24 and do not persist; areas are stable geography |
 | Usage scenario | Fixed panel chosen in advance | Must generalize to elections not seen in training |
 | Prediction form | Fixed weight per box, convex combination | Transparent, works for new parties, robust with ~10 training elections |
-| Loss | L1 on party shares + α·L1 on seats + β·L1 on bloc shares + L0 penalty on panel size | Shares, seats and blocs are all evaluation targets |
+| Loss | L1 on party shares + α·L1 on seats + β·L1 on bloc shares + L0 penalty on panel size; seats weigh most (M8) | Seats per list are the primary target; shares and blocs stabilize training |
 | Party handling | No cross-election party mapping for the main model; blocs for the bloc terms | Weights belong to boxes, not parties |
 | Double envelopes | Part of the national target, never selectable | The model compensates through its box weights |
 
@@ -76,8 +76,13 @@ Findings (2026-10-30, `reports/box_matching.md`, `election_estimation.matching`)
 - Settlement codes survive almost completely (99–100% of votes).
 
 Conclusion: the base box is not a stable unit across the whole period, and its
-size changes after K23. The sampling unit has to be revisited (open question M7
-in `HANDOFF.md`) before the baselines are built.
+size changes after K23.
+
+Decision (M7): the sampling unit is the CBS statistical area (2022 areas),
+and the whole settlement where a settlement has no areas. Ballot boxes of
+K16–K25 are mapped to areas by the Yoavfried/Israel-Elections-Map project;
+K26 boxes are mapped through their K25 namesakes. On election night a panel
+area is read from its ballot boxes.
 
 ### 3.2 Party metadata per election
 
@@ -147,10 +152,11 @@ w_i   = g_i * softmax(a)_i / Σ_j g_j * softmax(a)_j
 ŷ_e   = Σ_i w_i * x_{i,e}
 ```
 
-Loss, summed over training elections:
+Loss, summed over training elections with recency weights ρ_e (M6; recent
+elections weigh more, decay tuned in validation):
 
 ```
-L = Σ_e [ ‖y_e − ŷ_e‖₁
+L = Σ_e ρ_e [ ‖y_e − ŷ_e‖₁
         + α · ‖seats_soft(y_e) − seats_soft(ŷ_e)‖₁
         + β · ‖B_eᵀ y_e − B_eᵀ ŷ_e‖₁
         + γ · ‖seats_soft(B_eᵀ y_e) − seats_soft(B_eᵀ ŷ_e)‖₁ ]
@@ -209,7 +215,7 @@ number of parties whose threshold status is predicted wrongly.
 
 Hyperparameters (λ, α, β, γ, μ, learning rate, gate temperature) are tuned
 with an inner split on the training elections only, never on the test
-election. The final output is a Pareto curve of held-out error against
+election. The primary selection metric is the seat L1 error per list (M8). The final output is a Pareto curve of held-out error against
 panel size; λ is chosen where the panel has 50–70 boxes.
 
 Expectation: 2–4 percentage points party L1 and 2–5 seats on unseen
