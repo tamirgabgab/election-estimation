@@ -97,7 +97,7 @@ licence has not been checked yet.
 - K19-K25: the project's area, matched on settlement + ballot number (all boxes match,
   valid votes equal); boxes without an area get `loc:<settlement_code>`.
 - K26 (no area file): the most common K25 area of the same polling center (`ריכוז`,
-  95% of boxes), else the K25 box with the same settlement and number, else the
+  86% of boxes), else the K25 box with the same settlement and number (3%), else the
   settlement. Checked on K24 → K25: 93% of polling centers keep their area.
 
 ## Processed files
