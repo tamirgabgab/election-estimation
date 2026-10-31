@@ -344,6 +344,9 @@ Answered by the user on 2026-10-30.
 | M10 | Accuracy target (2026-10-31): the total of the regular boxes (double envelopes excluded), so counting every box gives zero error; `load_election(..., target="regular")` |
 | M11 | Goal: at most 2 seats moved between lists (`seats_moved` = seat L1 / 2) with a panel of N = 40–160 boxes; the user prefers more boxes over a larger error |
 | M12 | Success = the goal holds in the mean over the test elections and in the worst one; unit for the budget curve: base box |
+| M13 | Next model (2026-10-31): a swing model - previous result of all regular boxes plus the change measured in the panel (`election_estimation/swing.py`) |
+| M14 | The swing is measured per bloc on settlement panels; new lists need no lineage, lists within a bloc are split by the panel |
+| M15 | Swing panel weights are fit to reproduce past national bloc swings (with a weight prior), strengths by inner validation |
 | D22 | Area mapping: the user uploaded the Israel-Elections-Map ballot files for K19–K25; the area unit starts at K19, and the files are kept byte-for-byte in `data/raw/geography/` |
 
 The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
