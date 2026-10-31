@@ -61,6 +61,7 @@ def greedy_selection(
     budget: float | None = None,
     sizes: np.ndarray | None = None,
     mu: float = 0.0,
+    rank_costs: np.ndarray | None = None,
 ) -> list[dict]:
     """Forward selection guided by column generation.
 
@@ -70,14 +71,17 @@ def greedy_selection(
     shortlist and the choice use loss decrease per unit of cost, and columns
     that no longer fit in the budget are skipped. With `sizes` and `mu`, the
     weights are pulled towards size-proportional weights of the selected
-    columns (see `fit_weights`).
+    columns (see `fit_weights`). `rank_costs` (default: `costs`) replaces the
+    costs in the ranking only, e.g. to penalize columns used by other panels;
+    the budget is always charged `costs`.
     """
     n = X.shape[1]
     costs = np.ones(n) if costs is None else np.asarray(costs, dtype=float)
+    rank = costs if rank_costs is None else np.asarray(rank_costs, dtype=float)
     budget = float(max_boxes) if budget is None else float(budget)
     affordable = np.flatnonzero(costs <= budget)
     assert len(affordable), "no column fits in the budget"
-    dist = np.abs(X[:, affordable] - y[:, None]).sum(axis=0)
+    dist = np.abs(X[:, affordable] - y[:, None]).sum(axis=0) * rank[affordable] / costs[affordable]
     selected = [int(affordable[np.argmin(dist)])]
     spent = costs[selected[0]]
     history = []
@@ -92,7 +96,7 @@ def greedy_selection(
         if loss < 1e-9 or len(selected) >= max_boxes:
             break
         pi, rho = duals[:-1], duals[-1]
-        reduced_cost = -(pi @ X + rho) / costs
+        reduced_cost = -(pi @ X + rho) / rank
         reduced_cost[selected] = np.inf
         reduced_cost[costs > budget - spent] = np.inf
         shortlist = [j for j in np.argsort(reduced_cost)[:candidates] if np.isfinite(reduced_cost[j])]
@@ -101,7 +105,7 @@ def greedy_selection(
         best = None
         for j in shortlist:
             trial = fit(selected + [int(j)])
-            gain = (loss - trial[1]) / costs[j]
+            gain = (loss - trial[1]) / rank[j]
             if best is None or gain > best[0]:
                 best = (gain, int(j), trial)
         selected.append(best[1])

@@ -42,17 +42,29 @@ BLOCS = ["right", "haredi", "center_left", "arab", "other"]
 MIN_SHARE = 0.01
 
 
-def unit_shares(e: Election, units: list[str]) -> pd.DataFrame:
-    counts = e.units.loc[units]
+def unit_shares(e: Election, units: list[str], counts: pd.DataFrame | None = None) -> pd.DataFrame:
+    """List vote shares of the given units of e (or of `counts`, rows: units)."""
+    counts = e.units.loc[units] if counts is None else counts
     return counts.div(counts.sum(axis=1), axis=0)
 
 
-def unit_blocs(e: Election, units: list[str]) -> pd.DataFrame:
+def unit_blocs(e: Election, units: list[str], counts: pd.DataFrame | None = None) -> pd.DataFrame:
     """Bloc vote shares of the given units of e (rows: units, columns: BLOCS)."""
-    counts = e.units.loc[units]
+    counts = e.units.loc[units] if counts is None else counts
     blocs = counts.T.groupby(pd.Index([e.blocs.get(c, "other") for c in counts.columns])).sum().T
     blocs = blocs.reindex(columns=BLOCS, fill_value=0)
     return blocs.div(blocs.sum(axis=1), axis=0)
+
+
+def read_units(e: Election, units: list[str], reading: str,
+               rng: np.random.Generator) -> pd.DataFrame:
+    """Counted votes per unit: the whole unit ("unit") or one random box of it
+    ("single_box")."""
+    if reading == "unit":
+        return e.units.loc[units]
+    boxes = e.boxes[e.boxes["unit"].isin(units)]
+    pick = boxes.groupby("unit").sample(n=1, random_state=rng)
+    return pick.set_index("unit")[e.parties].loc[units]
 
 
 def national_blocs(e: Election) -> pd.Series:
@@ -85,18 +97,18 @@ class SwingPanel(Panel):
     errors: dict | None = None        # error scale per list type, see `list_errors`
 
     def predict(self, e: Election, reading: str, rng: np.random.Generator) -> pd.Series | None:
-        assert reading == "unit", "the swing panel counts whole units"
         prev = self.previous
         present = [u for u in self.units if u in e.units.index and u in prev.units.index]
         if not present:
             return None
         w = pd.Series(self.weights, index=self.units).loc[present]
         w = w / w.sum()
-        cur_s, prev_s = unit_shares(e, present), unit_shares(prev, present)
+        counts = read_units(e, present, reading, rng)
+        cur_s, prev_s = unit_shares(e, present, counts), unit_shares(prev, present)
         level = cur_s.mul(w, axis=0).sum()
         if self.alpha >= 1:
             return level
-        swing = (unit_blocs(e, present) - unit_blocs(prev, present)).mul(w, axis=0).sum()
+        swing = (unit_blocs(e, present, counts) - unit_blocs(prev, present)).mul(w, axis=0).sum()
         blocs = (national_blocs(prev) + swing).clip(lower=0)
         bloc = pd.Series({p: e.blocs.get(p, "other") for p in e.parties})
         fixed = pd.Series(dtype=float)
@@ -224,7 +236,7 @@ def swing_panel(
         scores, errors = {}, {}
         for i, setting in enumerate(_settings(grid)):
             for v in range(len(train) - inner_folds, len(train)):
-                if v < 3:  # at least two training pairs
+                if v < 2:  # at least one training pair
                     continue
                 panel = fit(train[:v], [tune_k], setting, 0.0)[tune_k]
                 for alpha in alphas:
@@ -272,26 +284,46 @@ def error_scale(errors: pd.DataFrame) -> dict[str, float]:
     return {"continuing": cont, "new": new}
 
 
+def simulate_shares(pred: pd.Series, new: pd.Series, errors: dict, rng: np.random.Generator,
+                    draws: int = 1000) -> np.ndarray:
+    """Draws of list shares around `pred` with the panel's past errors:
+    pred + N(0, scale_type^2 * pred), clipped at 0 and renormalized (draws x lists)."""
+    sd = np.sqrt(pred.clip(lower=MIN_SHARE)) * np.where(new, errors["new"], errors["continuing"])
+    sims = np.clip(pred.values + rng.normal(size=(draws, len(pred))) * sd.values, 0, None)
+    return sims / sims.sum(axis=1, keepdims=True)
+
+
 def seat_intervals(panel: SwingPanel, e: Election, rng: np.random.Generator,
-                   draws: int = 1000, level: float = 0.9) -> pd.DataFrame:
+                   draws: int = 1000, level: float = 0.9,
+                   pred: pd.Series | None = None) -> pd.DataFrame:
     """Point seats, a central `level` seat interval and the probability of passing
-    the threshold for every list, by simulating the panel's past errors:
-    share = pred + N(0, scale_type^2 * pred), clipped at 0 and renormalized."""
-    pred = panel.predict(e, "unit", rng).reindex(e.parties, fill_value=0.0)
+    the threshold for every list, from `simulate_shares` around the prediction
+    (`pred`, default: the panel's whole-unit prediction of e)."""
+    pred = panel.predict(e, "unit", rng) if pred is None else pred
+    pred = pred.reindex(e.parties, fill_value=0.0)
     pred = pred / pred.sum()
     rules = seat_rules(e.knesset)
     new = ~pd.Series(e.parties, index=e.parties).isin(list(continuing(panel.previous, e)))
-    sd = np.sqrt(pred.clip(lower=MIN_SHARE)) * np.where(new, panel.errors["new"],
-                                                        panel.errors["continuing"])
-    sims = np.clip(pred.values + rng.normal(size=(draws, len(pred))) * sd.values, 0, None)
-    seats = np.array([bader_ofer(pd.Series(s / s.sum(), index=e.parties), **rules).values
-                      for s in sims])
-    passed = sims / sims.sum(axis=1, keepdims=True) >= rules["threshold"]
+    sims = simulate_shares(pred, new, panel.errors, rng, draws)
+    seats = np.array([bader_ofer(pd.Series(s, index=e.parties), **rules).values for s in sims])
     tail = (1 - level) / 2
     return pd.DataFrame({
         "share": pred,
         "seats": bader_ofer(pred, **rules),
         "low": np.quantile(seats, tail, axis=0, method="lower"),
         "high": np.quantile(seats, 1 - tail, axis=0, method="higher"),
-        "p_pass": passed.mean(axis=0),
+        "p_pass": (sims >= rules["threshold"]).mean(axis=0),
     }, index=e.parties)
+
+
+def prob_within(errors: dict, base: Election, prev: Election, rng: np.random.Generator,
+                max_moved: float = 2.0, draws: int = 1000) -> float:
+    """Probability that a panel with these error scales moves at most `max_moved`
+    seats, simulated around the result of `base` (lists new in `base` relative to
+    `prev` use the new-list scale). Used to rank panels for a future election."""
+    rules = seat_rules(base.knesset)
+    new = ~pd.Series(base.parties, index=base.parties).isin(list(continuing(prev, base)))
+    sims = simulate_shares(base.shares, new, errors, rng, draws)
+    moved = np.array([np.abs(bader_ofer(pd.Series(s, index=base.parties), **rules)
+                             - base.seats).sum() / 2 for s in sims])
+    return float((moved <= max_moved).mean())
