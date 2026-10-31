@@ -1,7 +1,7 @@
 <title>פאנל המדגם לכנסת 27</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
-/* Layout: one reading column of cards; summary table first, then the chosen panel, then the calculator. */
+/* Layout: one reading column of cards; panel comparison, the chosen panel (sectors and areas), then the calculator. */
 :root {
   --page: #f9f9f7;
   --surface: #fcfcfb;
@@ -109,11 +109,14 @@ textarea { width: 100%; min-height: 140px; font-family: var(--mono); font-size: 
 .blocbar .maj { position: absolute; inset-block: -5px; border-inline-start: 2px dashed var(--ink); }
 .example { font-size: 12px; font-weight: 600; color: var(--warn); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; }
 details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
+.secbar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--grid); min-width: 80px; }
+.secbar i { display: block; height: 100%; }
 @media (max-width: 720px) {
   h1 { font-size: 22px; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .two { grid-template-columns: minmax(0, 1fr); }
   .card { padding: 16px; }
+  .hide-sm { display: none; }
 }
 @media (prefers-reduced-motion: no-preference) { .prob .bar i, .chart .fill { transition: width .2s ease; } }
 </style>
@@ -125,14 +128,8 @@ details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
   </header>
 
   <section class="card" aria-labelledby="h-compare">
-    <div class="toolbar">
-      <h2 id="h-compare" style="margin-inline-end:auto">הפאנלים המומלצים</h2>
-      <div class="seg" role="group" aria-label="סוג הפאנל">
-        <button type="button" id="type-settlement" data-type="settlement" aria-pressed="true">יישובים שלמים</button>
-        <button type="button" id="type-area" data-type="area" aria-pressed="false">קלפי אחת מכל אזור</button>
-      </div>
-    </div>
-    <p class="note" id="type-note"></p>
+    <h2 id="h-compare">הפאנלים המומלצים</h2>
+    <p class="note" id="compare-intro"></p>
     <div class="table-wrap"><table id="compare"></table></div>
     <p class="note" id="compare-note"></p>
   </section>
@@ -142,17 +139,19 @@ details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
     <div class="tiles" id="tiles"></div>
     <div class="two">
       <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
-        <h3>מנדטים שעברו בבדיקת העבר</h3>
-        <div class="legend"><span style="--sw: var(--accent)">השיטה, נבחרה לפני כל כנסת</span><span style="--sw: var(--axis)">הפאנל הזה, בדיעבד</span><span style="--sw: var(--good)">יעד: 2</span></div>
+        <h3>מנדטים שעברו בבדיקה לאחור</h3>
+        <div class="legend"><span style="--sw: var(--accent)">ממוצע על פאנלים שהוגרלו לפני כל כנסת</span><span style="--sw: var(--good)">יעד: 2</span></div>
         <div class="chart" id="history"></div>
+        <p class="note" id="history-note"></p>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
-        <h3>איך לקרוא את המספרים</h3>
-        <p class="note" id="history-note"></p>
+        <h3>המגזרים</h3>
+        <div class="table-wrap"><table id="sectors"></table></div>
+        <p class="note">מגזר נקבע לפי הגוש המוביל באזור בכנסת 26, ו"מובהק" כשיש לו 60% לפחות. העמודה האחרונה היא הרכב הגושים של המגזר בכנסת 26.</p>
       </div>
     </div>
     <div class="toolbar">
-      <h3 style="margin:0;margin-inline-end:auto" id="units-title"></h3>
+      <h3 style="margin:0;margin-inline-end:auto">האזורים והקלפיות לספירה</h3>
       <input class="text-input" id="unit-filter" type="search" placeholder="סינון לפי יישוב" aria-label="סינון לפי יישוב">
       <button class="btn" type="button" id="copy-units">העתקת הרשימה</button>
     </div>
@@ -163,9 +162,9 @@ details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
   <section class="card" aria-labelledby="h-calc">
     <div class="toolbar">
       <h2 id="h-calc" style="margin-inline-end:auto">מחשבון ליל הבחירות</h2>
-      <span class="example" id="example-badge">דוגמה: תוצאות כנסת 26</span>
+      <span class="example" id="example-badge">דוגמה: הקלפיות המומלצות בכנסת 26</span>
     </div>
-    <p class="note">מזינים את הקולות שנספרו ביחידות הפאנל הנבחר (בשורה לכל יחידה, לפי המזהה שבטבלה למעלה) ומקבלים תחזית מנדטים, טווח של 90% וסיכוי לעבור את אחוז החסימה. הרשימות ההתחלתיות הן רשימות כנסת 26; אפשר לשנות שם, גוש ואת הרשימה בכנסת 26 שממנה הרשימה ממשיכה.</p>
+    <p class="note">מזינים את הקולות שנספרו בקלפי של כל אזור בפאנל הנבחר (שורה לכל אזור, לפי המזהה שבטבלה למעלה). המחשבון מחשב לכל מגזר את שיעור ההצבעה ואת השינוי מול כנסת 26, מוסיף אותם לתוצאה של כל אזור, ומחזיר מנדטים, טווח של 90% וסיכוי לעבור את אחוז החסימה. הרשימות ההתחלתיות הן רשימות כנסת 26; אפשר לשנות שם, גוש ואת הרשימה שממנה הרשימה ממשיכה.</p>
     <details>
       <summary>רשימות, גושים והסכמי עודפים</summary>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
@@ -177,7 +176,7 @@ details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
         </div>
       </div>
     </details>
-    <label for="votes" class="msg">קולות לפי יחידה, CSV: עמודה ראשונה מזהה היחידה, ואחריה עמודה לכל רשימה לפי האותיות.</label>
+    <label for="votes" class="msg">קולות לפי אזור, CSV: עמודה ראשונה מזהה האזור, ואחריה עמודה לכל רשימה לפי האותיות.</label>
     <textarea id="votes" spellcheck="false"></textarea>
     <div class="toolbar">
       <button class="btn primary" type="button" id="run">חישוב תחזית</button>
@@ -195,143 +194,133 @@ details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
 const DATA = __DATA__;
 const BLOCS = ["right", "haredi", "center_left", "arab", "other"];
 const BLOC_HE = { right: "ימין", haredi: "חרדים", center_left: "מרכז-שמאל", arab: "ערבים", other: "אחר" };
+const SECTOR_HE = { right_pure: "ימין מובהק", right_mixed: "נטייה לימין", center_left_pure: "מרכז-שמאל מובהק",
+  center_left_mixed: "נטייה למרכז-שמאל", haredi_pure: "חרדי", haredi_mixed: "נטייה חרדית", arab_pure: "ערבי",
+  arab_mixed: "נטייה ערבית", other_pure: "אחר", other_mixed: "אחר", small: "מגזרים קטנים" };
 const LIGHT_TEXT = { arab: true, other: true };
 const ALT_HE = ["א", "ב", "ג", "ד"];
-const MIN_SHARE = 0.01, THRESHOLD = 0.0325, SEATS = 120;
+const THRESHOLD = 0.0325, SEATS = 120, REPS = 200;
 const $ = (id) => document.getElementById(id);
 const fmt = (x, d = 1) => (x == null || isNaN(x)) ? "–" : Number(x).toFixed(d);
 const pct = (x, d = 1) => (x == null || isNaN(x)) ? "–" : (100 * x).toFixed(d) + "%";
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const state = { type: "settlement", panel: 0, lists: [], example: true };
+const sectorName = (id) => SECTOR_HE[id] || id;
+const blocOfList = Object.fromEntries(DATA.base_lists.map((l) => [l.letter, l.bloc]));
+const state = { panel: 0, lists: [], example: true };
 
-function typeData() { return DATA.types[state.type]; }
-function panelKey(p) { return p.rank + "_" + p.budget; }
-function summaryFor(p) { return (typeData().summary || {})[panelKey(p)] || null; }
+function heldOut(p) { return DATA.held_out[String(p.budget)] || null; }
+function within2(h) { return h ? (h.medoid_within_2 ?? h.within_2) : null; }
 function probClass(x) { return x >= 0.5 ? "ok" : x >= 0.2 ? "mid" : "bad"; }
-
-function bestPerBudget() {
-  const best = {};
-  typeData().panels.forEach((p, i) => {
-    if (!(p.budget in best) || p.prob_sim > typeData().panels[best[p.budget]].prob_sim) best[p.budget] = i;
-  });
-  return best;
+function defaultPanel() {
+  const top = Math.max(...DATA.panels.map((p) => p.budget));
+  return DATA.panels.findIndex((p) => p.budget === top && p.rank === 1);
 }
 
 function renderLede() {
-  $("lede").textContent = `כל פאנל הוא קבוצת יחידות עם משקלים, שנבחרה כך שספירה שלהן בליל הבחירות תשחזר את תוצאות כל הקלפיות הרגילות. `
-    + `המודל מתחיל מתוצאות כנסת ${DATA.base} בכל הקלפיות ומוסיף את השינוי שנמדד בפאנל, לפי גוש ולפי משפחת מפלגות. `
-    + `התקציב הוא לכל היותר 2% מהקולות של כנסת ${DATA.base} (${DATA.cap_votes.toLocaleString("he-IL")} קולות), ולכל גודל יש שלוש חלופות.`;
-  $("footer").textContent = `נבנה ב-${DATA.built} מתוך ${DATA.source}. בדיקת העבר: כנסות ${DATA.tests.join(", ")}, כל פעם על הבחירות שקדמו לה בלבד. `
-    + `ההסתברות לכנסת 27 היא הדמיה של שגיאות העבר של הפאנל סביב תוצאת כנסת ${DATA.base}. זרע אקראי ${DATA.seed}.`;
+  $("lede").textContent = `הפאנל הוא מדגם של אזורים סטטיסטיים, ובכל אזור סופרים קלפי אחת. כל אזור בארץ מקבל את התוצאה שלו מכנסת ${DATA.base}, `
+    + `ועליה את שיעור ההצבעה ואת השינוי שנמדדו בפאנל במגזר שלו. האזורים מוגרלים בכל מגזר לפי גודלם, ויותר אזורים נלקחים במגזרים שהשתנו יותר בעבר. `
+    + `התקציב הוא לכל היותר 2% מהקולות של כנסת ${DATA.base} (${DATA.cap_votes.toLocaleString("he-IL")} קולות).`;
+  $("footer").textContent = `נבנה ב-${DATA.built} מתוך ${DATA.source}. בדיקה לאחור: כנסות ${DATA.tests.join(", ")}, כל פעם רק מנתוני הבחירות שקדמו לה. `
+    + `מספר הקלפיות בכל אזור בכנסת 27 נלקח מכנסת ${DATA.base} עד שתתפרסם רשימת הקלפיות. זרע אקראי ${DATA.seed}.`;
 }
 
 function renderCompare() {
-  const t = typeData();
-  $("type-note").textContent = state.type === "settlement"
-    ? "בכל יישוב בפאנל סופרים את כל הקלפיות. יחידה יציבה בין בחירות, אבל רק יישובים קטנים נכנסים בתקציב."
-    : "בכל אזור סטטיסטי בפאנל סופרים קלפי אחת: הקלפי המומלצת מכנסת 26, ושתי קלפיות גיבוי באותו אזור. הסטייה בעבר כוללת את הרעש של קלפי בודדת.";
-  const best = bestPerBudget();
-  let html = `<thead><tr><th>חלופה</th><th class="n">יחידות</th><th class="n">קלפיות</th><th class="n">קולות</th>`
-    + `<th>סיכוי לעד 2 מנדטים בכנסת 27</th><th class="n">סטייה בעבר, ממוצע</th><th class="n">הגרועה ביותר</th>`
-    + `<th class="n">בחירות עם עד 2</th><th class="n">כיסוי הטווח</th></tr></thead><tbody>`;
-  let lastBudget = null;
-  const order = t.panels.map((p, i) => [p, i]).sort((a, b) => a[0].budget - b[0].budget || a[0].rank - b[0].rank);
+  $("compare-intro").textContent = "שלוש החלופות בכל תקציב הן הגרלות של אותה שיטה עם נקודת התחלה שונה, ולכן כמעט אינן חופפות. "
+    + "הבדיקה לאחור שייכת לשיטה ולתקציב, ולכן היא זהה לשלוש החלופות.";
+  let html = `<thead><tr><th>חלופה</th><th class="n">קלפיות לספירה</th><th class="n">קולות</th><th class="n">חפיפה</th>`
+    + `<th>פאנלים עם עד 2 מנדטים</th><th class="n">סטייה ממוצעת</th><th class="n">בחירות גרועות</th><th class="n">כיסוי טווח 90%</th></tr></thead><tbody>`;
+  let last = null;
+  const top = Math.max(...DATA.panels.map((p) => p.budget));
+  const order = DATA.panels.map((p, i) => [p, i]).sort((a, b) => a[0].budget - b[0].budget || a[0].rank - b[0].rank);
   order.forEach(([p, i]) => {
-    if (p.budget !== lastBudget) {
-      html += `<tr class="group"><td colspan="9">תקציב ${pct(p.budget, 1)} מהקולות</td></tr>`;
-      lastBudget = p.budget;
+    const h = heldOut(p), w = within2(h);
+    if (p.budget !== last) {
+      html += `<tr class="group"><td colspan="8">תקציב ${pct(p.budget, 1)} מהקולות ${p.budget === top ? '<span class="pill best">מומלץ</span>' : ""}</td></tr>`;
+      last = p.budget;
     }
-    const s = summaryFor(p);
-    const isBest = best[p.budget] === i;
     html += `<tr class="pick" tabindex="0" data-i="${i}" aria-selected="${i === state.panel}">`
-      + `<td>חלופה ${ALT_HE[p.rank - 1]} ${isBest ? '<span class="pill best">מומלצת</span>' : ""}</td>`
-      + `<td class="n">${p.units.length}</td><td class="n">${p.n_boxes}</td><td class="n">${pct(p.votes_share, 2)}</td>`
-      + `<td><span class="prob"><span class="bar"><i style="width:${(100 * p.prob_sim).toFixed(0)}%"></i></span><span class="${probClass(p.prob_sim)}">${pct(p.prob_sim, 0)}</span></span></td>`
-      + `<td class="n">${s ? fmt(s.seats_moved) : "–"}</td><td class="n">${s ? fmt(s.worst) : "–"}</td>`
-      + `<td class="n">${s ? pct(s.within_2, 0) : "–"}</td><td class="n">${s ? pct(s.coverage, 0) : "–"}</td></tr>`;
+      + `<td>חלופה ${ALT_HE[p.rank - 1]}</td><td class="n">${p.areas}</td><td class="n">${pct(p.votes_share, 2)}</td><td class="n">${pct(p.overlap, 0)}</td>`
+      + `<td>${w == null ? "–" : `<span class="prob"><span class="bar"><i style="width:${(100 * w).toFixed(0)}%"></i></span><span class="${probClass(w)}">${pct(w, 0)}</span></span>`}</td>`
+      + `<td class="n">${h ? fmt(h.medoid ?? h.seats_moved, 2) : "–"}</td><td class="n">${h ? fmt(h.worst, 1) : "–"}</td>`
+      + `<td class="n">${h && h.coverage != null ? pct(h.coverage, 0) : "–"}</td></tr>`;
   });
   $("compare").innerHTML = html + "</tbody>";
   $("compare").querySelectorAll("tr.pick").forEach((tr) => {
-    const go = () => { state.panel = +tr.dataset.i; renderAll(false); };
+    const go = () => { state.panel = +tr.dataset.i; renderAll(); };
     tr.addEventListener("click", go);
     tr.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); go(); } });
   });
   $("compare-note").textContent = "סטייה = מנדטים שעברו בין רשימות (חצי מסכום ההפרשים). "
-    + "\"סטייה בעבר\" היא של השיטה: לפני כל כנסת מבחן נבחרה חלופה באותו דירוג ובאותו תקציב, רק מתוך הבחירות שקדמו לה. "
-    + "כיסוי הטווח: חלק הרשימות שהמנדטים האמיתיים שלהן היו בתוך טווח ה-90%. "
-    + "יחידות שקיבלו משקל אפס הוסרו מהפאנל (הן לא משנות את התחזית), ולכן הקולות לספירה יכולים להיות מתחת לתקציב.";
+    + "\"פאנלים עם עד 2\" ו\"סטייה ממוצעת\" הם של התחזית שבוחרת את המנדטים לפי אחוז החסימה (מדואיד) כשהיא נבדקה, ואחרת של התחזית הישירה. "
+    + "\"בחירות גרועות\" היא הכנסת שבה הממוצע היה הגבוה ביותר. כיסוי הטווח: חלק הרשימות שהמנדטים האמיתיים שלהן היו בתוך טווח ה-90%. "
+    + "חפיפה: חלק האזורים שמופיעים גם בחלופה אחרת באותו תקציב.";
 }
 
 function renderPanel() {
-  const p = typeData().panels[state.panel];
-  const s = summaryFor(p);
-  const kind = state.type === "settlement" ? "יישובים" : "אזורים";
-  $("h-panel").textContent = `חלופה ${ALT_HE[p.rank - 1]}, תקציב ${pct(p.budget, 1)}: ${p.units.length} ${kind}`;
+  const p = DATA.panels[state.panel], h = heldOut(p), w = within2(h);
+  $("h-panel").textContent = `חלופה ${ALT_HE[p.rank - 1]}, תקציב ${pct(p.budget, 1)}: ${p.areas} אזורים`;
   $("tiles").innerHTML = [
-    ["סיכוי לעד 2 מנדטים", `<span class="${probClass(p.prob_sim)}">${pct(p.prob_sim, 0)}</span>`, "הדמיה לכנסת 27"],
-    ["סטייה בעבר", s ? fmt(s.seats_moved) : "–", s ? `ממוצע, הגרועה ${fmt(s.worst)}` : ""],
-    ["קלפיות לספירה", p.n_boxes, `${pct(p.votes_share, 2)} מהקולות`],
-    ["משקל לרמה מול שינוי", `${Math.round(100 * p.alpha)}% / ${Math.round(100 * (1 - p.alpha))}%`, `μ ${p.setting.mu}, level ${p.setting.level}`],
+    ["פאנלים עם עד 2 מנדטים", w == null ? "–" : `<span class="${probClass(w)}">${pct(w, 0)}</span>`, h ? `בבדיקה לאחור, ${h.panels} פאנלים לכל כנסת` : ""],
+    ["סטייה ממוצעת", h ? fmt(h.medoid ?? h.seats_moved, 2) : "–", h ? `מנדטים; בבחירות הגרועות ${fmt(h.worst)}` : ""],
+    ["קלפיות לספירה", p.areas, `${pct(p.votes_share, 2)} מהקולות`],
+    ["כיסוי טווח 90%", h && h.coverage != null ? pct(h.coverage, 0) : "–", h && h.outside != null ? `${fmt(h.outside, 2)} מנדטים מחוץ לטווח` : "לא נבדק בתקציב זה"],
   ].map(([l, v, sub]) => `<div class="tile"><span class="label">${l}</span><span class="value">${v}</span><span class="sub">${sub}</span></div>`).join("");
-  const max = 8;
-  let h = "";
-  DATA.tests.forEach((t) => {
-    const m = s && s.per_test ? s.per_test[t] : null;
-    const ins = p.insample_seats_moved[t];
-    const w = (x) => Math.min(100, 100 * x / max);
-    h += `<span>כנסת ${t}</span><div class="track">`
-      + (m != null ? `<div class="fill" style="width:${w(m)}%"></div>` : "")
-      + (ins != null ? `<div class="fill ins" style="width:${w(ins)}%"></div>` : "")
-      + (m != null ? `<span class="val" style="inset-inline-start:${Math.max(w(m), ins != null ? w(ins) : 0)}%">${fmt(m)}</span>` : "")
-      + `<div class="goal" style="inset-inline-start:${w(2)}%"></div></div>`;
+  const max = 5;
+  const wd = (x) => Math.min(100, 100 * x / max);
+  $("history").innerHTML = DATA.tests.map((t) => {
+    const m = h && h.per_test ? h.per_test[t] : null;
+    return `<span>כנסת ${t}</span><div class="track">`
+      + (m != null ? `<div class="fill" style="width:${wd(m)}%"></div><span class="val" style="inset-inline-start:${wd(m)}%">${fmt(m, 2)}</span>` : "")
+      + `<div class="goal" style="inset-inline-start:${wd(2)}%"></div></div>`;
+  }).join("");
+  $("history-note").textContent = "לפני כל כנסת הוגרלו פאנלים באותה שיטה ובאותו תקציב, רק מתוך הבחירות שקדמו לה, "
+    + "ובכל אזור נקראה קלפי אקראית. העמודה היא הממוצע של התחזית הישירה.";
+  const blocsOf = (shares) => {
+    const b = Object.fromEntries(BLOCS.map((x) => [x, 0]));
+    Object.entries(shares).forEach(([l, v]) => { b[blocOfList[l] || "other"] += v; });
+    return b;
+  };
+  let st = `<thead><tr><th>מגזר</th><th class="n">קולות</th><th class="n">אזורים בפאנל</th><th>גושים בכנסת ${DATA.base}</th></tr></thead><tbody>`;
+  DATA.sectors.slice().sort((a, b) => b.share_of_votes - a.share_of_votes).forEach((s) => {
+    const b = blocsOf(s.prev_shares);
+    const tot = BLOCS.reduce((a, x) => a + b[x], 0);
+    st += `<tr><td>${sectorName(s.id)}</td><td class="n">${pct(s.share_of_votes, 1)}</td><td class="n">${p.allocation[s.id] ?? 0}</td>`
+      + `<td><span class="secbar" role="img" aria-label="הרכב גושים">${BLOCS.map((x) => `<i style="width:${(100 * b[x] / tot).toFixed(1)}%;background:var(--bloc-${x})" title="${BLOC_HE[x]} ${pct(b[x] / tot, 0)}"></i>`).join("")}</span></td></tr>`;
   });
-  $("history").innerHTML = h;
-  $("history-note").textContent = `העמודה הכחולה היא בדיקה הוגנת: לפני כל כנסת השיטה בחרה פאנל רק מתוך הבחירות הקודמות. `
-    + `הפס האפור הוא הפאנל המוצג כאן, שנבחר על כל הבחירות כולל אלה, ולכן הוא אופטימי. `
-    + (state.type === "area" ? "בפאנל האזורים כל מספר הוא ממוצע על קלפיות אקראיות באזור. " : "")
-    + `ההסתברות לכנסת 27 מניחה שהשגיאה תהיה בגודל השגיאות של הפאנל בבחירות האחרונות (רשימה ממשיכה: ${fmt(p.errors.continuing * 100, 2)}, רשימה חדשה: ${fmt(p.errors.new * 100, 2)}, ביחידות של שורש החלק).`;
+  $("sectors").innerHTML = st + "</tbody>";
   renderUnits();
 }
 
-function unitLabel(u) { return state.type === "area" ? u.id.replace("stat2011:", "אזור ").replace("loc:", "יישוב ") : u.settlement; }
-
 function renderUnits() {
-  const p = typeData().panels[state.panel];
+  const p = DATA.panels[state.panel];
   const q = $("unit-filter").value.trim();
   const rows = p.units.filter((u) => !q || u.settlement.includes(q));
-  $("units-title").textContent = state.type === "area" ? "האזורים והקלפיות לספירה" : "היישובים לספירה";
-  let h = `<thead><tr><th>מזהה</th><th>יישוב</th>`
-    + (state.type === "area" ? `<th>קלפי מומלצת (כנסת 26)</th><th>גיבוי</th>` : "")
-    + `<th class="n">קלפיות בכנסת 26</th><th class="n">קולות בכנסת 26</th><th class="n">משקל</th></tr></thead><tbody>`;
+  let h = `<thead><tr><th>מזהה</th><th>יישוב</th><th>מגזר</th><th>קלפי לספירה (מספר בכנסת ${DATA.base})</th><th>גיבוי</th><th class="n">קולות לקלפי בכנסת ${DATA.base}</th></tr></thead><tbody>`;
   rows.forEach((u) => {
-    h += `<tr><td>${esc(u.id)}</td><td>${esc(u.settlement)}</td>`;
-    if (state.type === "area") {
-      const [r, ...b] = u.recommended;
-      h += `<td><span class="ballot">${esc(r.ballot)}</span> <span class="note">ריכוז ${esc(r.center)}, ${r.votes} קולות</span></td>`
-        + `<td>${b.map((x) => `<span class="ballot">${esc(x.ballot)}</span>`).join(" ")}</td>`;
-    }
-    h += `<td class="n">${u.boxes}</td><td class="n">${u.votes.toLocaleString("he-IL")}</td><td class="n">${u.weight > 0 && u.weight < 0.0001 ? "&lt;0.01%" : pct(u.weight, 2)}</td></tr>`;
+    const [r, ...b] = u.recommended;
+    h += `<tr><td>${esc(u.id)}${u.mult > 1 ? ` <span class="pill">×${u.mult}</span>` : ""}</td><td>${esc(u.settlement)}</td><td>${sectorName(u.sector)}</td>`
+      + `<td><span class="ballot">${esc(r.ballot)}</span> <span class="note">ריכוז ${esc(r.center)}, ${r.votes} קולות</span></td>`
+      + `<td>${b.map((x) => `<span class="ballot">${esc(x.ballot)}</span>`).join(" ")}</td>`
+      + `<td class="n">${Math.round(u.per_box).toLocaleString("he-IL")}</td></tr>`;
   });
   $("units").innerHTML = h + "</tbody>";
 }
 
 $("copy-units").addEventListener("click", () => {
-  const p = typeData().panels[state.panel];
-  const head = state.type === "area" ? "id,settlement,ballot,center,backup_1,backup_2,weight" : "id,settlement,weight";
-  const lines = p.units.map((u) => state.type === "area"
-    ? [u.id, u.settlement, u.recommended[0].ballot, u.recommended[0].center, (u.recommended[1] || {}).ballot || "", (u.recommended[2] || {}).ballot || "", u.weight].join(",")
-    : [u.id, u.settlement, u.weight].join(","));
-  const text = [head, ...lines].join("\n");
+  const p = DATA.panels[state.panel];
+  const lines = p.units.map((u) => [u.id, u.settlement, u.sector, u.recommended[0].ballot, u.recommended[0].center,
+    (u.recommended[1] || {}).ballot || "", (u.recommended[2] || {}).ballot || "", u.mult].join(","));
+  const text = ["id,settlement,sector,ballot,center,backup_1,backup_2,times", ...lines].join("\n");
   const done = (ok) => { $("copy-msg").textContent = ok ? "הרשימה הועתקה" : "ההעתקה נחסמה. אפשר לסמן את הטבלה ולהעתיק ידנית."; };
   try { navigator.clipboard.writeText(text).then(() => done(true), () => done(false)); } catch (e) { done(false); }
 });
 $("unit-filter").addEventListener("input", renderUnits);
 
-/* ---------- calculator: mirrors election_estimation.swing.SwingPanel.predict ---------- */
+/* ---------- calculator: mirrors election_estimation.sector.predict ---------- */
 
 function defaultLists() {
   return DATA.base_lists.map((l) => ({ letter: l.letter, name: l.name, bloc: l.bloc,
-    from: l.never_pass ? "" : l.letter, never_pass: !!l.never_pass }));
+    from: l.letter, never_pass: !!l.never_pass }));
 }
 
 function renderListsEdit() {
@@ -358,12 +347,10 @@ function renderListsEdit() {
 $("add-list").addEventListener("click", () => { state.lists.push({ letter: "", name: "", bloc: "other", from: "" }); renderListsEdit(); });
 
 function templateCsv(withExample) {
-  const p = typeData().panels[state.panel];
+  const p = DATA.panels[state.panel];
   const letters = state.lists.map((l) => l.letter);
   const lines = ["id," + letters.join(",")];
-  p.units.forEach((u) => {
-    lines.push([u.id, ...letters.map((L) => withExample ? (u.example[L] ?? 0) : "")].join(","));
-  });
+  p.units.forEach((u) => { lines.push([u.id, ...letters.map((L) => withExample ? (u.example[L] ?? 0) : "")].join(",")); });
   return lines.join("\n");
 }
 $("load-example").addEventListener("click", () => { state.lists = defaultLists(); renderListsEdit(); $("votes").value = templateCsv(true); state.example = true; runCalc(); });
@@ -417,71 +404,79 @@ function baderOfer(shares, letters, agreements, noPass) {
   return seats;
 }
 
-function forecast(panel, counts, lists) {
-  const letters = lists.map((l) => l.letter);
-  const present = panel.units.filter((u) => counts[u.id] && letters.some((L) => counts[u.id][L] > 0));
-  if (!present.length) throw new Error("אין קולות באף יחידה מהפאנל. בדקו שמזהי היחידות תואמים לטבלה.");
-  const wsum = present.reduce((a, u) => a + u.weight, 0);
-  const w = present.map((u) => u.weight / wsum);
-  const level = letters.map(() => 0), swing = {};
-  BLOCS.forEach((b) => { swing[b] = 0; });
-  const fixed = {};
-  const prevShare = Object.fromEntries(DATA.base_lists.map((b) => [b.letter, b.share]));
-  present.forEach((u, k) => {
-    const c = counts[u.id];
-    const tot = letters.reduce((a, L) => a + (c[L] || 0), 0);
-    const cb = Object.fromEntries(BLOCS.map((b) => [b, 0]));
-    lists.forEach((l, i) => { const s = (c[l.letter] || 0) / tot; level[i] += w[k] * s; cb[l.bloc] += s; });
-    const pb = BLOCS.reduce((a, b) => a + (u.prev_blocs[b] || 0), 0);
-    BLOCS.forEach((b) => { swing[b] += w[k] * (cb[b] - (u.prev_blocs[b] || 0) / pb); });
-  });
+/* Per counted area: sector, times drawn, turnout ratio r and change d per list. */
+function prepare(panel, counts, lists) {
   const used = {};
-  lists.forEach((l, i) => {
-    if (!l.from || !(l.from in prevShare) || used[l.from] || prevShare[l.from] < MIN_SHARE) return;
+  const from = lists.map((l) => {
+    if (!l.from || used[l.from]) return "";
     used[l.from] = true;
-    let d = 0;
-    present.forEach((u, k) => {
-      const c = counts[u.id];
-      const tot = letters.reduce((a, L) => a + (c[L] || 0), 0);
-      d += w[k] * ((c[l.letter] || 0) / tot - (u.prev[l.from] || 0) / u.votes);
-    });
-    fixed[i] = Math.max(0, prevShare[l.from] + d);
+    return l.from;
   });
-  const pred = letters.map(() => 0);
-  BLOCS.forEach((b) => {
-    const total = Math.max(0, DATA.base_blocs[b] + swing[b]);
-    const members = lists.map((l, i) => l.bloc === b ? i : -1).filter((i) => i >= 0);
-    const inBloc = members.reduce((a, i) => a + level[i], 0);
-    if (inBloc <= 0) return;
-    const fx = members.filter((i) => i in fixed), rest = members.filter((i) => !(i in fixed));
-    const restTotal = total * rest.reduce((a, i) => a + level[i], 0) / inBloc;
-    rest.forEach((i) => { pred[i] = total * level[i] / inBloc; });
-    const fsum = fx.reduce((a, i) => a + fixed[i], 0);
-    fx.forEach((i) => { pred[i] = fsum > 0 ? fixed[i] / fsum * (total - restTotal) : total * level[i] / inBloc; });
+  const units = [];
+  panel.units.forEach((u) => {
+    const c = counts[u.id];
+    if (!c) return;
+    const v = lists.reduce((a, l) => a + (c[l.letter] || 0), 0);
+    if (!(v > 0)) return;
+    units.push({ sector: u.sector, mult: u.mult, r: v / u.per_box,
+      d: lists.map((l, i) => (c[l.letter] || 0) / v - (from[i] ? (u.prev_shares[from[i]] || 0) : 0)) });
   });
-  const ps = pred.reduce((a, b) => a + b, 0);
-  const swingPred = pred.map((x) => x / ps);
-  const ls = level.reduce((a, b) => a + b, 0);
-  const share = swingPred.map((x, i) => panel.alpha * level[i] / ls + (1 - panel.alpha) * x);
-  return { share, isNew: lists.map((_, i) => !(i in fixed)), units: present.length };
+  if (!units.length) throw new Error("אין קולות באף אזור מהפאנל. בדקו שמזהי האזורים תואמים לטבלה.");
+  const P = DATA.sectors.map((s) => lists.map((_, i) => from[i] ? (s.prev_shares[from[i]] || 0) : 0));
+  return { units, P, from, n: lists.length };
 }
 
-function gauss(rng) { let u = 0, v = 0; while (u === 0) u = rng(); v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function estimate(prep, weights) {
+  const out = new Array(prep.n).fill(0), turnout = {};
+  DATA.sectors.forEach((s, k) => {
+    let W = 0, R = 0, cnt = 0;
+    const ch = new Array(prep.n).fill(0);
+    prep.units.forEach((u, j) => {
+      const w = weights[j];
+      if (u.sector !== s.id || !w) return;
+      W += w; R += w * u.r; cnt++;
+      u.d.forEach((x, i) => { ch[i] += w * u.r * x; });
+    });
+    if (!W) { prep.P[k].forEach((x, i) => { out[i] += x * s.expected; }); turnout[s.id] = { R: null, units: 0 }; return; }
+    R /= W;
+    const y = prep.P[k].map((x, i) => Math.max(0, R * x + ch[i] / W));
+    const ys = y.reduce((a, b) => a + b, 0);
+    if (ys > 0) y.forEach((x, i) => { out[i] += x / ys * R * s.expected; });
+    turnout[s.id] = { R, units: cnt };
+  });
+  return { votes: out, turnout };
+}
+
 function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
-function intervals(share, isNew, errors, letters, agreements, noPass, draws = 1000) {
+/* Within-sector bootstrap: seat replicates, the medoid, 90% intervals and P(pass). */
+function bootstrap(prep, letters, agreements, noPass) {
   const rng = mulberry(20270);
-  const sims = letters.map(() => []), pass = letters.map(() => 0);
-  for (let d = 0; d < draws; d++) {
-    const s = share.map((p, i) => Math.max(0, p + gauss(rng) * Math.sqrt(Math.max(p, MIN_SHARE)) * (isNew[i] ? errors.new : errors.continuing)));
-    const tot = s.reduce((a, b) => a + b, 0);
-    s.forEach((x, i) => { if (x / tot >= THRESHOLD && !noPass[i]) pass[i]++; });
-    baderOfer(s, letters, agreements, noPass).forEach((x, i) => sims[i].push(x));
+  const groups = DATA.sectors.map((s) => {
+    const g = [];
+    prep.units.forEach((u, j) => { if (u.sector === s.id) for (let m = 0; m < u.mult; m++) g.push(j); });
+    return g;
+  }).filter((g) => g.length);
+  const reps = [], pass = letters.map(() => 0);
+  for (let b = 0; b < REPS; b++) {
+    const w = new Array(prep.units.length).fill(0);
+    groups.forEach((g) => { for (let k = 0; k < g.length; k++) w[g[Math.floor(rng() * g.length)]]++; });
+    const v = estimate(prep, w).votes;
+    const tot = v.reduce((a, x) => a + x, 0);
+    v.forEach((x, i) => { if (x / tot >= THRESHOLD && !noPass[i]) pass[i]++; });
+    reps.push(baderOfer(v, letters, agreements, noPass));
   }
-  return letters.map((_, i) => {
-    const v = sims[i].sort((a, b) => a - b);
-    return { low: v[Math.floor(0.05 * (draws - 1))], high: v[Math.ceil(0.95 * (draws - 1))], p: pass[i] / draws };
+  let best = 0, bestCost = Infinity;
+  reps.forEach((c, a) => {
+    let cost = 0;
+    reps.forEach((r) => { for (let i = 0; i < c.length; i++) cost += Math.abs(c[i] - r[i]); });
+    if (cost < bestCost) { bestCost = cost; best = a; }
   });
+  const iv = letters.map((_, i) => {
+    const v = reps.map((r) => r[i]).sort((a, b) => a - b);
+    return { low: v[Math.floor(0.05 * (REPS - 1))], high: v[Math.ceil(0.95 * (REPS - 1))], p: pass[i] / REPS };
+  });
+  return { medoid: reps[best], iv };
 }
 
 function parseAgreements() {
@@ -489,20 +484,23 @@ function parseAgreements() {
 }
 
 function runCalc() {
-  const p = typeData().panels[state.panel];
+  const p = DATA.panels[state.panel];
   $("example-badge").hidden = !state.example;
   try {
     const lists = state.lists.filter((l) => l.letter);
     const counts = parseCsv($("votes").value);
     const agreements = parseAgreements();
-    const f = forecast(p, counts, lists);
     const letters = lists.map((l) => l.letter);
     const noPass = lists.map((l) => !!l.never_pass);
-    const seats = baderOfer(f.share, letters, agreements, noPass);
-    const iv = intervals(f.share, f.isNew, p.errors, letters, agreements, noPass);
+    const prep = prepare(p, counts, lists);
+    const direct = estimate(prep, prep.units.map((u) => u.mult));
+    const tot = direct.votes.reduce((a, b) => a + b, 0);
+    const share = direct.votes.map((x) => x / tot);
+    const directSeats = baderOfer(direct.votes, letters, agreements, noPass);
+    const boot = bootstrap(prep, letters, agreements, noPass);
     $("calc-msg").className = "msg";
-    $("calc-msg").textContent = `חושב מ-${f.units} מתוך ${p.units.length} יחידות.`;
-    renderResult(lists, f.share, seats, iv);
+    $("calc-msg").textContent = `חושב מ-${prep.units.length} מתוך ${p.units.length} אזורים.`;
+    renderResult(lists, share, boot.medoid, directSeats, boot.iv, direct.turnout);
   } catch (e) {
     $("calc-msg").className = "msg err";
     $("calc-msg").textContent = e.message;
@@ -511,7 +509,7 @@ function runCalc() {
 }
 $("run").addEventListener("click", runCalc);
 
-function renderResult(lists, share, seats, iv) {
+function renderResult(lists, share, seats, directSeats, iv, turnout) {
   const blocSeats = Object.fromEntries(BLOCS.map((b) => [b, 0]));
   lists.forEach((l, i) => { blocSeats[l.bloc] += seats[i]; });
   let bar = `<div class="blocbar" role="img" aria-label="מנדטים לפי גוש">`;
@@ -521,36 +519,37 @@ function renderResult(lists, share, seats, iv) {
   });
   bar += `<span class="maj" style="inset-inline-start:${(61 / 120 * 100).toFixed(2)}%" title="61"></span></div>`;
   const order = lists.map((_, i) => i).sort((a, b) => share[b] - share[a]);
-  let t = `<div class="table-wrap"><table><thead><tr><th>רשימה</th><th>גוש</th><th class="n">אחוז</th><th class="n">מנדטים</th><th class="n">טווח 90%</th><th class="n">סיכוי לעבור</th></tr></thead><tbody>`;
+  let t = `<div class="table-wrap"><table id="forecast"><thead><tr><th>רשימה</th><th class="n">מנדטים</th><th class="n">טווח 90%</th><th class="n">אחוז</th><th class="n">סיכוי לעבור</th><th class="hide-sm">גוש</th></tr></thead><tbody>`;
   order.forEach((i) => {
     const l = lists[i];
     if (share[i] < 0.005 && !seats[i]) return;
     const pc = iv[i].p;
-    t += `<tr><td><span class="ballot">${esc(l.letter)}</span> ${esc(l.name)}</td><td><span class="dot" style="background:var(--bloc-${l.bloc})"></span>${BLOC_HE[l.bloc]}</td>`
-      + `<td class="n">${pct(share[i], 2)}</td><td class="n"><b>${seats[i]}</b></td><td class="n">${iv[i].low}–${iv[i].high}</td>`
-      + `<td class="n"><span class="${pc >= 0.95 ? "ok" : pc >= 0.05 ? "mid" : "bad"}">${pct(pc, 0)}</span></td></tr>`;
+    t += `<tr data-letter="${esc(l.letter)}" data-direct="${directSeats[i]}" data-share="${share[i]}"><td><span class="ballot">${esc(l.letter)}</span> ${esc(l.name)}</td><td class="n"><b>${seats[i]}</b></td><td class="n"><span dir="ltr">${iv[i].low}–${iv[i].high}</span></td>`
+      + `<td class="n">${pct(share[i], 2)}</td><td class="n"><span class="${pc >= 0.95 ? "ok" : pc >= 0.05 ? "mid" : "bad"}">${pct(pc, 0)}</span></td>`
+      + `<td class="hide-sm"><span class="dot" style="background:var(--bloc-${l.bloc})"></span>${BLOC_HE[l.bloc]}</td></tr>`;
+  });
+  let tt = `<div class="table-wrap"><table><thead><tr><th>מגזר</th><th class="n">אזורים שנספרו</th><th class="n">קולות מול כנסת ${DATA.base}</th></tr></thead><tbody>`;
+  DATA.sectors.slice().sort((a, b) => b.share_of_votes - a.share_of_votes).forEach((s) => {
+    const x = turnout[s.id];
+    tt += `<tr><td>${sectorName(s.id)}</td><td class="n">${x.units}</td><td class="n">${x.R == null ? "–" : `<span dir="ltr">${(x.R >= 1 ? "+" : "") + pct(x.R - 1, 1)}</span>`}</td></tr>`;
   });
   $("result").innerHTML = `<h3 style="margin:0">תחזית מנדטים לפי גוש (קו מקווקו: 61)</h3>` + bar + t + `</tbody></table></div>`
-    + `<p class="note">רשימה עם סיכוי בין 5% ל-95% לעבור את אחוז החסימה מסומנת בכתום: התוצאה שלה לא ודאית, והטווח שלה כולל 0.</p>`;
+    + `<p class="note">המנדטים נבחרים מתוך ${REPS} הגרלות חוזרות של הפאנל בתוך כל מגזר: התוצאה שהטעות הממוצעת שלה מול כל ההגרלות הכי קטנה, כך שרשימה ליד אחוז החסימה מקבלת את מה שסביר יותר. `
+    + `האחוזים הם התחזית הישירה. רשימה עם סיכוי בין 5% ל-95% לעבור את אחוז החסימה מסומנת בכתום.</p>`
+    + `<h3 style="margin:0">שיעור ההצבעה לפי מגזר</h3>` + tt + `</tbody></table></div>`
+    + `<p class="note">קולות לקלפי מול הממוצע לקלפי באותו אזור בכנסת ${DATA.base}. בדוגמה זו הקלפיות נבחרו כדומות לאזור, ולכן הסטייה מאפס היא רעש של קלפי בודדת.</p>`;
 }
 
 /* ---------- wiring ---------- */
-function renderAll(resetPanel) {
-  document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.type === state.type)));
-  if (resetPanel) {
-    const best = bestPerBudget();
-    state.panel = best[Math.max(...Object.keys(best).map(Number))];
-  }
+function renderAll() {
   renderCompare();
   renderPanel();
   if (state.example) { $("votes").value = templateCsv(true); runCalc(); }
 }
-document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
-  state.type = b.dataset.type; renderAll(true);
-}));
+state.panel = defaultPanel();
 state.lists = defaultLists();
 $("agreements").value = DATA.default_agreements.map((x) => x.join("-")).join(", ");
 renderLede();
 renderListsEdit();
-renderAll(true);
+renderAll();
 </script>

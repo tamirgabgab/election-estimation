@@ -1,6 +1,6 @@
 // Checks reports/knesset_27_panels.html in Chromium: no console errors, no
 // horizontal page scroll at desktop and phone width, and the calculator's
-// example forecast for every panel type (printed as JSON for
+// example forecast for every panel (printed as JSON for
 // scripts/check_panels_site.py to compare with the Python model).
 // Screenshots go to <out_dir>.
 //
@@ -24,17 +24,15 @@ const { chromium } = require("playwright");
     result.overflow[name] = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     await page.screenshot({ path: path.join(outDir, `panels_${name}.png`), fullPage: true });
     if (name === "desktop") {
-      for (const type of ["settlement", "area"]) {
-        await page.click(`#type-${type}`);
-        await page.waitForSelector("#result table");
-        result.forecasts[type] = await page.evaluate(() => {
-          const rows = [...document.querySelectorAll("#result tbody tr")];
-          return {
-            panel: document.getElementById("h-panel").textContent,
-            seats: Object.fromEntries(rows.map((r) => [r.querySelector(".ballot").textContent, +r.cells[3].textContent])),
-            shares: Object.fromEntries(rows.map((r) => [r.querySelector(".ballot").textContent, parseFloat(r.cells[2].textContent)])),
-          };
-        });
+      const panels = await page.evaluate(() => DATA.panels.length);
+      for (let i = 0; i < panels; i++) {
+        await page.click(`#compare tr.pick[data-i="${i}"]`);
+        await page.waitForSelector("#forecast");
+        result.forecasts[i] = await page.evaluate(() => ({
+          panel: document.getElementById("h-panel").textContent,
+          direct: Object.fromEntries([...document.querySelectorAll("#forecast tbody tr")].map((r) => [r.dataset.letter, +r.dataset.direct])),
+          shares: Object.fromEntries([...document.querySelectorAll("#forecast tbody tr")].map((r) => [r.dataset.letter, +r.dataset.share])),
+        }));
       }
     }
     await page.close();

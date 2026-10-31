@@ -279,6 +279,19 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   transitions). Spearman correlation of replay and held-out ≈ 0 (−0.03 to 0.06); the best
   10% by replay are no better than random (2.42 vs 2.38 at 2%). Past fit does not
   carry over, so a panel's quality is its held-out distribution, not its in-sample fit.
+- **Knesset 27 sector panels and site (M38)**: `scripts/recommend_sector_panels.py` →
+  `reports/k27_panels/sector_final.json` (K26 as the previous election and, until D17,
+  its box counts; seed 27). Budgets 1% / 1.5% / 2%: 111 / 167 / 222–224 areas (one box
+  each, 0.97–1.99% of the votes); three alternatives per budget from one systematic draw
+  with the start shifted by a third of the step (overlap 2–9%). Each area has the K26
+  box closest to its shares as the box to count, plus two backups.
+  `scripts/build_panels_site.py` now builds `reports/knesset_27_panels.html` from it: the
+  comparison with the held-out results per budget, the panel's sectors and areas, and a
+  calculator mirroring `sector.predict` (turnout per sector, within-sector bootstrap with
+  200 replicates, medoid seats, 90% intervals, P(pass)). `scripts/check_panels_site.py`:
+  no console errors or overflow, and the direct JS seats equal Python's for all 9 panels.
+  Same private link (version 2). The earlier swing panels stay in
+  `reports/k27_panels/{settlement,area}_*` for the record.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -481,6 +494,7 @@ Answered by the user on 2026-10-30.
 | M35 | The number of boxes per area in the new election is taken as known before election day (polling station list); see D17 |
 | M36 | Ranking (was Q-M1): by the share of held-out panels within 2 seats, with within-sector bootstrap intervals; the simulated P from past error scales is no longer used for the sector model |
 | M37 | Panels are not chosen by in-sample fit (it does not carry over, M37 experiment); alternatives are independent stratified draws |
+| M38 | The site shows the sector-model panels (user, 2026-10-31); the seats shown are the medoid, the shares the direct point |
 | D22 | Area mapping: the user uploaded the Israel-Elections-Map ballot files for K19–K25; the area unit starts at K19, and the files are kept byte-for-byte in `data/raw/geography/` |
 
 The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
@@ -490,11 +504,10 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 In short:
 
-1. **Knesset 27 sector panels** - draw the K27 panels with the sector model (K26 as the
-   previous election, K26 box counts until D17), with the medoid point and bootstrap
-   intervals, and rebuild the site and its calculator on it (needs the user's go-ahead).
-   Possible gains: finer sectors (e.g. Druze and Bedouin from CBS data), turnout per
-   settlement type; Q-M2 applies only to the earlier swing panels.
+1. **Sector model refinements** - finer sectors (e.g. Druze and Bedouin from CBS data),
+   turnout per settlement type, more held-out runs at 1% for the intervals; redraw the
+   K27 panels when the K27 polling station list (D17) or the certified K26 files (D14)
+   arrive. Q-M2 applies only to the earlier swing panels.
 2. **Seat goal** (M11) - the point prediction stays at 2.4–3.4 seats moved (worst 5);
    the 90% intervals hold the true seats (at most one seat outside in the worst
    election from 30 settlements). Options: decide whether the interval is the deliverable

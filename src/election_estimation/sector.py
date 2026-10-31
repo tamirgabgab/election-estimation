@@ -176,8 +176,11 @@ def allocate(prior: Prior, train: list[Election], budget: float,
 
 # --- drawing and predicting ------------------------------------------------------
 
-def draw(prior: Prior, n: pd.Series, rng: np.random.Generator) -> pd.Series:
-    """Systematic PPS draw per sector: area -> number of times drawn."""
+def draw(prior: Prior, n: pd.Series, rng: np.random.Generator,
+         offset: float = 0.0) -> pd.Series:
+    """Systematic PPS draw per sector: area -> number of times drawn. `offset` (a
+    fraction of the sampling step) shifts the random start: draws with the same
+    rng state and offsets 0, 1/3, 2/3 are valid samples that barely overlap."""
     picks = []
     for s, k in n.items():
         areas = prior.sector.index[prior.sector == s]
@@ -186,7 +189,7 @@ def draw(prior: Prior, n: pd.Series, rng: np.random.Generator) -> pd.Series:
         size = prior.expected[order].values
         cum = np.cumsum(size)
         step = cum[-1] / k
-        points = rng.uniform(0, step) + step * np.arange(k)
+        points = (rng.uniform(0, step) + offset * step) % step + step * np.arange(k)
         picks.append(pd.Series(order[np.searchsorted(cum, points)]))
     return pd.concat(picks).value_counts()
 
