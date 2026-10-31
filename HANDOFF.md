@@ -240,9 +240,45 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   (6–8 seats moved), K26 for settlements (5). The simulated P(at most 2 seats moved) for
   Knesset 27 is low: settlements 3–7%, areas 4–25%. For areas it jumps between budgets
   (A: 25% at 1%, 4% at 1.5%), because the per-budget error scales come from only two
-  inner folds (Q-M1). The panels are 52–95 settlements (97–249 boxes, 0.7–1.9% of the
+  inner folds (Q-M1, now M36). The panels are 52–95 settlements (97–249 boxes, 0.7–1.9% of the
   votes) or 148–280 areas (one box each, 0.8–1.8%). Private link:
   https://claude.ai/artifact/QVg2QpEoXJMi7M2A1AmrZa
+- **Error decomposition (M30)**: `scripts/diagnose_errors.py` →
+  `reports/error_decomposition.md`. Of the seats moved by the held-out within-bloc
+  panels (settlements 20–150, K22–K26): 21% from lists on the wrong side of the
+  threshold (almost only Balad in K25), 29% from bloc totals, 50% within blocs. The Arab
+  bloc has the largest errors, alternating in sign (−1, −1, +2, +4.9, −2.75 seats); the
+  lists off by more than 0.4 points are mostly Hadash-Ta'al, Ra'am and Balad. Even
+  without rounding, the share error is 2.0–2.5 seats.
+- **Sector ratio model (M31–M35)**: `src/election_estimation/sector.py`,
+  `scripts/run_sector_panel.py` → `reports/sector_panel.md`. Every statistical area is
+  predicted from its own previous result plus its sector's change in the panel
+  (sectors: dominant bloc in the previous election, pure at 60%, sectors under 2% merged);
+  turnout per sector from the ratio of a counted box's votes to its area's previous
+  votes per box; expected votes of an area = its boxes in the new election × previous
+  votes per box (new areas take their settlement's). Panels: systematic PPS draws within
+  sectors, one random box per area. Held-out K22–K26, 100 panels per test:
+
+  | Budget | Sector, Neyman | Sector, by size | No turnout | No sectors |
+  |---|---|---|---|---|
+  | 1% (≈100 areas) | 3.35 (worst 4.4), 32% within 2 | 3.19 (4.2), 37% | 4.77 (6.2) | 5.33 (8.8) |
+  | 1.5% (≈155) | 2.79 (3.7), 49% | 2.74 (3.7), 52% | 4.50 (5.9) | 4.85 (7.9) |
+  | 2% (≈208) | 2.42 (3.5), 61% | 2.38 (3.3), 65% | 4.20 (5.7) | 4.71 (7.8) |
+
+  Mean seats moved (worst election mean), share of panels within 2 seats. The earlier
+  area panels moved 3.8 (worst 6.7–8.1) at 2%. Turnout per sector is the main gain;
+  Neyman and size allocation are about equal.
+- **Intervals and the threshold point (M36)**: `sector.bootstrap` (within-sector
+  resampling of the panel, 200 replicates) and `sector.medoid_seats`;
+  `scripts/run_sector_intervals.py` → `reports/sector_intervals.md` (20 panels per test).
+  90% intervals cover 96–97% of the lists, 0.16–0.19 seats outside on average, width
+  1.8–2.0 seats. The medoid point: 2.37 vs 2.44 seats at 2% (64% vs 58% within 2; K25
+  2.35 vs 2.95), no gain at 1.5%.
+- **Choosing panels by past fit (M37)**: `scripts/run_sector_select.py` →
+  `reports/sector_select.md` (100 candidates per test, replay on the two previous
+  transitions). Spearman correlation of replay and held-out ≈ 0 (−0.03 to 0.06); the best
+  10% by replay are no better than random (2.42 vs 2.38 at 2%). Past fit does not
+  carry over, so a panel's quality is its held-out distribution, not its in-sample fit.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -373,6 +409,7 @@ move answered items to "Decisions" below with the answer.
 | D12 | Knesset 16 envelopes row: official totals minus regular boxes. Official votes of the 17 largest lists and the totals come from Wikidata / IFES ElectionGuide (found by web search; Wikipedia itself is blocked here); the 1,707 envelope votes of the 11 smallest lists are split in proportion to their regular votes (estimate) | Added this way | Keep; replace with the official envelope file if found |
 | D14 | Knesset 26 is provisional: the files were downloaded before the committee's certified results; seats match the final distribution reported in the press (Likud 27, Yashar 21, Beyachad 12, Joint List 11, Democrats 8, Ra'am 8, Yisrael Beiteinu 7, UTJ 7, Otzma Yehudit 7, Shas 6, Religious Zionism-Zehut 6) | `provisional: True` in `ELECTIONS`; report says "not final" | Replace the raw files with the certified ones and remove the flag |
 | D16 | Knesset 26 ballots file has two new columns, `חיצוניות` and `קלפי אחרת` (kept as `external`, `other_ballot`; all zero) | Kept, meaning unknown | User explains; drop them |
+| D17 | Box counts per statistical area for Knesset 27 (the sector model's expected votes) | K26 counts as a placeholder | The Central Elections Committee's polling station list for K27 when published |
 | D17 | List leaders (`leader_he`, #1 on each list that passed): from search snippets, not from the committee's official candidate lists. 50 are "medium" (source names the party leader, not explicitly #1), e.g. most of K16-17, K21 Meretz (Zandberg), K18 Jewish Home (Hershkowitz). Notable #1s: K16 National Union = Liberman, K17 National Union-NRP = Elon, K19 Shas = Yishai, K22 Yamina = Shaked, K26 UTJ = Yaakov Asher, K26 Joint List = Yousef Jabareen | Used, sources in `data/parties/leaders_sources.csv` | Verify against the official lists (needs gov.il / knesset.gov.il access); keep |
 | D18 | Small lists have no names or leaders, so the party lookup shows them as "רשימה <letters> (כנסת N)" (e.g. K26 `צדק`) | Unnamed | Name them from the committee's list of candidate lists per election; leave |
 | D19 | Knesset 26: 38 lists were approved and two (Blue and White, Tnuat Achi) withdrew, leaving 36 on the ballot (per news sources); the ballots file has 38 letter columns, and exactly two have 0 votes everywhere: `כן` (Blue and White's letters in K24-25) and `צבי` | Kept as in the file (0 votes, unnamed) | Name them (likely Blue and White and Tnuat Achi); drop zero columns |
@@ -387,7 +424,6 @@ move answered items to "Decisions" below with the answer.
 
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
-| Q-M1 | How to rank the Knesset 27 panels: the simulated P(at most 2) is noisy for areas (error scales from 2 inner folds) | P(at most 2) per budget, as asked (M28) | rank by backtest mean / share of elections within 2; pool error scales over budgets; more inner folds (hours of compute) |
 | Q-M2 | 15–40% of each panel's units get zero weight | dropped from the site (forecast unchanged) | re-fit with the freed budget to add units; keep them as spares |
 
 ### Decisions
@@ -437,6 +473,14 @@ Answered by the user on 2026-10-30.
 | M27 | Panels at 1%, 1.5% and 2% of the votes, 3 alternatives each: the best distinct settings of inner validation, later alternatives penalized for reusing units |
 | M28 | Ranking: simulated P(at most 2 seats moved) from the panel's past errors, shown with the backtest mean and worst seats moved |
 | M29 | Site: `reports/knesset_27_panels.html` with the panel comparison, unit lists and an election-night calculator; also published as a private claude.ai link |
+| M30 | Next steps chosen (2026-10-31): sector swing, sector turnout, neural model; error decomposition, threshold-aware point, ranking fix. Not now: polls for new lists, tests on K19–21 |
+| M31 | Sectors from the previous election's votes (dominant bloc, pure at 60%); sectors under 2% of the votes merged |
+| M32 | Sector model predicts per statistical area |
+| M33 | Sector sample sizes by a Neyman allocation (more areas where past changes varied more) |
+| M34 | Turnout: ratio of votes to the previous election per sector |
+| M35 | The number of boxes per area in the new election is taken as known before election day (polling station list); see D17 |
+| M36 | Ranking (was Q-M1): by the share of held-out panels within 2 seats, with within-sector bootstrap intervals; the simulated P from past error scales is no longer used for the sector model |
+| M37 | Panels are not chosen by in-sample fit (it does not carry over, M37 experiment); alternatives are independent stratified draws |
 | D22 | Area mapping: the user uploaded the Israel-Elections-Map ballot files for K19–K25; the area unit starts at K19, and the files are kept byte-for-byte in `data/raw/geography/` |
 
 The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
@@ -446,8 +490,11 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 In short:
 
-1. **Knesset 27 panels** - answer Q-M1 and Q-M2; then fill the freed budget, and update
-   the panels when the certified K26 files arrive (D14).
+1. **Knesset 27 sector panels** - draw the K27 panels with the sector model (K26 as the
+   previous election, K26 box counts until D17), with the medoid point and bootstrap
+   intervals, and rebuild the site and its calculator on it (needs the user's go-ahead).
+   Possible gains: finer sectors (e.g. Druze and Bedouin from CBS data), turnout per
+   settlement type; Q-M2 applies only to the earlier swing panels.
 2. **Seat goal** (M11) - the point prediction stays at 2.4–3.4 seats moved (worst 5);
    the 90% intervals hold the true seats (at most one seat outside in the worst
    election from 30 settlements). Options: decide whether the interval is the deliverable
