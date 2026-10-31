@@ -90,7 +90,7 @@ def main() -> None:
         share = prior.prev_shares.loc[areas].mul(prior.expected[areas], axis=0).sum() / m
         top = share[major].sort_values(ascending=False).index[:2]
         name = ("קבוצות קטנות" if s == "small"
-                else " · ".join(parties.loc[l, "name_he"] for l in top))
+                else " · ".join(f"{parties.loc[l, 'name_he']} {100 * share[l]:.0f}%" for l in top))
         sectors.append({"id": s, "name": name, "expected": m,
                         "share_of_votes": m / prior.expected.sum(),
                         "areas": int(len(areas)), "prev_shares": merged(share)})
