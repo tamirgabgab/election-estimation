@@ -40,24 +40,24 @@ NEXT = 27
 BUDGETS = [0.01, 0.015, 0.02]
 ALPHAS = (0.0, 0.25, 0.5, 0.75)
 ALTERNATIVES = 3
-INNER_FOLDS = 3
 PENALTY = 3.0
 SEED = 0
 READINGS = 20      # single-box readings per test election
 SIM_DRAWS = 1000   # draws for P(at most 2 seats moved)
 INTERVAL = 0.9
+# Areas are about 2,600 units and a fit takes minutes, so their search is smaller.
 CONFIG = {
-    "settlement": {"reading": "unit", "candidates": 20,
+    "settlement": {"reading": "unit", "candidates": 20, "inner_folds": 3,
                    "grid": {"mu": [0.003, 0.01, 0.03], "level": [0.1, 0.3], "within": [1.0]}},
-    "area": {"reading": "single_box", "candidates": 12,
-             "grid": {"mu": [0.003, 0.01], "level": [0.1, 0.3], "within": [1.0]}},
+    "area": {"reading": "single_box", "candidates": 8, "inner_folds": 2,
+             "grid": {"mu": [0.003, 0.01, 0.03], "level": [0.1], "within": [1.0]}},
 }
 
 
 def run_alternatives(unit: str, train: list, rng: np.random.Generator) -> list:
     cfg = CONFIG[unit]
     return recommend(train, BUDGETS, cfg["grid"], ALPHAS, cfg["reading"], rng,
-                     alternatives=ALTERNATIVES, inner_folds=INNER_FOLDS,
+                     alternatives=ALTERNATIVES, inner_folds=cfg["inner_folds"],
                      candidates=cfg["candidates"], penalty=PENALTY)
 
 

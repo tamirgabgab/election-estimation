@@ -404,6 +404,12 @@ Answered by the user on 2026-10-30.
 | M21 | Uncertainty from past errors: the panel's standardized errors in the inner validation folds, separately for continuing and new lists |
 | M22 | Output on election night: a point seat prediction plus a 90% seat interval and the probability of passing the threshold per list; both the point error and the interval coverage are evaluated |
 | M23 | Panel sizes stay 20–150 settlements |
+| M24 | Final product (2026-10-31): recommended panels for Knesset 27 with their backtest deviation, ranked by the probability of at most 2 seats moved |
+| M25 | Two panel types, separately: settlements counted in full, and statistical areas with one ballot box counted per area (the K26 box closest to its area, plus two backups) |
+| M26 | Budget: at most 2% of the valid votes of the last election (K26 for Knesset 27); a unit costs its votes, an area the votes of an average box of it |
+| M27 | Panels at 1%, 1.5% and 2% of the votes, 3 alternatives each: the best distinct settings of inner validation, later alternatives penalized for reusing units |
+| M28 | Ranking: simulated P(at most 2 seats moved) from the panel's past errors, shown with the backtest mean and worst seats moved |
+| M29 | Site: `reports/knesset_27_panels.html` with the panel comparison, unit lists and an election-night calculator; also published as a private claude.ai link |
 | D22 | Area mapping: the user uploaded the Israel-Elections-Map ballot files for K19–K25; the area unit starts at K19, and the files are kept byte-for-byte in `data/raw/geography/` |
 
 The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
