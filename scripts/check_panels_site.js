@@ -4,13 +4,14 @@
 // scripts/check_panels_site.py to compare with the Python model).
 // Screenshots go to <out_dir>.
 //
-// Usage: node scripts/check_panels_site.js <out_dir>
+// Usage: node scripts/check_panels_site.js <out_dir> <base election ballots raw file>
 const path = require("path");
 const fs = require("fs");
 const { chromium } = require("playwright");
 
 (async () => {
   const outDir = process.argv[2];
+  const rawFile = process.argv[3];
   fs.mkdirSync(outDir, { recursive: true });
   const file = "file://" + path.resolve(__dirname, "..", "reports", "knesset_27_panels.html");
   const browser = await chromium.launch();
@@ -34,6 +35,15 @@ const { chromium } = require("playwright");
           shares: Object.fromEntries([...document.querySelectorAll("#forecast tbody tr")].map((r) => [r.dataset.letter, +r.dataset.share])),
         }));
       }
+      // Import the base election's per-box committee file into the default panel:
+      // it must give the same forecast as the built-in example.
+      const def = await page.evaluate(() => defaultPanel());
+      await page.click(`#compare tr.pick[data-i="${def}"]`);
+      await page.waitForSelector("#forecast");
+      await page.setInputFiles("#cec-file", rawFile);
+      await page.waitForFunction(() => document.getElementById("import-msg").textContent.startsWith("נמצאו"));
+      result.imported = { panel: def, message: await page.evaluate(() => document.getElementById("import-msg").textContent),
+        direct: await page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#forecast tbody tr")].map((r) => [r.dataset.letter, +r.dataset.direct]))) };
     }
     await page.close();
   }

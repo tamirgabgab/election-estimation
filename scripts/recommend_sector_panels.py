@@ -100,10 +100,12 @@ def main() -> None:
                 units.append({
                     "id": a, "mult": int(mult), "sector": prior.sector[a],
                     "settlement": " / ".join(sorted(boxes["settlement_name"].unique())),
+                    "settlement_code": str(rec["settlement_code"]),
                     "boxes": int(len(boxes)), "per_box": float(prior.per_box[a]),
                     "prev_shares": merged(prior.prev_shares.loc[a]),
                     "recommended": [{"ballot": str(r.ballot_id), "center": str(r.concentration),
-                                     "votes": int(r.valid)} for r in order.itertuples()],
+                                     "votes": int(r.valid), "settlement_code": str(r.settlement_code)}
+                                    for r in order.itertuples()],
                     "example": {**{l: int(rec[l]) for l in major},
                                 OTHER: int(rec[minor].sum())},
                 })

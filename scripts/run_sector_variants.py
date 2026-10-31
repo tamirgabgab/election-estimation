@@ -5,7 +5,8 @@ Variants (sectors / Neyman spread / estimator):
 - list_spread: bloc sectors, list-level spread, difference;
 - ratio: bloc sectors, list-level spread, ratio estimator;
 - cluster: k-means sectors (K clusters), list-level spread, difference;
-- cluster_ratio: k-means sectors, list-level spread, ratio estimator.
+- cluster_ratio: k-means sectors, list-level spread, ratio estimator;
+- cluster_ratio_k<k>: the same with 8, 16 or 20 clusters.
 DRAWS panels per test, budget and variant, one random box per area, the same
 seed for every variant. Writes reports/sector_variants/draws_<t>.csv and
 reports/sector_variants.md.
@@ -28,22 +29,26 @@ OUT = ROOT / "reports" / "sector_variants"
 BUDGETS = [0.015, 0.02]
 K = 12
 SEED = 4
-VARIANTS = {
-    "base": ("bloc", "bloc", "difference"),
-    "list_spread": ("bloc", "list", "difference"),
-    "ratio": ("bloc", "list", "ratio"),
-    "cluster": ("cluster", "list", "difference"),
-    "cluster_ratio": ("cluster", "list", "ratio"),
+VARIANTS = {  # name: sectors, spread, estimator, clusters
+    "base": ("bloc", "bloc", "difference", K),
+    "list_spread": ("bloc", "list", "difference", K),
+    "ratio": ("bloc", "list", "ratio", K),
+    "cluster": ("cluster", "list", "difference", K),
+    "cluster_ratio": ("cluster", "list", "ratio", K),
+    "cluster_ratio_k8": ("cluster", "list", "ratio", 8),
+    "cluster_ratio_k16": ("cluster", "list", "ratio", 16),
+    "cluster_ratio_k20": ("cluster", "list", "ratio", 20),
 }
 
 
 def run(t: int, draws: int) -> pd.DataFrame:
     train = [area_election(k) for k in range(19, t)]
     cur = area_election(t)
-    priors = {s: prior_for(train[-1], cur, sectors=s, k=K) for s in ("bloc", "cluster")}
+    priors = {(s, k): prior_for(train[-1], cur, sectors=s, k=k)
+              for s, _, _, k in VARIANTS.values()}
     rows = []
-    for name, (sectors, spread, estimator) in VARIANTS.items():
-        prior = priors[sectors]
+    for name, (sectors, spread, estimator, k) in VARIANTS.items():
+        prior = priors[(sectors, k)]
         for budget in BUDGETS:
             n = allocate(prior, train, budget, spread=spread)
             rng = np.random.default_rng(SEED + t)
@@ -73,7 +78,7 @@ def main(draws: int, tests: list[int]) -> None:
         "# Sector model variants, held-out (K22-K26)", "",
         f"`scripts/run_sector_variants.py`: {r['draw'].nunique()} panels per test, budget and "
         f"variant (same seed {SEED}+t for every variant), one random box per area, k-means "
-        f"with {K} clusters.", "", g.round(3).to_markdown(), "", "## Mean seats moved per test",
+        f"with {K} clusters unless the name says otherwise.", "", g.round(3).to_markdown(), "", "## Mean seats moved per test",
         "", per.unstack("test").round(2).to_markdown(), ""])
     (ROOT / "reports" / "sector_variants.md").write_text(text, encoding="utf-8")
     print(text)

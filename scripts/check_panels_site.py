@@ -3,7 +3,9 @@
 Runs scripts/check_panels_site.js (Chromium) and, for every panel, predicts the
 page's example (the K26 votes of each area's recommended box) with
 `sector.predict`. The page merges lists under 1% into one list, so small share
-differences are possible; the direct seats must match.
+differences are possible; the direct seats must match. Also uploads the K26
+per-box committee file into the default panel: the forecast must equal the
+built-in example.
 
 Usage:
     PYTHONPATH=src python scripts/check_panels_site.py <screenshot_dir>
@@ -37,7 +39,8 @@ def python_forecast(data: dict, p: dict, prior, regular: pd.DataFrame) -> pd.Ser
 
 
 def main(out_dir: str) -> None:
-    run = subprocess.run(["node", str(ROOT / "scripts" / "check_panels_site.js"), out_dir],
+    raw = sorted((ROOT / "data" / "raw").glob("knesset_26_*_ballots.csv"))[0]
+    run = subprocess.run(["node", str(ROOT / "scripts" / "check_panels_site.js"), out_dir, str(raw)],
                          capture_output=True, text=True, check=True)
     page = json.loads(run.stdout.strip().splitlines()[-1])
     print("console errors:", page["errors"] or "none")
@@ -56,6 +59,10 @@ def main(out_dir: str) -> None:
         diff = sum(abs(js["direct"].get(l, 0) - int(s)) for l, s in seats.items()) / 2
         print(f"{js['panel']} | direct seats moved JS vs Python {diff:g}")
         ok &= diff == 0
+    imp = page["imported"]
+    same = imp["direct"] == page["forecasts"][str(imp["panel"])]["direct"]
+    print(f"committee file import: {imp['message'][:60]} | same seats as the example: {same}")
+    ok &= same
     print("ok" if ok else "FAIL")
 
 

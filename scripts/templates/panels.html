@@ -176,7 +176,12 @@ details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
         </div>
       </div>
     </details>
-    <label for="votes" class="msg">קולות לפי אזור, CSV: עמודה ראשונה מזהה האזור, ואחריה עמודה לכל רשימה לפי האותיות.</label>
+    <div class="toolbar">
+      <label class="btn" for="cec-file">טעינת קובץ התוצאות של ועדת הבחירות</label>
+      <input type="file" id="cec-file" accept=".csv,.txt" hidden>
+      <span class="msg" id="import-msg" role="status">קובץ התוצאות לפי קלפי (CSV, כפי שהוועדה מפרסמת). המחשבון שולף ממנו את הקלפי של כל אזור בפאנל, ואם היא חסרה את קלפי הגיבוי.</span>
+    </div>
+    <label for="votes" class="msg">או הזנה ידנית של הקולות לפי אזור, CSV: עמודה ראשונה מזהה האזור, ואחריה עמודה לכל רשימה לפי האותיות.</label>
     <textarea id="votes" spellcheck="false"></textarea>
     <div class="toolbar">
       <button class="btn primary" type="button" id="run">חישוב תחזית</button>
@@ -357,6 +362,82 @@ $("load-example").addEventListener("click", () => { state.lists = defaultLists()
 $("load-template").addEventListener("click", () => { $("votes").value = templateCsv(false); state.example = false; $("example-badge").hidden = true; $("result").innerHTML = ""; $("calc-msg").textContent = "התבנית מוכנה. מלאו את הקולות ולחצו על חישוב."; });
 $("votes").addEventListener("input", () => { state.example = false; $("example-badge").hidden = true; });
 
+/* ---------- import of the committee's per-box results file ---------- */
+const META = new Set(["סמל ועדה", "ברזל", "שם ישוב", "סמל ישוב", "קלפי", "מספר קלפי", "ריכוז", "שופט",
+  "בזב", "מצביעים", "פסולים", "כשרים", "חיצוניות", "קלפי אחרת"]);
+
+function decodeFile(buf) {
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(buf).replace(/^\uFEFF/, ""); }
+  catch (e) { return new TextDecoder("windows-1255").decode(buf); }
+}
+
+function importCec(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  const head = lines[0].split(",").map((c) => c.trim());
+  const iS = head.indexOf("סמל ישוב"), iV = head.indexOf("כשרים");
+  const iB = head.indexOf("קלפי") >= 0 ? head.indexOf("קלפי") : head.indexOf("מספר קלפי");
+  if (iS < 0 || iB < 0 || iV < 0) throw new Error("זה לא נראה כמו קובץ תוצאות לפי קלפי: חסרות העמודות סמל ישוב, קלפי או כשרים.");
+  const letters = head.map((h, j) => [h, j]).filter(([h]) => h && !META.has(h));
+  const rows = new Map();
+  lines.slice(1).forEach((l) => { const c = l.split(",").map((x) => x.trim()); rows.set(c[iS] + "|" + c[iB], c); });
+  const p = DATA.panels[state.panel];
+  const found = {}, missing = [];
+  let backups = 0;
+  p.units.forEach((u) => {
+    for (let k = 0; k < u.recommended.length; k++) {
+      const r = u.recommended[k], c = rows.get(r.settlement_code + "|" + r.ballot);
+      if (c && +c[iV] > 0) { found[u.id] = c; if (k) backups++; return; }
+    }
+    missing.push(u.id);
+  });
+  if (!Object.keys(found).length) throw new Error("אף קלפי של הפאנל לא נמצאה בקובץ. בדקו שזה הקובץ לפי קלפי ושמספרי הקלפיות תואמים.");
+  const tot = {};
+  let all = 0;
+  Object.values(found).forEach((c) => { letters.forEach(([h, j]) => { tot[h] = (tot[h] || 0) + (+c[j] || 0); }); all += +c[iV]; });
+  const known = new Set(state.lists.map((l) => l.letter));
+  const added = [];
+  letters.forEach(([h]) => {
+    if (known.has(h) || tot[h] / all < 0.01) return;
+    const at = state.lists.findIndex((l) => l.never_pass);
+    state.lists.splice(at < 0 ? state.lists.length : at, 0, { letter: h, name: "", bloc: "other", from: "" });
+    known.add(h); added.push(h);
+  });
+  const named = state.lists.filter((l) => !l.never_pass).map((l) => l.letter);
+  const out = ["id," + state.lists.map((l) => l.letter).join(",")];
+  p.units.forEach((u) => {
+    const c = found[u.id];
+    if (!c) return;
+    const v = Object.fromEntries(letters.map(([h, j]) => [h, +c[j] || 0]));
+    const sumNamed = named.reduce((a, L) => a + (v[L] || 0), 0);
+    out.push([u.id, ...state.lists.map((l) => l.never_pass ? Math.max(0, +c[iV] - sumNamed) : (v[l.letter] || 0))].join(","));
+  });
+  return { csv: out.join("\n"), found: Object.keys(found).length, backups, missing, added };
+}
+
+$("cec-file").addEventListener("change", (ev) => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  f.arrayBuffer().then((buf) => {
+    try {
+      const r = importCec(decodeFile(buf));
+      state.example = false;
+      renderListsEdit();
+      $("votes").value = r.csv;
+      const p = DATA.panels[state.panel];
+      $("import-msg").className = "msg";
+      $("import-msg").textContent = `נמצאו ${r.found} מתוך ${p.units.length} אזורים`
+        + (r.backups ? ` (${r.backups} מקלפי גיבוי)` : "") + "."
+        + (r.missing.length ? ` עוד לא בקובץ: ${r.missing.slice(0, 8).join(", ")}${r.missing.length > 8 ? " ועוד" : ""}.` : "")
+        + (r.added.length ? ` נוספו רשימות חדשות (${r.added.join(", ")}): קבעו להן שם, גוש ורשימת מקור בכנסת ${DATA.base}, ולחצו שוב על חישוב.` : "");
+      runCalc();
+    } catch (e) {
+      $("import-msg").className = "msg err";
+      $("import-msg").textContent = e.message;
+    }
+    ev.target.value = "";
+  });
+});
+
 function parseCsv(text) {
   const rows = text.trim().split(/\r?\n/).map((r) => r.split(/[,\t;]/).map((c) => c.trim()));
   if (rows.length < 2) throw new Error("צריך שורת כותרת ולפחות שורה אחת של קולות.");
@@ -528,12 +609,20 @@ function renderResult(lists, share, seats, directSeats, iv, turnout) {
       + `<td class="n">${pct(share[i], 2)}</td><td class="n"><span class="${pc >= 0.95 ? "ok" : pc >= 0.05 ? "mid" : "bad"}">${pct(pc, 0)}</span></td>`
       + `<td class="hide-sm"><span class="dot" style="background:var(--bloc-${l.bloc})"></span>${BLOC_HE[l.bloc]}</td></tr>`;
   });
+  const planned = {};
+  DATA.panels[state.panel].units.forEach((u) => { planned[u.sector] = (planned[u.sector] || 0) + 1; });
+  const empty = [], thin = [];
   let tt = `<div class="table-wrap"><table><thead><tr><th>מגזר</th><th class="n">אזורים שנספרו</th><th class="n">קולות מול כנסת ${DATA.base}</th></tr></thead><tbody>`;
   DATA.sectors.slice().sort((a, b) => b.share_of_votes - a.share_of_votes).forEach((s) => {
-    const x = turnout[s.id];
-    tt += `<tr><td>${sectorName(s.id)}</td><td class="n">${x.units}</td><td class="n">${x.R == null ? "–" : `<span dir="ltr">${(x.R >= 1 ? "+" : "") + pct(x.R - 1, 1)}</span>`}</td></tr>`;
+    const x = turnout[s.id], plan = planned[s.id] || 0;
+    if (plan && !x.units) empty.push(sectorName(s.id));
+    else if (plan && x.units < plan / 2) thin.push(sectorName(s.id));
+    const cls = plan && !x.units ? "bad" : plan && x.units < plan / 2 ? "mid" : "";
+    tt += `<tr><td>${sectorName(s.id)}</td><td class="n"><span class="${cls}">${x.units} מתוך ${plan}</span></td><td class="n">${x.R == null ? "–" : `<span dir="ltr">${(x.R >= 1 ? "+" : "") + pct(x.R - 1, 1)}</span>`}</td></tr>`;
   });
-  $("result").innerHTML = `<h3 style="margin:0">תחזית מנדטים לפי גוש (קו מקווקו: 61)</h3>` + bar + t + `</tbody></table></div>`
+  const warn = (empty.length ? `<p class="msg err">לא נספר עדיין אף אזור במגזר ${empty.join(", ")}: למגזר הזה התחזית מניחה את תוצאות כנסת ${DATA.base}, והיא לא אמינה. בבדיקה לאחור, בלי המגזר הערבי הטעות הגיעה ל-13 מנדטים.</p>` : "")
+    + (thin.length ? `<p class="msg">פחות ממחצית האזורים נספרו במגזר ${thin.join(", ")}: הטווחים רחבים יותר מהרגיל.</p>` : "");
+  $("result").innerHTML = warn + `<h3 style="margin:0">תחזית מנדטים לפי גוש (קו מקווקו: 61)</h3>` + bar + t + `</tbody></table></div>`
     + `<p class="note">המנדטים נבחרים מתוך ${REPS} הגרלות חוזרות של הפאנל בתוך כל מגזר: התוצאה שהטעות הממוצעת שלה מול כל ההגרלות הכי קטנה, כך שרשימה ליד אחוז החסימה מקבלת את מה שסביר יותר. `
     + `האחוזים הם התחזית הישירה. רשימה עם סיכוי בין 5% ל-95% לעבור את אחוז החסימה מסומנת בכתום.</p>`
     + `<h3 style="margin:0">שיעור ההצבעה לפי מגזר</h3>` + tt + `</tbody></table></div>`
