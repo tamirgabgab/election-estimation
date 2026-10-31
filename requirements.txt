@@ -5,3 +5,4 @@ tabulate
 xlsxwriter>=3.0
 openpyxl>=3.1
 pytest
+torch>=2.0  # neural area model (src/election_estimation/neural.py)

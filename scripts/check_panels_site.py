@@ -22,7 +22,7 @@ from election_estimation.data import load_ballots
 from election_estimation.elections import seat_rules
 from election_estimation.evaluate import _areas
 from election_estimation.metrics import bader_ofer
-from election_estimation.sector import area_election, make_prior, predict
+from election_estimation.sector import MODEL, area_election, make_prior, predict
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -34,7 +34,7 @@ def python_forecast(data: dict, p: dict, prior, regular: pd.DataFrame) -> pd.Ser
         box = regular[(regular["unit"] == u["id"])
                       & (regular["ballot_id"] == u["recommended"][0]["ballot"])].iloc[0]
         rows[u["id"]] = box[prior.lists].astype(float)
-    votes = predict(prior, panel, pd.DataFrame(rows).T)
+    votes = predict(prior, panel, pd.DataFrame(rows).T, estimator=MODEL["estimator"])
     return bader_ofer(votes / votes.sum(), **seat_rules(data["base"]))
 
 
@@ -50,7 +50,8 @@ def main(out_dir: str) -> None:
     base = data["base"]
     prev = area_election(base)
     settlement = prev.boxes.groupby("unit")["settlement"].agg(lambda s: s.mode().iloc[0])
-    prior = make_prior(prev, prev.unit_boxes, settlement, prev.parties, {l: l for l in prev.parties})
+    prior = make_prior(prev, prev.unit_boxes, settlement, prev.parties, {l: l for l in prev.parties},
+                       sectors=MODEL["sectors"], k=MODEL["k"])
     ballots = load_ballots(base)
     regular = ballots[~ballots["is_envelopes"] & (ballots["valid"] > 0)].copy()
     regular["unit"] = _areas(regular, base)

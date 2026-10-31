@@ -147,7 +147,7 @@ details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
       <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
         <h3>המגזרים</h3>
         <div class="table-wrap"><table id="sectors"></table></div>
-        <p class="note">מגזר נקבע לפי הגוש המוביל באזור בכנסת 26, ו"מובהק" כשיש לו 60% לפחות. העמודה האחרונה היא הרכב הגושים של המגזר בכנסת 26.</p>
+        <p class="note">המגזרים הם קבוצות של אזורים עם דפוס הצבעה דומה בכנסת 26 (לפי האחוז של כל רשימה), ושם המגזר הוא שתי הרשימות הגדולות בו. העמודה האחרונה היא הרכב הגושים של המגזר.</p>
       </div>
     </div>
     <div class="toolbar">
@@ -209,7 +209,8 @@ const $ = (id) => document.getElementById(id);
 const fmt = (x, d = 1) => (x == null || isNaN(x)) ? "–" : Number(x).toFixed(d);
 const pct = (x, d = 1) => (x == null || isNaN(x)) ? "–" : (100 * x).toFixed(d) + "%";
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const sectorName = (id) => SECTOR_HE[id] || id;
+const SECTOR_NAME = Object.fromEntries(DATA.sectors.map((s) => [s.id, s.name]));
+const sectorName = (id) => SECTOR_NAME[id] || SECTOR_HE[id] || id;
 const blocOfList = Object.fromEntries(DATA.base_lists.map((l) => [l.letter, l.bloc]));
 const state = { panel: 0, lists: [], example: true };
 
@@ -223,7 +224,8 @@ function defaultPanel() {
 
 function renderLede() {
   $("lede").textContent = `הפאנל הוא מדגם של אזורים סטטיסטיים, ובכל אזור סופרים קלפי אחת. כל אזור בארץ מקבל את התוצאה שלו מכנסת ${DATA.base}, `
-    + `ועליה את שיעור ההצבעה ואת השינוי שנמדדו בפאנל במגזר שלו. האזורים מוגרלים בכל מגזר לפי גודלם, ויותר אזורים נלקחים במגזרים שהשתנו יותר בעבר. `
+    + `ועליה את שיעור ההצבעה ואת השינוי שנמדדו בפאנל במגזר שלו; השינוי בכל רשימה יחסי לגודלה באזור. `
+    + `מגזר הוא קבוצה של אזורים עם דפוס הצבעה דומה. האזורים מוגרלים בכל מגזר לפי גודלם, ויותר אזורים נלקחים במגזרים שהשתנו יותר בעבר. `
     + `התקציב הוא לכל היותר 2% מהקולות של כנסת ${DATA.base} (${DATA.cap_votes.toLocaleString("he-IL")} קולות).`;
   $("footer").textContent = `נבנה ב-${DATA.built} מתוך ${DATA.source}. בדיקה לאחור: כנסות ${DATA.tests.join(", ")}, כל פעם רק מנתוני הבחירות שקדמו לה. `
     + `מספר הקלפיות בכל אזור בכנסת 27 נלקח מכנסת ${DATA.base} עד שתתפרסם רשימת הקלפיות. זרע אקראי ${DATA.seed}.`;
@@ -502,8 +504,9 @@ function prepare(panel, counts, lists) {
     if (!c) return;
     const v = lists.reduce((a, l) => a + (c[l.letter] || 0), 0);
     if (!(v > 0)) return;
-    units.push({ sector: u.sector, mult: u.mult, r: v / u.per_box,
-      d: lists.map((l, i) => (c[l.letter] || 0) / v - (from[i] ? (u.prev_shares[from[i]] || 0) : 0)) });
+    const q = lists.map((l) => (c[l.letter] || 0) / v);
+    const p = lists.map((_, i) => from[i] ? (u.prev_shares[from[i]] || 0) : 0);
+    units.push({ sector: u.sector, mult: u.mult, r: v / u.per_box, q, p, d: q.map((x, i) => x - p[i]) });
   });
   if (!units.length) throw new Error("אין קולות באף אזור מהפאנל. בדקו שמזהי האזורים תואמים לטבלה.");
   const P = DATA.sectors.map((s) => lists.map((_, i) => from[i] ? (s.prev_shares[from[i]] || 0) : 0));
@@ -514,16 +517,20 @@ function estimate(prep, weights) {
   const out = new Array(prep.n).fill(0), turnout = {};
   DATA.sectors.forEach((s, k) => {
     let W = 0, R = 0, cnt = 0;
-    const ch = new Array(prep.n).fill(0);
+    const ch = new Array(prep.n).fill(0), num = new Array(prep.n).fill(0), den = new Array(prep.n).fill(0);
     prep.units.forEach((u, j) => {
       const w = weights[j];
       if (u.sector !== s.id || !w) return;
       W += w; R += w * u.r; cnt++;
-      u.d.forEach((x, i) => { ch[i] += w * u.r * x; });
+      u.d.forEach((x, i) => { ch[i] += w * u.r * x; num[i] += w * u.r * u.q[i]; den[i] += w * u.p[i]; });
     });
     if (!W) { prep.P[k].forEach((x, i) => { out[i] += x * s.expected; }); turnout[s.id] = { R: null, units: 0 }; return; }
     R /= W;
-    const y = prep.P[k].map((x, i) => Math.max(0, R * x + ch[i] / W));
+    // Ratio estimator (sector.predict, estimator="ratio"): the list's previous share times
+    // the panel's ratio of current to previous votes; small or absent lists by difference.
+    const ratio = DATA.model && DATA.model.estimator === "ratio";
+    const y = prep.P[k].map((x, i) => ratio && x >= DATA.ratio_min && den[i] > 0
+      ? Math.max(0, num[i] / den[i] * x) : Math.max(0, R * x + ch[i] / W));
     const ys = y.reduce((a, b) => a + b, 0);
     if (ys > 0) y.forEach((x, i) => { out[i] += x / ys * R * s.expected; });
     turnout[s.id] = { R, units: cnt };
@@ -623,7 +630,7 @@ function renderResult(lists, share, seats, directSeats, iv, turnout) {
     const cls = plan && !x.units ? "bad" : plan && x.units < plan / 2 ? "mid" : "";
     tt += `<tr><td>${sectorName(s.id)}</td><td class="n"><span class="${cls}">${x.units} מתוך ${plan}</span></td><td class="n">${x.R == null ? "–" : `<span dir="ltr">${(x.R >= 1 ? "+" : "") + pct(x.R - 1, 1)}</span>`}</td></tr>`;
   });
-  const warn = (empty.length ? `<p class="msg err">לא נספר עדיין אף אזור במגזר ${empty.join(", ")}: למגזר הזה התחזית מניחה את תוצאות כנסת ${DATA.base}, והיא לא אמינה. בבדיקה לאחור, בלי המגזר הערבי הטעות הייתה 10 מנדטים בממוצע ועד 14; עם מחצית מאזוריו בלבד היא כמעט לא גדלה.</p>` : "")
+  const warn = (empty.length ? `<p class="msg err">לא נספר עדיין אף אזור במגזר ${empty.join(", ")}: למגזר הזה התחזית מניחה את תוצאות כנסת ${DATA.base}, והיא לא אמינה. בבדיקה לאחור, כשהמגזר הערבי כולו לא נספר הטעות הייתה 10 מנדטים בממוצע ועד 14; עם מחצית מאזוריו היא כמעט לא גדלה.</p>` : "")
     + (thin.length ? `<p class="msg">פחות ממחצית האזורים נספרו במגזר ${thin.join(", ")}: הטווחים רחבים יותר מהרגיל.</p>` : "");
   $("result").innerHTML = warn + `<h3 style="margin:0">תחזית מנדטים לפי גוש (קו מקווקו: 61)</h3>` + bar + t + `</tbody></table></div>`
     + `<p class="note">המנדטים נבחרים מתוך ${REPS} הגרלות חוזרות של הפאנל בתוך כל מגזר: התוצאה שהטעות הממוצעת שלה מול כל ההגרלות הכי קטנה, כך שרשימה ליד אחוז החסימה מקבלת את מה שסביר יותר. `

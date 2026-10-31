@@ -9,8 +9,8 @@ Output columns: knesset, ballot_key, area_id, method.
   area_id - "stat2011:<code>" for a statistical area, "loc:<settlement_code>" when the
             box has no area (the whole settlement is then one unit).
   method  - how the area was found: "yoavfried" (K19-K25), "k25_center" / "k25_ballot"
-            (K26 through the K25 polling center or ballot of the same settlement and
-            number), or "settlement" (no area).
+            (K26 through the K25 ballot of the same settlement and number, else its
+            polling center), or "settlement" (no area).
 
 Run by build_data.py; can also be run alone after it:
     python scripts/build_areas.py
@@ -68,8 +68,11 @@ def source_areas(knesset: int) -> pd.DataFrame:
 def linked_areas(knesset: int, reference: pd.DataFrame) -> pd.DataFrame:
     """Areas for an election without an area file, through the reference election.
 
-    First by polling center (same settlement and `ריכוז` code; the center's most
-    common area), then by ballot number in the same settlement, else the settlement.
+    First by ballot number in the same settlement, then by polling center (same
+    settlement and `ריכוז` code; the center's most common area), else the settlement.
+    The number is more reliable: on K25 linked through K24 it gives the true area for
+    99.8% of the boxes it covers, the center for 72.5% (scripts/match_k27_boxes.py
+    --validate; D18).
     """
     ref = reference[reference["method"] == "yoavfried"]
     by_center = (ref.dropna(subset=["concentration"])
@@ -82,10 +85,10 @@ def linked_areas(knesset: int, reference: pd.DataFrame) -> pd.DataFrame:
     area_center = pd.Series(by_center.reindex(center_key).values, index=ballots.index)
     area_ballot = ballots["match_key"].map(by_ballot)
     settlement = "loc:" + ballots["settlement_code"].astype(str)
-    area = area_center.fillna(area_ballot).fillna(settlement)
+    area = area_ballot.fillna(area_center).fillna(settlement)
     method = pd.Series("settlement", index=ballots.index)
-    method[area_ballot.notna()] = "k25_ballot"
     method[area_center.notna()] = "k25_center"
+    method[area_ballot.notna()] = "k25_ballot"
     return pd.DataFrame({"knesset": knesset, "ballot_key": ballots["ballot_key"],
                          "area_id": area, "method": method})
 

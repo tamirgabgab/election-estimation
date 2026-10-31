@@ -35,6 +35,8 @@ SMALL_SECTOR = 0.02
 PURE = 0.6
 MIN_PER_SECTOR = 3
 RATIO_MIN = 0.005
+# The model used for the Knesset 27 panels and the site (M40; reports/sector_variants.md).
+MODEL = {"sectors": "cluster", "k": 12, "spread": "list", "estimator": "ratio"}
 
 
 @lru_cache(maxsize=None)
@@ -329,7 +331,8 @@ def predict(prior: Prior, panel: pd.Series, counted: pd.DataFrame,
 # --- uncertainty and the point under the threshold ------------------------------
 
 def bootstrap(prior: Prior, panel: pd.Series, counted: pd.DataFrame,
-              rng: np.random.Generator, reps: int = 200) -> pd.DataFrame:
+              rng: np.random.Generator, reps: int = 200,
+              estimator: str = "difference") -> pd.DataFrame:
     """Predicted votes of `reps` panels resampled with replacement within each
     sector (the election-night spread of the panel itself): reps x lists."""
     sec = prior.sector[panel.index]
@@ -339,7 +342,7 @@ def bootstrap(prior: Prior, panel: pd.Series, counted: pd.DataFrame,
     for _ in range(reps):
         pick = pd.Series(np.concatenate([rng.choice(g, len(g)) for g in groups if len(g)]))
         p = pick.value_counts()
-        out.append(predict(prior, p, counted.loc[p.index]))
+        out.append(predict(prior, p, counted.loc[p.index], estimator=estimator))
     return pd.DataFrame(out).reset_index(drop=True)
 
 
