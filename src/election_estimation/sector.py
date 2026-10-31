@@ -34,6 +34,7 @@ from election_estimation.swing import BLOCS, continuing
 SMALL_SECTOR = 0.02
 PURE = 0.6
 MIN_PER_SECTOR = 3
+RATIO_MIN = 0.005
 
 
 @lru_cache(maxsize=None)
@@ -78,9 +79,31 @@ class Prior:
         return sorted(self.sector.unique())
 
 
+def kmeans(x: np.ndarray, w: np.ndarray, k: int, seed: int = 0, iters: int = 100) -> np.ndarray:
+    """Weighted k-means (k-means++ start, fixed seed): cluster index per row."""
+    rng = np.random.default_rng(seed)
+    centers = [x[rng.choice(len(x), p=w / w.sum())]]
+    for _ in range(1, k):
+        d = np.min([((x - c) ** 2).sum(axis=1) for c in centers], axis=0)
+        centers.append(x[rng.choice(len(x), p=w * d / (w * d).sum())])
+    c = np.array(centers)
+    for _ in range(iters):
+        label = ((x[:, None, :] - c[None]) ** 2).sum(axis=2).argmin(axis=1)
+        new = np.array([np.average(x[label == j], axis=0, weights=w[label == j])
+                        if (label == j).any() else c[j] for j in range(k)])
+        if np.allclose(new, c):
+            break
+        c = new
+    return label
+
+
 def make_prior(prev: Election, cur_boxes: pd.Series, cur_settlement: pd.Series,
-               lists: list[str], mapping: dict[str, str]) -> Prior:
-    """`cur_boxes`: boxes per area of the new election; `cur_settlement`: its settlement."""
+               lists: list[str], mapping: dict[str, str], sectors: str = "bloc",
+               k: int = 12) -> Prior:
+    """`cur_boxes`: boxes per area of the new election; `cur_settlement`: its settlement.
+
+    `sectors`: "bloc" (dominant bloc, pure at 60%) or "cluster" (weighted k-means with
+    `k` clusters on the previous shares of the lists with at least 1%, the rest summed)."""
     pb = area_election(prev.knesset).boxes
     prev_settlement = pb.groupby("unit")["settlement"].agg(lambda s: s.mode().iloc[0])
     counts = prev.units
@@ -99,8 +122,15 @@ def make_prior(prev: Election, cur_boxes: pd.Series, cur_settlement: pd.Series,
         per_box[a] = c.sum() / n
     c = pd.DataFrame(rows).T[prev.parties]
     per_box = pd.Series(per_box)
-    sector = classify(c, prev.blocs)
     expected = cur_boxes * per_box
+    if sectors == "bloc":
+        sector = classify(c, prev.blocs)
+    else:
+        major = list(prev.shares.index[prev.shares >= 0.01])
+        x = c[major].div(c.sum(axis=1), axis=0)
+        x["_rest"] = 1 - x.sum(axis=1)
+        label = kmeans(x.values, expected.values.astype(float), k)
+        sector = pd.Series([f"c{j:02d}" for j in label], index=c.index)
     size = expected.groupby(sector).sum() / expected.sum()
     sector = sector.where(sector.map(size) >= SMALL_SECTOR, "small")
     shares = c.div(c.sum(axis=1), axis=0)
@@ -111,11 +141,17 @@ def make_prior(prev: Election, cur_boxes: pd.Series, cur_settlement: pd.Series,
                  b.div(b.sum(axis=1), axis=0), per_box)
 
 
-def prior_for(prev: Election, cur: Election) -> Prior:
+def prior_for(prev: Election, cur: Election, **kwargs) -> Prior:
     """Prior of a past election (its box counts and lists are taken as known)."""
     cb = area_election(cur.knesset).boxes
     settlement = cb.groupby("unit")["settlement"].agg(lambda s: s.mode().iloc[0])
-    return make_prior(prev, cur.unit_boxes, settlement, cur.parties, continuing(prev, cur))
+    return make_prior(prev, cur.unit_boxes, settlement, cur.parties, continuing(prev, cur),
+                      **kwargs)
+
+
+@lru_cache(maxsize=None)
+def transition_prior(prev: int, cur: int) -> Prior:
+    return prior_for(area_election(prev), area_election(cur))
 
 
 # --- allocation -----------------------------------------------------------------
@@ -147,17 +183,58 @@ def transition_spread(prev: Election, cur: Election) -> pd.DataFrame:
     return pd.DataFrame(rows).T
 
 
+def list_spread(prior: Prior, train: list[Election]) -> pd.Series:
+    """Per sector of `prior` (its labels applied to past areas): the variance of what
+    one counted box shows, summed over the lists, mean over past transitions.
+
+    For every box of a past election in an area labelled by `prior`: r = box votes /
+    previous votes per box and the list change q - p (new lists from 0); the
+    vote-weighted variance of r (q - p) summed over lists, plus the variance of r
+    times ||P_s - P||^2 of the sector's previous list shares."""
+    m = prior.expected.groupby(prior.sector).sum()
+    shares = prior.prev_shares.mul(prior.expected, axis=0).groupby(prior.sector).sum()
+    shares = shares.div(m, axis=0)
+    gap = ((shares - shares.mul(m / m.sum(), axis=0).sum()) ** 2).sum(axis=1)
+    out = []
+    for a, b in zip(train[:-1], train[1:]):
+        pr = transition_prior(a.knesset, b.knesset)
+        boxes = area_election(b.knesset).boxes
+        boxes = boxes[boxes["unit"].isin(a.units.index) & boxes["unit"].isin(prior.sector.index)]
+        votes = boxes[b.parties].sum(axis=1)
+        q = boxes[b.parties].div(votes, axis=0)
+        p = pr.prev_shares.loc[boxes["unit"]].set_index(boxes.index)[b.parties]
+        r = votes / pr.per_box.loc[boxes["unit"]].values
+        sec = prior.sector.loc[boxes["unit"]].values
+        rows = {}
+        for s in prior.sectors:
+            k = sec == s
+            if k.sum() < 2:
+                continue
+            w = votes[k] / votes[k].sum()
+            z = (q[k] - p[k]).mul(r[k], axis=0)
+            var_z = float((((z - z.mul(w, axis=0).sum()) ** 2).mul(w, axis=0)).sum().sum())
+            var_r = float((((r[k] - (r[k] * w).sum()) ** 2) * w).sum())
+            rows[s] = var_z + var_r * gap[s]
+        out.append(pd.Series(rows))
+    return pd.concat(out, axis=1).mean(axis=1)
+
+
 def allocate(prior: Prior, train: list[Election], budget: float,
-             neyman: bool = True) -> pd.Series:
+             neyman: bool = True, spread: str = "bloc") -> pd.Series:
     """Areas per sector under a vote budget (share of the previous valid votes).
 
     Neyman: n_s proportional to M_s sigma_s / sqrt(c_s), with sigma_s^2 the mean over
     past transitions of var_change + var_turnout * ||P_s - P||^2 (P_s the sector's
     bloc shares) and c_s the expected cost of one area. Otherwise proportional to
-    M_s / sqrt(c_s)."""
+    M_s / sqrt(c_s). `spread` = "list" uses `list_spread` (the prior's own sector
+    labels, changes per list) instead of the bloc changes of each transition's
+    own sectors."""
     m = prior.expected.groupby(prior.sector).sum()
     cost = (prior.expected * prior.cost).groupby(prior.sector).sum() / m
-    if neyman:
+    if neyman and spread == "list":
+        var = list_spread(prior, train)
+        sigma = np.sqrt(var.reindex(m.index).fillna(var.mean()))
+    elif neyman:
         spreads = [transition_spread(a, b) for a, b in zip(train[:-1], train[1:])]
         blocs = prior.prev_blocs.mul(prior.expected, axis=0).groupby(prior.sector).sum()
         blocs = blocs.div(blocs.sum(axis=1), axis=0)
@@ -201,10 +278,17 @@ def read_boxes(cur: Election, areas: pd.Index, rng: np.random.Generator) -> pd.D
 
 
 def predict(prior: Prior, panel: pd.Series, counted: pd.DataFrame,
-            turnout: bool = True) -> pd.Series:
+            turnout: bool = True, by_sector: bool = False,
+            estimator: str = "difference", missing: str = "prev") -> pd.Series | pd.DataFrame:
     """National votes per list from the counted boxes of the panel areas.
 
-    `panel`: area -> times drawn; `counted`: area -> votes per list of the box."""
+    `panel`: area -> times drawn (or any weights); `counted`: area -> votes per list
+    of the box. `by_sector`: return sectors x lists instead of the national sum.
+    `estimator`: "difference" (previous share plus the mean change) or "ratio" (previous
+    share times the panel's ratio of current to previous votes of the list, for lists
+    with at least RATIO_MIN of the sector; the others by difference). `missing`: a sector
+    with no counted area keeps its previous result ("prev") or takes the turnout and
+    change of all counted areas ("pooled")."""
     counted = counted.reindex(columns=prior.lists, fill_value=0).loc[panel.index]
     votes = counted.sum(axis=1)
     q = counted.div(votes, axis=0)
@@ -212,21 +296,34 @@ def predict(prior: Prior, panel: pd.Series, counted: pd.DataFrame,
     p = prior.prev_shares.loc[panel.index]
     w = panel.astype(float)
     sec = prior.sector[panel.index]
-    out = pd.Series(0.0, index=prior.lists)
+    out = {}
+    wa = w / w.sum()
+    R_all = float((r * wa).sum())
+    change_all = (q - p).mul(r * wa, axis=0).sum()
     for s in prior.sectors:
         areas = prior.sector.index[prior.sector == s]
         m_s = prior.expected[areas].sum()
         P_s = prior.prev_shares.loc[areas].mul(prior.expected[areas], axis=0).sum() / m_s
         k = sec == s
         if not k.any():
-            out += P_s * m_s
+            if missing == "pooled":
+                y = (R_all * P_s + change_all).clip(lower=0)
+                out[s] = y / y.sum() * R_all * m_s
+            else:
+                out[s] = P_s * m_s
             continue
         ws = w[k] / w[k].sum()
         R = float((r[k] * ws).sum())
         change = (q[k] - p[k]).mul(r[k] * ws, axis=0).sum()
         y = (R * P_s + change).clip(lower=0)
-        out += y / y.sum() * R * m_s
-    return out
+        if estimator == "ratio":
+            num = q[k].mul(r[k] * ws, axis=0).sum()
+            den = p[k].mul(ws, axis=0).sum()
+            use = (P_s >= RATIO_MIN) & (den > 0)
+            y[use] = (num[use] / den[use] * P_s[use]).clip(lower=0)
+        out[s] = y / y.sum() * R * m_s
+    out = pd.DataFrame(out).T
+    return out if by_sector else out.sum()
 
 
 # --- uncertainty and the point under the threshold ------------------------------
