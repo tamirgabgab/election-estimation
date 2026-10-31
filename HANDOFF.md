@@ -199,6 +199,25 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   Likud was also about 1.8 pp low. Inner validation chose `mu` 0.01, `level` 0.1 and
   `alpha` 0–0.5 (mostly 0.25). The goal (at most 2 in the mean and the worst election)
   is not met yet.
+- **Within-bloc rows and seat intervals (M20–M23)**: `swing.within_rows`,
+  `swing.seat_intervals`, `scripts/run_within_panel.py` → `reports/within_panel.md`.
+  Held-out K22–K26 (`joint_within`):
+
+  | Settlements | Boxes | Seats moved, point | Outside the 90% interval | Coverage | Width |
+  |---|---|---|---|---|---|
+  | 20 | 464 | 3.4 (worst 6) | 0.8 (worst 2) | 93% | 1.9 |
+  | 30 | 573 | 3.2 (5) | 0.2 (1) | 98% | 1.8 |
+  | 35 | 608 | 3.2 (5) | 0.1 (0.5) | 98% | 1.9 |
+  | 100 | 1,171 | 2.6 (5) | 0.2 (0.5) | 97% | 1.8 |
+  | 150 | 1,864 | 2.8 (5) | 0.1 (0.5) | 98% | 1.9 |
+
+  The within-bloc rows did not improve the point prediction (inner validation picked
+  `within` = 1.0 every time; `joint_family` was 2.4–3.4), but the intervals work: from 30
+  settlements up, the true seats are inside the 90% interval for 97–98% of the lists and
+  the worst election is at most one seat outside (0.5 moved). K25 is flagged correctly:
+  Balad, Labor and Hadash-Ta'al get P(pass) 0.92–0.93 and intervals 0–5 seats, and the
+  true results (0, 4, 5) are inside. Error scales (standardized by sqrt(share)): about
+  0.013 for continuing lists and 0.019 for new ones.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -394,11 +413,12 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 In short:
 
-1. **Reach the 0–2 seat goal** (M11) - best so far `joint_family`: 2.4 (worst 4) at 20
-   settlements, 2.4 (worst 5) at 100. Remaining misses are lists near the threshold that
-   are new in their form (K25 Balad). Options: stratify the panel so every bloc has enough
-   settlements for the within-bloc split, a threshold-aware estimate (probability of
-   passing from bootstrap of the panel), or report seat intervals instead of one number.
+1. **Seat goal** (M11) - the point prediction stays at 2.4–3.4 seats moved (worst 5);
+   the 90% intervals hold the true seats (at most one seat outside in the worst
+   election from 30 settlements). Options: decide whether the interval is the deliverable
+   (with a rule for the point inside it), tighten intervals (e.g. per-bloc error scales,
+   correlated errors within a bloc), or look for other point improvements (box panels
+   within the panel settlements to cut counting cost).
 2. **Neural model** (user: later) - Hard-Concrete gates and softmax weights with the
    combined share / seat / bloc loss, recency weights and the calibration targets / weight prior,
    then LP refit.
