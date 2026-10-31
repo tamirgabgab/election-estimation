@@ -180,6 +180,25 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   predictions (two panels, about 960 boxes at 40 settlements each) gave 2.4 (4). The
   goal (at most 2 in the mean and the worst election) is still not met; the remaining
   error is mostly the split of a bloc into its lists (max list error about 1.4 pp).
+- **Joint level + swing panels (M16–M19)**: `SwingPanel(family=True, alpha=...)`,
+  `scripts/run_joint_panel.py` → `reports/joint_panel.md`. Held-out K22–K26, seats moved
+  mean (worst), boxes counted:
+
+  | Settlements | `joint_family` | `joint_bloc` (ablation) |
+  |---|---|---|
+  | 20 | **2.4 (4)**, 532 boxes | 3.8 (9), 639 |
+  | 40 | 2.8 (5), 744 | 3.6 (9), 742 |
+  | 70 | 2.6 (5), 931 | 3.0 (5), 867 |
+  | 100 | **2.4 (5)**, 1,089 | 3.0 (5), 1,002 |
+  | 150 | 2.6 (5), 1,283 | 2.8 (5), 1,116 |
+
+  The family swing helps (mainly K25: 9 → 5). With `joint_family`, K22–K24 are at 1–3
+  seats moved and K26 at 2–4 for most sizes; K25 stays at 5. The K25 miss is Balad: it
+  ran alone for the first time (3.05%, below the 3.25% threshold), its share is split
+  from the Arab bloc by the panel only, and an estimate of about 4% gives it 4–5 seats.
+  Likud was also about 1.8 pp low. Inner validation chose `mu` 0.01, `level` 0.1 and
+  `alpha` 0–0.5 (mostly 0.25). The goal (at most 2 in the mean and the worst election)
+  is not met yet.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -358,6 +377,10 @@ Answered by the user on 2026-10-30.
 | M13 | Next model (2026-10-31): a swing model - previous result of all regular boxes plus the change measured in the panel (`election_estimation/swing.py`) |
 | M14 | The swing is measured per bloc on settlement panels; new lists need no lineage, lists within a bloc are split by the panel |
 | M15 | Swing panel weights are fit to reproduce past national bloc swings (with a weight prior), strengths by inner validation |
+| M16 | Within a bloc, a list whose family ran as one list in both elections gets its previous share plus the panel's swing; new lists and merged / split families get the panel's part of the bloc |
+| M17 | One joint panel for the level and swing predictions, mixed by `alpha` chosen in inner validation |
+| M18 | Larger settlement panels: 70, 100, 150 settlements, no box cap |
+| M19 | Inner validation selects on share L1 over the last 3 training elections (seats are measured only on the test) |
 | D22 | Area mapping: the user uploaded the Israel-Elections-Map ballot files for K19–K25; the area unit starts at K19, and the files are kept byte-for-byte in `data/raw/geography/` |
 
 The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
@@ -367,11 +390,11 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 In short:
 
-1. **Reach the 0–2 seat goal** (M11) - best so far: swing 2.6 (worst 4) at 30 settlements,
-   level + swing average 2.4 (worst 4) at 40 settlements. Options: swing within blocs
-   by party family where the family exists in both elections, one joint panel for level
-   and swing (shared weights, both row sets), more settlements (70–150), or select by
-   share L1 in inner validation (seat L1 is coarse with two folds).
+1. **Reach the 0–2 seat goal** (M11) - best so far `joint_family`: 2.4 (worst 4) at 20
+   settlements, 2.4 (worst 5) at 100. Remaining misses are lists near the threshold that
+   are new in their form (K25 Balad). Options: stratify the panel so every bloc has enough
+   settlements for the within-bloc split, a threshold-aware estimate (probability of
+   passing from bootstrap of the panel), or report seat intervals instead of one number.
 2. **Neural model** (user: later) - Hard-Concrete gates and softmax weights with the
    combined share / seat / bloc loss, recency weights and the calibration targets / weight prior,
    then LP refit.
