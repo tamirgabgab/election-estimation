@@ -326,6 +326,7 @@ def greedy_regularized(
     inner_folds: int = 2,
     ks: tuple[int, ...] = (35, 50, 70),
     nested: bool = False,
+    by_count: bool = False,
 ) -> Method:
     """Greedy selection under a box budget with regularized weights.
 
@@ -334,7 +335,8 @@ def greedy_regularized(
     values. The value is chosen by inner validation: each of the last
     `inner_folds` training elections is predicted from the elections before it
     at `tune_budget` boxes, and the setting with the lowest mean seat L1 wins
-    (ties: lower share L1). The test election is never used.
+    (ties: lower share L1). The test election is never used. With `by_count`,
+    k is the number of units (every unit costs 1) instead of boxes.
     """
     names = list(grid)
     settings = [dict(zip(names, values)) for values in np.array(np.meshgrid(
@@ -342,7 +344,7 @@ def greedy_regularized(
 
     def fit(train, budgets, setting, rng) -> dict[int, Panel]:
         units = candidate_units(train)
-        costs = unit_costs(train, units)
+        costs = np.ones(len(units)) if by_count else unit_costs(train, units)
         sizes = train[-1].units.loc[units].sum(axis=1).values.astype(float)
         X, y = stacked(train, units, decay, calibration=setting.get("calibration", 0.0),
                        noise=setting.get("noise", 0.0), rng=rng)
