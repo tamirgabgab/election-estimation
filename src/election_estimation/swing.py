@@ -18,6 +18,11 @@ lists need no lineage. Within a bloc (decision M16):
 
 A joint panel (M17) also predicts the level (the panel's weighted list shares)
 with the same units and weights, and mixes: alpha * level + (1 - alpha) * swing.
+
+Within-bloc rows (M20) ask the panel to reproduce how every bloc splits into its
+lists. Seat intervals (M21-M22) come from the panel's own errors on past
+elections (inner validation), scaled by sqrt(share), separately for continuing
+and new lists.
 """
 
 from dataclasses import dataclass
@@ -27,9 +32,10 @@ import numpy as np
 import pandas as pd
 
 from election_estimation.data import load_parties
+from election_estimation.elections import seat_rules
 from election_estimation.evaluate import (Election, Method, Panel, candidate_units,
                                           recency_weights, score, stacked)
-from election_estimation.metrics import to_blocs
+from election_estimation.metrics import bader_ofer, to_blocs
 from election_estimation.selection import greedy_selection
 
 BLOCS = ["right", "haredi", "center_left", "arab", "other"]
@@ -76,6 +82,7 @@ class SwingPanel(Panel):
     previous: Election | None = None  # the election before the one predicted
     family: bool = False              # family swing within blocs
     alpha: float = 0.0                # weight of the level prediction
+    errors: dict | None = None        # error scale per list type, see `list_errors`
 
     def predict(self, e: Election, reading: str, rng: np.random.Generator) -> pd.Series | None:
         assert reading == "unit", "the swing panel counts whole units"
@@ -113,14 +120,37 @@ class SwingPanel(Panel):
         return self.alpha * level + (1 - self.alpha) * pred
 
 
+def within_rows(e: Election, units: list[str]) -> tuple[np.ndarray, np.ndarray]:
+    """Rows asking the panel's within-bloc split to match the national one.
+
+    For every list l with at least MIN_SHARE in bloc b, the ratio
+    sum_u w_u s_u(l) / sum_u w_u s_u(b) should equal p(l|b), the list's national
+    share of its bloc. Multiplied out this is linear in w:
+    sum_u w_u (s_u(l) - p(l|b) s_u(b)) = 0.
+    """
+    shares, blocs = unit_shares(e, units), unit_blocs(e, units)
+    nat_blocs = national_blocs(e)
+    X, y = [], []
+    for l in e.shares.index[e.shares >= MIN_SHARE]:
+        b = e.blocs.get(l, "other")
+        if nat_blocs[b] <= 0:
+            continue
+        X.append((shares[l] - e.shares[l] / nat_blocs[b] * blocs[b]).values)
+        y.append(0.0)
+    return np.vstack(X), np.array(y)
+
+
 def stacked_swing(train: list[Election], units: list[str], decay: float,
-                  level: float = 0.0, family: bool = False) -> tuple[np.ndarray, np.ndarray]:
+                  level: float = 0.0, family: bool = False,
+                  within: float = 0.0) -> tuple[np.ndarray, np.ndarray]:
     """Target rows: for every consecutive pair of training elections, the weighted
     unit bloc swings should equal the national bloc swing (pairs weighted by the
     recency of their later election). With `family`, rows for the swing of every
     continuing family are added. With `level` > 0, the national list-share rows
     of `evaluate.stacked`, scaled by `level`, are added so that the panel also
-    splits the blocs into lists correctly."""
+    splits the blocs into lists correctly; with `within` > 0, the within-bloc
+    rows of every training election (`within_rows`), scaled by `within` and its
+    recency weight."""
     rho = recency_weights(train[1:], decay)
     X_rows, y_rows = [], []
     for prev, cur, r in zip(train[:-1], train[1:], rho):
@@ -138,6 +168,11 @@ def stacked_swing(train: list[Election], units: list[str], decay: float,
         X, y = stacked(train, units, decay)
         X_rows.append(X * level)
         y_rows.append(y * level)
+    if within > 0:
+        for e, r in zip(train, recency_weights(train, decay)):
+            X, y = within_rows(e, units)
+            X_rows.append(X * r * within)
+            y_rows.append(y * r * within)
     return np.vstack(X_rows), np.concatenate(y_rows)
 
 
@@ -174,7 +209,7 @@ def swing_panel(
         units = candidate_units(train)
         sizes = train[-1].units.loc[units].sum(axis=1).values.astype(float)
         X, y = stacked_swing(train, units, decay, level=setting.get("level", 0.0),
-                             family=family)
+                             family=family, within=setting.get("within", 0.0))
         history = greedy_selection(X, y, max_boxes=max(budgets), candidates=candidates,
                                    sizes=sizes, mu=setting.get("mu", 0.0))
         panels = {}
@@ -186,7 +221,7 @@ def swing_panel(
         return panels
 
     def method(train, budgets, rng) -> dict[int, SwingPanel]:
-        scores = {}
+        scores, errors = {}, {}
         for i, setting in enumerate(_settings(grid)):
             for v in range(len(train) - inner_folds, len(train)):
                 if v < 3:  # at least two training pairs
@@ -194,13 +229,69 @@ def swing_panel(
                 panel = fit(train[:v], [tune_k], setting, 0.0)[tune_k]
                 for alpha in alphas:
                     panel.alpha = alpha
-                    result = score(panel.predict(train[v], "unit", rng), train[v])
+                    pred = panel.predict(train[v], "unit", rng)
+                    result = score(pred, train[v])
                     scores.setdefault((i, alpha), []).append((result[select_by], result[other]))
+                    errors.setdefault((i, alpha), []).append(
+                        list_errors(pred, train[v], train[v - 1]))
         settings = _settings(grid)
         if not scores:
             return fit(train, budgets, settings[0], alphas[0])
         (i, alpha), _ = min(scores.items(), key=lambda kv: tuple(np.mean(kv[1], axis=0)))
-        return fit(train, budgets, settings[i], alpha)
+        panels = fit(train, budgets, settings[i], alpha)
+        scale = error_scale(pd.concat(errors[(i, alpha)]))
+        for panel in panels.values():
+            panel.errors = scale
+        return panels
     method.readings = ("unit",)
     method.ks = ks
     return method
+
+
+# --- uncertainty ---------------------------------------------------------------
+
+def list_errors(pred: pd.Series, e: Election, prev: Election) -> pd.DataFrame:
+    """Standardized share errors of a prediction of e, per list with at least
+    MIN_SHARE (true or predicted): (pred - true) / sqrt(pred), and whether the
+    list is new (its family did not run as one list in prev)."""
+    pred = pred.reindex(e.parties, fill_value=0.0)
+    pred = pred / pred.sum()
+    keep = (e.shares >= MIN_SHARE) | (pred >= MIN_SHARE)
+    new = ~pd.Series(e.parties, index=e.parties).isin(list(continuing(prev, e)))
+    z = (pred - e.shares) / np.sqrt(pred.clip(lower=MIN_SHARE))
+    return pd.DataFrame({"z": z[keep], "new": new[keep]})
+
+
+def error_scale(errors: pd.DataFrame) -> dict[str, float]:
+    """RMS of the standardized errors for continuing and new lists (new lists fall
+    back to the larger of the two when they have fewer than 3 errors)."""
+    rms = lambda z: float(np.sqrt(np.mean(np.square(z)))) if len(z) else np.nan
+    cont, new = rms(errors.loc[~errors["new"], "z"]), rms(errors.loc[errors["new"], "z"])
+    if (errors["new"].sum() < 3) or np.isnan(new):
+        new = max(cont, new) if not np.isnan(new) else cont
+    return {"continuing": cont, "new": new}
+
+
+def seat_intervals(panel: SwingPanel, e: Election, rng: np.random.Generator,
+                   draws: int = 1000, level: float = 0.9) -> pd.DataFrame:
+    """Point seats, a central `level` seat interval and the probability of passing
+    the threshold for every list, by simulating the panel's past errors:
+    share = pred + N(0, scale_type^2 * pred), clipped at 0 and renormalized."""
+    pred = panel.predict(e, "unit", rng).reindex(e.parties, fill_value=0.0)
+    pred = pred / pred.sum()
+    rules = seat_rules(e.knesset)
+    new = ~pd.Series(e.parties, index=e.parties).isin(list(continuing(panel.previous, e)))
+    sd = np.sqrt(pred.clip(lower=MIN_SHARE)) * np.where(new, panel.errors["new"],
+                                                        panel.errors["continuing"])
+    sims = np.clip(pred.values + rng.normal(size=(draws, len(pred))) * sd.values, 0, None)
+    seats = np.array([bader_ofer(pd.Series(s / s.sum(), index=e.parties), **rules).values
+                      for s in sims])
+    passed = sims / sims.sum(axis=1, keepdims=True) >= rules["threshold"]
+    tail = (1 - level) / 2
+    return pd.DataFrame({
+        "share": pred,
+        "seats": bader_ofer(pred, **rules),
+        "low": np.quantile(seats, tail, axis=0, method="lower"),
+        "high": np.quantile(seats, 1 - tail, axis=0, method="higher"),
+        "p_pass": passed.mean(axis=0),
+    }, index=e.parties)
