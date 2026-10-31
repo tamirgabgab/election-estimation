@@ -2,6 +2,9 @@
 
 The previous election is the last known one (K26); its box counts per area
 stand in for those of K27 until the polling station list is published (D17).
+Once scripts/match_k27_boxes.py has linked that list
+(reports/k27_panels/k27_boxes_linked.csv), its box counts are used and every
+panel area also gets the K27 boxes to count (`k27`).
 For each budget (share of the K26 valid votes) the sector sizes follow the
 Neyman allocation (M33) and three alternatives are drawn with the same random
 starts shifted by a third of the sampling step (valid samples that barely
@@ -26,6 +29,7 @@ from election_estimation.data import load_ballots, load_parties
 from election_estimation.evaluate import _areas
 from election_estimation.sector import allocate, area_election, draw, make_prior
 from election_estimation.swing import BLOCS, MIN_SHARE
+from match_k27_boxes import LINKED, pick_boxes, reference
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "reports" / "k27_panels" / "sector_final.json"
@@ -63,7 +67,12 @@ def main() -> None:
     prev = area_election(BASE)
     train = [area_election(k) for k in range(19, BASE + 1)]
     settlement = prev.boxes.groupby("unit")["settlement"].agg(lambda s: s.mode().iloc[0])
-    prior = make_prior(prev, prev.unit_boxes, settlement, prev.parties,
+    cur_boxes, cur_settlement = prev.unit_boxes, settlement
+    linked = pd.read_csv(LINKED, dtype=str) if LINKED.exists() else None
+    if linked is not None:  # the K27 polling station list is in (D17)
+        cur_boxes = linked.groupby("area_id").size()
+        cur_settlement = linked.groupby("area_id")["settlement_code"].first()
+    prior = make_prior(prev, cur_boxes, cur_settlement, prev.parties,
                        {l: l for l in prev.parties})
     parties = load_parties(BASE)
     major = list(prev.shares.index[prev.shares >= MIN_SHARE])
@@ -115,6 +124,14 @@ def main() -> None:
                 "votes_share": float(prior.cost[panel.index].mul(panel).sum() / total),
                 "units": units,
             })
+    if linked is not None:
+        match = pick_boxes(linked, reference(BASE), panels)
+        for p in panels:
+            m = match[(match["budget"] == p["budget"]) & (match["rank"] == p["rank"])]
+            for u in p["units"]:
+                k27 = m[(m["id"] == u["id"]) & (m["k27_ballot"] != "")]
+                u["k27"] = [{"ballot": r.k27_ballot, "settlement_code": r.settlement_code,
+                             "how": r.how} for r in k27.itertuples()]
     for p in panels:
         same = [q for q in panels if q["budget"] == p["budget"] and q is not p]
         ids = {u["id"] for u in p["units"]}
@@ -124,6 +141,7 @@ def main() -> None:
     lists.append({"letter": OTHER, "name": "רשימות מתחת ל-1%", "bloc": "other",
                   "share": float(prev.shares[minor].sum()), "seats": 0, "never_pass": True})
     data = {"base": BASE, "next": NEXT, "seed": SEED, "budgets": BUDGETS, "base_total_votes": total,
+            "k27_list": linked is not None,
             "base_lists": lists, "sectors": sectors, "held_out": held_out(), "panels": panels,
             "blocs": BLOCS}
     OUT.parent.mkdir(parents=True, exist_ok=True)

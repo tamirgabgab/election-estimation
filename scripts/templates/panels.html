@@ -304,8 +304,10 @@ function renderUnits() {
   rows.forEach((u) => {
     const [r, ...b] = u.recommended;
     h += `<tr><td>${esc(u.id)}${u.mult > 1 ? ` <span class="pill">×${u.mult}</span>` : ""}</td><td>${esc(u.settlement)}</td><td>${sectorName(u.sector)}</td>`
-      + `<td><span class="ballot">${esc(r.ballot)}</span> <span class="note">ריכוז ${esc(r.center)}, ${r.votes} קולות</span></td>`
-      + `<td>${b.map((x) => `<span class="ballot">${esc(x.ballot)}</span>`).join(" ")}</td>`
+      + (u.k27 && u.k27.length
+        ? `<td><span class="ballot">${esc(u.k27[0].ballot)}</span> <span class="note">בכנסת 27; בכנסת ${DATA.base}: ${esc(r.ballot)}</span></td><td>${u.k27.slice(1).map((x) => `<span class="ballot">${esc(x.ballot)}</span>`).join(" ")}</td>`
+        : `<td><span class="ballot">${esc(r.ballot)}</span> <span class="note">ריכוז ${esc(r.center)}, ${r.votes} קולות</span></td>`
+          + `<td>${b.map((x) => `<span class="ballot">${esc(x.ballot)}</span>`).join(" ")}</td>`)
       + `<td class="n">${Math.round(u.per_box).toLocaleString("he-IL")}</td></tr>`;
   });
   $("units").innerHTML = h + "</tbody>";
@@ -384,8 +386,9 @@ function importCec(text) {
   const found = {}, missing = [];
   let backups = 0;
   p.units.forEach((u) => {
-    for (let k = 0; k < u.recommended.length; k++) {
-      const r = u.recommended[k], c = rows.get(r.settlement_code + "|" + r.ballot);
+    const cands = u.k27 && u.k27.length ? u.k27 : u.recommended;  // K27 numbers once linked (D17)
+    for (let k = 0; k < cands.length; k++) {
+      const r = cands[k], c = rows.get(r.settlement_code + "|" + r.ballot);
       if (c && +c[iV] > 0) { found[u.id] = c; if (k) backups++; return; }
     }
     missing.push(u.id);
@@ -620,7 +623,7 @@ function renderResult(lists, share, seats, directSeats, iv, turnout) {
     const cls = plan && !x.units ? "bad" : plan && x.units < plan / 2 ? "mid" : "";
     tt += `<tr><td>${sectorName(s.id)}</td><td class="n"><span class="${cls}">${x.units} מתוך ${plan}</span></td><td class="n">${x.R == null ? "–" : `<span dir="ltr">${(x.R >= 1 ? "+" : "") + pct(x.R - 1, 1)}</span>`}</td></tr>`;
   });
-  const warn = (empty.length ? `<p class="msg err">לא נספר עדיין אף אזור במגזר ${empty.join(", ")}: למגזר הזה התחזית מניחה את תוצאות כנסת ${DATA.base}, והיא לא אמינה. בבדיקה לאחור, בלי המגזר הערבי הטעות הגיעה ל-13 מנדטים.</p>` : "")
+  const warn = (empty.length ? `<p class="msg err">לא נספר עדיין אף אזור במגזר ${empty.join(", ")}: למגזר הזה התחזית מניחה את תוצאות כנסת ${DATA.base}, והיא לא אמינה. בבדיקה לאחור, בלי המגזר הערבי הטעות הייתה 10 מנדטים בממוצע ועד 14; עם מחצית מאזוריו בלבד היא כמעט לא גדלה.</p>` : "")
     + (thin.length ? `<p class="msg">פחות ממחצית האזורים נספרו במגזר ${thin.join(", ")}: הטווחים רחבים יותר מהרגיל.</p>` : "");
   $("result").innerHTML = warn + `<h3 style="margin:0">תחזית מנדטים לפי גוש (קו מקווקו: 61)</h3>` + bar + t + `</tbody></table></div>`
     + `<p class="note">המנדטים נבחרים מתוך ${REPS} הגרלות חוזרות של הפאנל בתוך כל מגזר: התוצאה שהטעות הממוצעת שלה מול כל ההגרלות הכי קטנה, כך שרשימה ליד אחוז החסימה מקבלת את מה שסביר יותר. `
