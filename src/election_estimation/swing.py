@@ -7,23 +7,38 @@ estimated as
     B_t = B_{t-1} + sum_u w_u (b_t(u) - b_{t-1}(u)),   w >= 0, sum(w) = 1
 
 with b(u) the bloc shares of unit u. Blocs exist in every election, so new
-lists need no lineage; the split of a bloc into its lists is read from the panel
-(weighted list shares within the bloc). The weights are chosen so that the
-weighted unit swings reproduce the national bloc swings of past consecutive
-elections (plus, optionally, the national list shares, see `stacked_swing`).
+lists need no lineage. Within a bloc (decision M16):
+- without `family`, the bloc is split into its lists by the panel's weighted
+  list shares;
+- with `family`, a list whose party family ran as exactly one list in both
+  elections (and had at least MIN_SHARE before) gets its previous national
+  share plus the panel's weighted swing; the other lists of the bloc (new lists,
+  merged or split families) get the panel's estimate of their part of the bloc,
+  and the continuing lists are scaled to fill the rest of the bloc.
+
+A joint panel (M17) also predicts the level (the panel's weighted list shares)
+with the same units and weights, and mixes: alpha * level + (1 - alpha) * swing.
 """
 
 from dataclasses import dataclass
+from functools import lru_cache
 
 import numpy as np
 import pandas as pd
 
+from election_estimation.data import load_parties
 from election_estimation.evaluate import (Election, Method, Panel, candidate_units,
                                           recency_weights, score, stacked)
 from election_estimation.metrics import to_blocs
 from election_estimation.selection import greedy_selection
 
 BLOCS = ["right", "haredi", "center_left", "arab", "other"]
+MIN_SHARE = 0.01
+
+
+def unit_shares(e: Election, units: list[str]) -> pd.DataFrame:
+    counts = e.units.loc[units]
+    return counts.div(counts.sum(axis=1), axis=0)
 
 
 def unit_blocs(e: Election, units: list[str]) -> pd.DataFrame:
@@ -38,46 +53,98 @@ def national_blocs(e: Election) -> pd.Series:
     return to_blocs(e.shares, e.blocs).reindex(BLOCS, fill_value=0.0)
 
 
+@lru_cache(maxsize=None)
+def families(knesset: int) -> dict[str, str]:
+    """List letter -> party family (a list without a family is its own)."""
+    family = load_parties(knesset)["family"]
+    return {letter: f if f else f"_{knesset}_{letter}" for letter, f in family.items()}
+
+
+def continuing(prev: Election, cur: Election) -> dict[str, str]:
+    """Lists of cur whose family ran as exactly one list in both elections and had
+    at least MIN_SHARE in prev: letter in cur -> letter in prev."""
+    fp = pd.Series(families(prev.knesset)).reindex(prev.parties).dropna()
+    fc = pd.Series(families(cur.knesset)).reindex(cur.parties).dropna()
+    once_prev = {f: letter for letter, f in fp[~fp.duplicated(keep=False)].items()}
+    once_cur = fc[~fc.duplicated(keep=False)]
+    return {letter: once_prev[f] for letter, f in once_cur.items()
+            if f in once_prev and prev.shares[once_prev[f]] >= MIN_SHARE}
+
+
 @dataclass
 class SwingPanel(Panel):
     previous: Election | None = None  # the election before the one predicted
+    family: bool = False              # family swing within blocs
+    alpha: float = 0.0                # weight of the level prediction
 
     def predict(self, e: Election, reading: str, rng: np.random.Generator) -> pd.Series | None:
         assert reading == "unit", "the swing panel counts whole units"
-        present = [u for u in self.units
-                   if u in e.units.index and u in self.previous.units.index]
+        prev = self.previous
+        present = [u for u in self.units if u in e.units.index and u in prev.units.index]
         if not present:
             return None
         w = pd.Series(self.weights, index=self.units).loc[present]
         w = w / w.sum()
-        swing = (unit_blocs(e, present) - unit_blocs(self.previous, present)).mul(w, axis=0).sum()
-        blocs = (national_blocs(self.previous) + swing).clip(lower=0)
-        counts = e.units.loc[present]
-        lists = counts.div(counts.sum(axis=1), axis=0).mul(w, axis=0).sum()
+        cur_s, prev_s = unit_shares(e, present), unit_shares(prev, present)
+        level = cur_s.mul(w, axis=0).sum()
+        if self.alpha >= 1:
+            return level
+        swing = (unit_blocs(e, present) - unit_blocs(prev, present)).mul(w, axis=0).sum()
+        blocs = (national_blocs(prev) + swing).clip(lower=0)
         bloc = pd.Series({p: e.blocs.get(p, "other") for p in e.parties})
-        within = (lists / lists.groupby(bloc).transform("sum")).fillna(0.0)
-        return within * bloc.map(blocs)
+        fixed = pd.Series(dtype=float)
+        if self.family:
+            fixed = pd.Series({l: prev.shares[lp] + (cur_s[l] - prev_s[lp]) @ w
+                               for l, lp in continuing(prev, e).items()}).clip(lower=0)
+        pred = pd.Series(0.0, index=e.parties)
+        for b, total in blocs.items():
+            members = bloc.index[bloc == b]
+            fx = [l for l in members if l in fixed.index]
+            rest = [l for l in members if l not in fixed.index]
+            in_bloc = level[members].sum()
+            if in_bloc <= 0:
+                continue
+            rest_total = total * level[rest].sum() / in_bloc
+            pred[rest] = total * level[rest] / in_bloc
+            if fx:
+                pred[fx] = (fixed[fx] / fixed[fx].sum() * (total - rest_total)
+                            if fixed[fx].sum() > 0 else total * level[fx] / in_bloc)
+        pred = pred / pred.sum()
+        return self.alpha * level + (1 - self.alpha) * pred
 
 
 def stacked_swing(train: list[Election], units: list[str], decay: float,
-                  level: float = 0.0) -> tuple[np.ndarray, np.ndarray]:
+                  level: float = 0.0, family: bool = False) -> tuple[np.ndarray, np.ndarray]:
     """Target rows: for every consecutive pair of training elections, the weighted
     unit bloc swings should equal the national bloc swing (pairs weighted by the
-    recency of their later election). With `level` > 0, the national list-share
-    rows of `evaluate.stacked`, scaled by `level`, are added so that the panel
-    also splits the blocs into lists correctly."""
+    recency of their later election). With `family`, rows for the swing of every
+    continuing family are added. With `level` > 0, the national list-share rows
+    of `evaluate.stacked`, scaled by `level`, are added so that the panel also
+    splits the blocs into lists correctly."""
     rho = recency_weights(train[1:], decay)
     X_rows, y_rows = [], []
     for prev, cur, r in zip(train[:-1], train[1:], rho):
-        X = (unit_blocs(cur, units) - unit_blocs(prev, units)).values.T
-        y = (national_blocs(cur) - national_blocs(prev)).values
-        X_rows.append(X * r)
-        y_rows.append(y * r)
+        X_rows.append((unit_blocs(cur, units) - unit_blocs(prev, units)).values.T * r)
+        y_rows.append((national_blocs(cur) - national_blocs(prev)).values * r)
+        if family:
+            pairs = continuing(prev, cur)
+            if pairs:
+                cur_s, prev_s = unit_shares(cur, units), unit_shares(prev, units)
+                X_rows.append(np.vstack([(cur_s[l] - prev_s[lp]).values
+                                         for l, lp in pairs.items()]) * r)
+                y_rows.append(np.array([cur.shares[l] - prev.shares[lp]
+                                        for l, lp in pairs.items()]) * r)
     if level > 0:
         X, y = stacked(train, units, decay)
         X_rows.append(X * level)
         y_rows.append(y * level)
     return np.vstack(X_rows), np.concatenate(y_rows)
+
+
+def _settings(grid: dict[str, list[float]]) -> list[dict]:
+    names = list(grid)
+    return [dict(zip(names, values)) for values in np.array(np.meshgrid(
+        *[grid[n] for n in names])).T.reshape(-1, len(names))]
 
 
 def swing_panel(
@@ -87,46 +154,53 @@ def swing_panel(
     tune_k: int = 35,
     inner_folds: int = 2,
     ks: tuple[int, ...] = (20, 30, 35, 40, 50),
+    family: bool = False,
+    alphas: tuple[float, ...] = (0.0,),
+    select_by: str = "seat_L1",
 ) -> Method:
     """Swing panels of k units (every unit costs 1), nested across k.
 
     `grid` maps "mu" (pull of the weights towards size-proportional weights) and
-    "level" (weight of the list-share rows) to candidate values, chosen by inner
-    validation: each of the last `inner_folds` training elections is predicted
-    from the ones before it with `tune_k` units, lowest mean seat L1 wins (ties:
-    lower share L1). The test election is never used.
+    "level" (weight of the list-share rows) to candidate values; `alphas` are the
+    candidate mixing weights of the level prediction. The setting and alpha are
+    chosen by inner validation: each of the last `inner_folds` training elections
+    is predicted from the ones before it with `tune_k` units; the lowest mean
+    `select_by` wins (ties: the other of seat L1 / share L1). The test election is
+    never used.
     """
-    names = list(grid)
-    settings = [dict(zip(names, values)) for values in np.array(np.meshgrid(
-        *[grid[n] for n in names])).T.reshape(-1, len(names))]
+    other = "share_L1" if select_by == "seat_L1" else "seat_L1"
 
-    def fit(train, budgets, setting) -> dict[int, SwingPanel]:
+    def fit(train, budgets, setting, alpha) -> dict[int, SwingPanel]:
         units = candidate_units(train)
         sizes = train[-1].units.loc[units].sum(axis=1).values.astype(float)
-        X, y = stacked_swing(train, units, decay, level=setting.get("level", 0.0))
+        X, y = stacked_swing(train, units, decay, level=setting.get("level", 0.0),
+                             family=family)
         history = greedy_selection(X, y, max_boxes=max(budgets), candidates=candidates,
                                    sizes=sizes, mu=setting.get("mu", 0.0))
         panels = {}
         for k in budgets:
             h = [h for h in history if h["k"] <= k][-1]
             panels[k] = SwingPanel([units[i] for i in h["boxes"]], np.asarray(h["weights"]),
-                                   info=dict(setting), previous=train[-1])
+                                   info={**setting, "alpha": alpha}, previous=train[-1],
+                                   family=family, alpha=alpha)
         return panels
 
     def method(train, budgets, rng) -> dict[int, SwingPanel]:
-        best = None
-        for setting in settings:
-            scores = []
+        scores = {}
+        for i, setting in enumerate(_settings(grid)):
             for v in range(len(train) - inner_folds, len(train)):
                 if v < 3:  # at least two training pairs
                     continue
-                panel = fit(train[:v], [tune_k], setting)[tune_k]
-                result = score(panel.predict(train[v], "unit", rng), train[v])
-                scores.append((result["seat_L1"], result["share_L1"]))
-            key = tuple(np.mean(scores, axis=0)) if scores else (0.0, 0.0)
-            if best is None or key < best[0]:
-                best = (key, setting)
-        return fit(train, budgets, best[1])
+                panel = fit(train[:v], [tune_k], setting, 0.0)[tune_k]
+                for alpha in alphas:
+                    panel.alpha = alpha
+                    result = score(panel.predict(train[v], "unit", rng), train[v])
+                    scores.setdefault((i, alpha), []).append((result[select_by], result[other]))
+        settings = _settings(grid)
+        if not scores:
+            return fit(train, budgets, settings[0], alphas[0])
+        (i, alpha), _ = min(scores.items(), key=lambda kv: tuple(np.mean(kv[1], axis=0)))
+        return fit(train, budgets, settings[i], alpha)
     method.readings = ("unit",)
     method.ks = ks
     return method
