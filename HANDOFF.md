@@ -169,6 +169,17 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   sampled boxes, by party family, random boxes) lowered K25–K26 errors from about 7.5 to
   5.5 seats moved at 160 boxes and did not help K24. Reports:
   `reports/budget_curve_base_box.md`, `reports/settlement_panel.md`, `reports/oracle_panel.csv`.
+- **Swing model (M13–M15)**: `election_estimation/swing.py`, `scripts/run_swing_panel.py`
+  → `reports/swing_panel.md`. National bloc shares = previous election (all regular
+  boxes) + the panel's weighted bloc swing; lists split within blocs by the panel; weights
+  fit past national bloc swings plus list-share rows (`level`), weight prior `mu`, both by
+  inner validation (2 folds, 35 settlements). Held-out K22–K26, seats moved mean (worst):
+  30 settlements 2.6 (4), 50 settlements 2.6 (5); the level panel at 35–50 settlements
+  2.8 (5–6). The swing fixes K26 (6 → 3) but loses K25 (2 → 6); bloc shares improve
+  (bloc share L1 3.1–3.4 vs 4.0–4.5 pp). A probe averaging the level and swing
+  predictions (two panels, about 960 boxes at 40 settlements each) gave 2.4 (4). The
+  goal (at most 2 in the mean and the worst election) is still not met; the remaining
+  error is mostly the split of a bloc into its lists (max list error about 1.4 pp).
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -356,10 +367,11 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 In short:
 
-1. **Reach the 0–2 seat goal** (M11) - best so far 2.8 seats moved (35–50 settlements,
-   weight prior; worst 5–6). Candidates: a swing model (previous result of all boxes +
-   change measured in an optimized panel, by party family), combining settlements and
-   boxes, or larger settlement panels. Ask the user before a new model family.
+1. **Reach the 0–2 seat goal** (M11) - best so far: swing 2.6 (worst 4) at 30 settlements,
+   level + swing average 2.4 (worst 4) at 40 settlements. Options: swing within blocs
+   by party family where the family exists in both elections, one joint panel for level
+   and swing (shared weights, both row sets), more settlements (70–150), or select by
+   share L1 in inner validation (seat L1 is coarse with two folds).
 2. **Neural model** (user: later) - Hard-Concrete gates and softmax weights with the
    combined share / seat / bloc loss, recency weights and the calibration targets / weight prior,
    then LP refit.
