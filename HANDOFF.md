@@ -484,6 +484,7 @@ move answered items to "Decisions" below with the answer.
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
 | Q-M2 | 15–40% of each panel's units get zero weight | dropped from the site (forecast unchanged) | re-fit with the freed budget to add units; keep them as spares |
+| Q-M4 | Which next steps to take (list in "Next steps", A1-D14) | None started | Any subset; recommended: D12, B6, then A1-A2, then B7-B8 |
 
 ### Decisions
 
@@ -551,24 +552,59 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 
 ## Next steps
 
-The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
-In short:
+Proposed on 2026-10-31 for discussion with the user (Q-M4). The model on the site is the
+sector ratio model (`sector.MODEL`, M40): 2.21 seats moved at 2% held-out, 67% of panels
+within 2, worst election 2.9. Almost all of the remaining error is sampling (1.8 seats
+from the choice of areas, 0.6 from reading one box; the model's own bias is 0.2), so the
+accuracy steps below aim at the sampling error. Cost: S = under an hour, M = a few
+hours, L = a day or more.
 
-1. **Election data** - when the K27 polling station list arrives (D17): run
-   `scripts/match_k27_boxes.py <file>`, then `recommend_sector_panels.py` and
-   `build_panels_site.py`; redraw also when the certified K26 files arrive (D14).
-   Model ideas left: a neural model trained on more transitions or as an ensemble with
-   the sector model; turnout per area type; two boxes in volatile sectors.
-2. **Seat goal** (M11) - the point prediction stays at 2.4–3.4 seats moved (worst 5);
-   the 90% intervals hold the true seats (at most one seat outside in the worst
-   election from 30 settlements). Options: decide whether the interval is the deliverable
-   (with a rule for the point inside it), tighten intervals (e.g. per-bloc error scales,
-   correlated errors within a bloc), or look for other point improvements (box panels
-   within the panel settlements to cut counting cost).
-3. **Neural model** (user: later) - Hard-Concrete gates and softmax weights with the
-   combined share / seat / bloc loss, recency weights and the calibration targets / weight prior,
-   then LP refit.
-4. **Hyperparameters** - λ, α, β, γ, μ, decay; seat L1 is the selection metric (M8).
-5. **Analysis** - panel composition, stability across folds, bloc-scheme comparison.
-6. **Data** - replace Knesset 26 with the certified files (D14); check the
-   Israel-Elections-Map licence.
+### A. Accuracy
+
+1. **Balanced draws within sectors (S-M)** - today the systematic draw is sorted by one
+   variable (the share of the sector's main bloc). Sort by a combined score (e.g. the first
+   principal component of the K26 list shares) or use a balanced (cube) draw, so that the
+   panel matches its sector on every list. Targets the 1.8 seats from the choice of areas.
+2. **Two boxes per area where boxes differ most (S)** - backtest one vs two boxes per
+   area at the same vote budget, by sector. Targets the 0.6 seats of single-box noise.
+3. **Regression (GREG) estimator (M)** - calibrate the panel weights in each sector to the
+   known K26 totals of every list and to the box counts, instead of the ratio of one list
+   at a time.
+4. **Allocation from measured error (S)** - allocate areas per sector by each sector's
+   share of the held-out squared seat error (`reports/sector_diagnosis.md`) instead of the
+   variance proxy.
+5. **Ensemble with the neural model (S)** - the network was better in K23 and K26 and worse
+   in K25; test the average of the two predictions and a network trained on all
+   transitions with more simulated panels.
+
+### B. Election night
+
+6. **Bloc and coalition probabilities (S)** - from the bootstrap: P(each bloc or a chosen
+   coalition reaches 61), shown in the calculator next to the seats.
+7. **Stage-by-stage rehearsal (S)** - replay K26 in the calculator with 25% / 50% / 75% /
+   100% of the panel files and write an election-night checklist (`docs/ELECTION_NIGHT.md`):
+   which files to load, when the forecast is reliable (every sector counted), what to do
+   with missing boxes.
+8. **Several files at once (S)** - the committee publishes results in parts; let the
+   calculator take more than one file and keep the latest count of every box.
+
+### C. Data
+
+9. **K27 polling station list (D17)** - when published: `scripts/match_k27_boxes.py
+   <file>`, `scripts/recommend_sector_panels.py`, `scripts/build_panels_site.py`, then
+   republish the site.
+10. **Certified K26 results (D14)** - replace the provisional files, rebuild, re-run
+    `scripts/run_sector_heldout.py` and redraw the panels.
+11. **Licence of Israel-Elections-Map** (areas K19-K25) before publishing the data.
+
+### D. Quality and documentation
+
+12. **Docs for the sector model (S)** - `docs/METHODOLOGY.md` and `README.md` still describe
+    the earlier panel models; add the sector model, its held-out results and the site.
+13. **Tests (M)** - pytest for `sector.predict` / `bootstrap` / `match_k27_boxes.link`, and a
+    single command that runs the site checks (`check_panels_site.py`).
+14. **Archive the earlier experiments (S)** - move the swing / settlement / box-panel
+    reports and `reports/k27_panels/{settlement,area}_*` to `reports/archive/`.
+
+Recommended order: 12 and 6 first (cheap, they make the site and docs current), then 1-2
+(the largest accuracy lever), then 7-8 before the election; 9-10 when the data arrives.
