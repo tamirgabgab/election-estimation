@@ -143,6 +143,32 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   large (seat L1 moves in steps of 2), so with five tests only the area-calibration gain
   at 70 boxes is clearly beyond noise. Noise replicates hurt base boxes. Inner validation
   picked calibration 1.0 in 4 of 5 folds; `mu` and sigma vary by fold.
+- **Regular-box target and the 0–2 seat goal (M10–M12)**: `load_election(target="regular")`
+  predicts the total of the regular boxes (counting every box = 0 error); `score` reports
+  `seats_moved` (seat L1 / 2); greedy panels can be nested across budgets; `fit_weights`
+  builds a sparse LP. Held-out K22–K26, mean (worst) seats moved:
+
+  | Panel | Size | Boxes counted | Seats moved |
+  |---|---|---|---|
+  | base boxes, greedy | 100 boxes | 105 | 4.4 (7) |
+  | base boxes, weight prior | 100 / 160 boxes | 103 / 167 | 3.6 (5) / 3.2 (6) |
+  | base boxes, calibration + prior | 60 boxes | 61 | 4.2 |
+  | base boxes, stratified sample | 160 boxes | 130 | 5.3 (8.3) |
+  | settlements, greedy | 35 settlements | 787 | 3.0 (5) |
+  | settlements, weight prior | 35–50 settlements | 430–500 | **2.8 (5–6)** |
+  | settlements, random PPS | 50 settlements | 5,700 | 9.4 (12.7) |
+
+  No method meets the goal (at most 2 in the mean and the worst election). Above about
+  100 boxes more boxes barely help: plain greedy stops at about 128 boxes because it then
+  fits the training elections exactly, and the remaining error is the change in voting
+  between elections, not sample size. The worst elections are K26 (new lists) and K24.
+  In hindsight (`run_settlement_panel.py --oracle`, panel chosen on the test election
+  itself, not a model result) about 16 base boxes or 10 settlements give 0 seats moved
+  in every election, so a precise panel exists for each election but differs between
+  elections. A rough probe of a swing estimator (previous result + mean change in the
+  sampled boxes, by party family, random boxes) lowered K25–K26 errors from about 7.5 to
+  5.5 seats moved at 160 boxes and did not help K24. Reports:
+  `reports/budget_curve_base_box.md`, `reports/settlement_panel.md`, `reports/oracle_panel.csv`.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -327,10 +353,10 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 In short:
 
-1. **Regularization follow-up** - the single regularizations did not beat plain greedy on
-   base boxes; on areas calibration helps. Options: combine calibration with the weight
-   prior, calibrate on geographic strata (district) instead of bloc profile, give the
-   seat loss a role in the greedy choice, or move on to the neural model.
+1. **Reach the 0–2 seat goal** (M11) - best so far 2.8 seats moved (35–50 settlements,
+   weight prior; worst 5–6). Candidates: a swing model (previous result of all boxes +
+   change measured in an optimized panel, by party family), combining settlements and
+   boxes, or larger settlement panels. Ask the user before a new model family.
 2. **Neural model** (user: later) - Hard-Concrete gates and softmax weights with the
    combined share / seat / bloc loss, recency weights and the calibration targets / weight prior,
    then LP refit.
