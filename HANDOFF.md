@@ -381,6 +381,10 @@ Answered by the user on 2026-10-30.
 | M17 | One joint panel for the level and swing predictions, mixed by `alpha` chosen in inner validation |
 | M18 | Larger settlement panels: 70, 100, 150 settlements, no box cap |
 | M19 | Inner validation selects on share L1 over the last 3 training elections (seats are measured only on the test) |
+| M20 | Bloc stratification by target rows: the panel must reproduce how every bloc splits into its lists (`within`, chosen by inner validation), no hard quota |
+| M21 | Uncertainty from past errors: the panel's standardized errors in the inner validation folds, separately for continuing and new lists |
+| M22 | Output on election night: a point seat prediction plus a 90% seat interval and the probability of passing the threshold per list; both the point error and the interval coverage are evaluated |
+| M23 | Panel sizes stay 20–150 settlements |
 | D22 | Area mapping: the user uploaded the Israel-Elections-Map ballot files for K19–K25; the area unit starts at K19, and the files are kept byte-for-byte in `data/raw/geography/` |
 
 The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
