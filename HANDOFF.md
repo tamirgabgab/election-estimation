@@ -322,6 +322,23 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   calculator uses. Validation (`--validate`, K25 linked through K24, true areas known):
   87.5% of the boxes get the right area (by number 99.8%, by center 72.5%), 76% of the
   areas the right box count. Tested end to end with the K26 file as the "K27" list.
+- **Chosen model on the site (M40, M41)**: `sector.MODEL` = k-means sectors (12), list-level
+  Neyman spread, ratio estimator. `scripts/run_sector_heldout.py` → `reports/sector_model.md`
+  (100 panels per test and budget, 20 with 200 bootstrap replicates): at 1% / 1.5% / 2% the
+  medoid moves 3.16 / 2.43 / 2.21 seats (38% / 61% / 67% within 2), worst election
+  (direct) 4.0 / 3.38 / 2.9, 90% intervals cover 96–97%. The K27 panels were redrawn
+  (108 / 162–164 / 217–218 areas) and the site rebuilt (version 4 of the private link);
+  sectors are named by their two largest K26 lists with shares. The calculator mirrors
+  the ratio estimator (JS seats equal Python's for all 9 panels). K26 areas are now
+  linked by ballot number first (D18 → `build_areas.py`; 367 of 12,018 boxes moved).
+- **Neural area model (M42)**: `src/election_estimation/neural.py` (PyTorch MLP 20→32→32→1,
+  a correction on the log of the sector model's area shares, softmax per area; area-
+  weighted cross-entropy plus national share loss), `scripts/run_neural.py` →
+  `reports/neural.md`. Trained on 8 simulated panels per budget of every transition
+  before the test, 30 epochs. Held-out at 2%: 2.41 seats vs 2.30 for the sector model on
+  the same panels (67% vs 65% within 2), worst election 4.0 (K25) vs 3.07; better in K23
+  and K26, worse in K25. No gain: the site keeps the sector model. PyTorch comes from
+  PyPI (download.pytorch.org is blocked by the environment's network policy).
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -453,9 +470,7 @@ move answered items to "Decisions" below with the answer.
 | D14 | Knesset 26 is provisional: the files were downloaded before the committee's certified results; seats match the final distribution reported in the press (Likud 27, Yashar 21, Beyachad 12, Joint List 11, Democrats 8, Ra'am 8, Yisrael Beiteinu 7, UTJ 7, Otzma Yehudit 7, Shas 6, Religious Zionism-Zehut 6) | `provisional: True` in `ELECTIONS`; report says "not final" | Replace the raw files with the certified ones and remove the flag |
 | D16 | Knesset 26 ballots file has two new columns, `חיצוניות` and `קלפי אחרת` (kept as `external`, `other_ballot`; all zero) | Kept, meaning unknown | User explains; drop them |
 | D17 | Box counts per statistical area for Knesset 27 (the sector model's expected votes) | K26 counts as a placeholder | The Central Elections Committee's polling station list for K27 when published |
-| D18 | K26 areas in `ballot_areas.csv` are linked through K25 by polling center first (`build_areas.py`); by ballot number first is more accurate (99.8% vs 72.5% on K25 via K24) | Center first | Switch to number first and rebuild (changes the K26 areas and every sector result) |
 | D17 | List leaders (`leader_he`, #1 on each list that passed): from search snippets, not from the committee's official candidate lists. 50 are "medium" (source names the party leader, not explicitly #1), e.g. most of K16-17, K21 Meretz (Zandberg), K18 Jewish Home (Hershkowitz). Notable #1s: K16 National Union = Liberman, K17 National Union-NRP = Elon, K19 Shas = Yishai, K22 Yamina = Shaked, K26 UTJ = Yaakov Asher, K26 Joint List = Yousef Jabareen | Used, sources in `data/parties/leaders_sources.csv` | Verify against the official lists (needs gov.il / knesset.gov.il access); keep |
-| D18 | Small lists have no names or leaders, so the party lookup shows them as "רשימה <letters> (כנסת N)" (e.g. K26 `צדק`) | Unnamed | Name them from the committee's list of candidate lists per election; leave |
 | D19 | Knesset 26: 38 lists were approved and two (Blue and White, Tnuat Achi) withdrew, leaving 36 on the ballot (per news sources); the ballots file has 38 letter columns, and exactly two have 0 votes everywhere: `כן` (Blue and White's letters in K24-25) and `צבי` | Kept as in the file (0 votes, unnamed) | Name them (likely Blue and White and Tnuat Achi); drop zero columns |
 | D13 | Knesset 14-15 (1996, 1999): no ballot-level file found; maybe on odata.org.il | Not added | User downloads from odata.org.il; skip |
 | D10 | Source for K16-18: official data.gov.il / odata files downloaded by the user, or the GitHub copies | Yoavfried for K17-18 (added); replace with official files if the user gets them | Keep; switch to official |
@@ -469,7 +484,6 @@ move answered items to "Decisions" below with the answer.
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
 | Q-M2 | 15–40% of each panel's units get zero weight | dropped from the site (forecast unchanged) | re-fit with the freed budget to add units; keep them as spares |
-| Q-M3 | Switch the site to k-means sectors with the ratio estimator (2.23 vs 2.41 seats at 2%, 67% vs 62% within 2)? Cluster names would be described by their leading lists | Bloc sectors, difference (base) | Switch (re-run the intervals and medoid check on it); keep |
 
 ### Decisions
 
@@ -528,6 +542,9 @@ Answered by the user on 2026-10-30.
 | M37 | Panels are not chosen by in-sample fit (it does not carry over, M37 experiment); alternatives are independent stratified draws |
 | M38 | The site shows the sector-model panels (user, 2026-10-31); the seats shown are the medoid, the shares the direct point |
 | M39 | Next steps chosen (2026-10-31): error decomposition, clustered sectors, list-size swing (ratio), partial counts, committee file import, K27 box linking, neural model |
+| M40 | (was Q-M3) The site uses k-means sectors (12) with the ratio estimator (`sector.MODEL`) |
+| M41 | (was D18) K26 areas are linked through K25 by ballot number first, then polling center |
+| M42 | Neural model: area-level prediction from the panel, in PyTorch; tested, no gain over the sector model, not used on the site |
 | D22 | Area mapping: the user uploaded the Israel-Elections-Map ballot files for K19–K25; the area unit starts at K19, and the files are kept byte-for-byte in `data/raw/geography/` |
 
 The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
@@ -537,10 +554,11 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 In short:
 
-1. **Sector model** - answer Q-M3 (k-means + ratio) and D18; neural model (M39, needs
-   guiding questions first). When the K27 polling station list arrives (D17): run
+1. **Election data** - when the K27 polling station list arrives (D17): run
    `scripts/match_k27_boxes.py <file>`, then `recommend_sector_panels.py` and
    `build_panels_site.py`; redraw also when the certified K26 files arrive (D14).
+   Model ideas left: a neural model trained on more transitions or as an ensemble with
+   the sector model; turnout per area type; two boxes in volatile sectors.
 2. **Seat goal** (M11) - the point prediction stays at 2.4–3.4 seats moved (worst 5);
    the 90% intervals hold the true seats (at most one seat outside in the worst
    election from 30 settlements). Options: decide whether the interval is the deliverable
