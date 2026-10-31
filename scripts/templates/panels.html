@@ -235,7 +235,8 @@ function renderCompare() {
     + `<th>סיכוי לעד 2 מנדטים בכנסת 27</th><th class="n">סטייה בעבר, ממוצע</th><th class="n">הגרועה ביותר</th>`
     + `<th class="n">בחירות עם עד 2</th><th class="n">כיסוי הטווח</th></tr></thead><tbody>`;
   let lastBudget = null;
-  t.panels.forEach((p, i) => {
+  const order = t.panels.map((p, i) => [p, i]).sort((a, b) => a[0].budget - b[0].budget || a[0].rank - b[0].rank);
+  order.forEach(([p, i]) => {
     if (p.budget !== lastBudget) {
       html += `<tr class="group"><td colspan="9">תקציב ${pct(p.budget, 1)} מהקולות</td></tr>`;
       lastBudget = p.budget;
@@ -257,7 +258,8 @@ function renderCompare() {
   });
   $("compare-note").textContent = "סטייה = מנדטים שעברו בין רשימות (חצי מסכום ההפרשים). "
     + "\"סטייה בעבר\" היא של השיטה: לפני כל כנסת מבחן נבחרה חלופה באותו דירוג ובאותו תקציב, רק מתוך הבחירות שקדמו לה. "
-    + "כיסוי הטווח: חלק הרשימות שהמנדטים האמיתיים שלהן היו בתוך טווח ה-90%.";
+    + "כיסוי הטווח: חלק הרשימות שהמנדטים האמיתיים שלהן היו בתוך טווח ה-90%. "
+    + "יחידות שקיבלו משקל אפס הוסרו מהפאנל (הן לא משנות את התחזית), ולכן הקולות לספירה יכולים להיות מתחת לתקציב.";
 }
 
 function renderPanel() {
@@ -278,8 +280,9 @@ function renderPanel() {
     const ins = p.insample_seats_moved[t];
     const w = (x) => Math.min(100, 100 * x / max);
     h += `<span>כנסת ${t}</span><div class="track">`
-      + (m != null ? `<div class="fill" style="width:${w(m)}%"></div><span class="val" style="inset-inline-start:${w(m)}%">${fmt(m)}</span>` : "")
+      + (m != null ? `<div class="fill" style="width:${w(m)}%"></div>` : "")
       + (ins != null ? `<div class="fill ins" style="width:${w(ins)}%"></div>` : "")
+      + (m != null ? `<span class="val" style="inset-inline-start:${Math.max(w(m), ins != null ? w(ins) : 0)}%">${fmt(m)}</span>` : "")
       + `<div class="goal" style="inset-inline-start:${w(2)}%"></div></div>`;
   });
   $("history").innerHTML = h;
@@ -307,7 +310,7 @@ function renderUnits() {
       h += `<td><span class="ballot">${esc(r.ballot)}</span> <span class="note">ריכוז ${esc(r.center)}, ${r.votes} קולות</span></td>`
         + `<td>${b.map((x) => `<span class="ballot">${esc(x.ballot)}</span>`).join(" ")}</td>`;
     }
-    h += `<td class="n">${u.boxes}</td><td class="n">${u.votes.toLocaleString("he-IL")}</td><td class="n">${pct(u.weight, 2)}</td></tr>`;
+    h += `<td class="n">${u.boxes}</td><td class="n">${u.votes.toLocaleString("he-IL")}</td><td class="n">${u.weight > 0 && u.weight < 0.0001 ? "&lt;0.01%" : pct(u.weight, 2)}</td></tr>`;
   });
   $("units").innerHTML = h + "</tbody>";
 }

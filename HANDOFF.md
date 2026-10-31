@@ -218,6 +218,31 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   Balad, Labor and Hadash-Ta'al get P(pass) 0.92–0.93 and intervals 0–5 seats, and the
   true results (0, 4, 5) are inside. Error scales (standardized by sqrt(share)): about
   0.013 for continuing lists and 0.019 for new ones.
+- **Knesset 27 panels (M24–M29)**: `src/election_estimation/recommend.py`,
+  `scripts/recommend_panels.py` (12 runs: 2 types × K22–K26 backtest + K27, seed 0,
+  20 single-box readings, 1,000 simulation draws; settlements: 20 candidates, 3 inner
+  folds, mu 0.003/0.01/0.03 × level 0.1/0.3; areas: 8 candidates, 2 folds, level 0.1;
+  alpha 0/0.25/0.5/0.75, reuse penalty 3) → `reports/k27_panels/`, and
+  `scripts/build_panels_site.py` → `reports/knesset_27_panels.html` (checked by
+  `scripts/check_panels_site.py`: no console errors or overflow, JS calculator seats equal
+  `SwingPanel` seats). Units with zero weight (15–40% of a panel) are dropped from the
+  site: the forecast is unchanged and the count is smaller. Held-out backtest, seats moved
+  mean (worst) over K22–K26, alternatives A / B / C:
+
+  | Budget | Settlements | Areas, one box each |
+  |---|---|---|
+  | 1% | 3.6 (5) / 4.8 (6) / 4.4 (6) | 4.1 (6.5) / 4.3 (6.9) / 3.9 (7.1) |
+  | 1.5% | 2.8 (5) / 3.8 (5) / 4.2 (5) | 3.7 (6.1) / 3.9 (6.3) / 3.9 (7.8) |
+  | 2% | 3.0 (5) / 3.2 (5) / 3.6 (5) | 3.8 (6.7) / 3.8 (7.7) / 3.9 (8.1) |
+
+  Elections within 2 seats: settlements 0–60%, areas 10–41%. 90% interval coverage
+  92–97% (at most 0.9 seats outside on average). K25 is the worst election for areas
+  (6–8 seats moved), K26 for settlements (5). The simulated P(at most 2 seats moved) for
+  Knesset 27 is low: settlements 3–7%, areas 4–25%. For areas it jumps between budgets
+  (A: 25% at 1%, 4% at 1.5%), because the per-budget error scales come from only two
+  inner folds (Q-M1). The panels are 52–95 settlements (97–249 boxes, 0.7–1.9% of the
+  votes) or 148–280 areas (one box each, 0.8–1.8%). Private link:
+  https://claude.ai/artifact/QVg2QpEoXJMi7M2A1AmrZa
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -362,6 +387,8 @@ move answered items to "Decisions" below with the answer.
 
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
+| Q-M1 | How to rank the Knesset 27 panels: the simulated P(at most 2) is noisy for areas (error scales from 2 inner folds) | P(at most 2) per budget, as asked (M28) | rank by backtest mean / share of elections within 2; pool error scales over budgets; more inner folds (hours of compute) |
+| Q-M2 | 15–40% of each panel's units get zero weight | dropped from the site (forecast unchanged) | re-fit with the freed budget to add units; keep them as spares |
 
 ### Decisions
 
@@ -419,16 +446,18 @@ The full model design is in [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 The implementation plan is section 8 of [docs/MODEL_PLAN.md](docs/MODEL_PLAN.md).
 In short:
 
-1. **Seat goal** (M11) - the point prediction stays at 2.4–3.4 seats moved (worst 5);
+1. **Knesset 27 panels** - answer Q-M1 and Q-M2; then fill the freed budget, and update
+   the panels when the certified K26 files arrive (D14).
+2. **Seat goal** (M11) - the point prediction stays at 2.4–3.4 seats moved (worst 5);
    the 90% intervals hold the true seats (at most one seat outside in the worst
    election from 30 settlements). Options: decide whether the interval is the deliverable
    (with a rule for the point inside it), tighten intervals (e.g. per-bloc error scales,
    correlated errors within a bloc), or look for other point improvements (box panels
    within the panel settlements to cut counting cost).
-2. **Neural model** (user: later) - Hard-Concrete gates and softmax weights with the
+3. **Neural model** (user: later) - Hard-Concrete gates and softmax weights with the
    combined share / seat / bloc loss, recency weights and the calibration targets / weight prior,
    then LP refit.
-3. **Hyperparameters** - λ, α, β, γ, μ, decay; seat L1 is the selection metric (M8).
-4. **Analysis** - panel composition, stability across folds, bloc-scheme comparison.
-5. **Data** - replace Knesset 26 with the certified files (D14); check the
+4. **Hyperparameters** - λ, α, β, γ, μ, decay; seat L1 is the selection metric (M8).
+5. **Analysis** - panel composition, stability across folds, bloc-scheme comparison.
+6. **Data** - replace Knesset 26 with the certified files (D14); check the
    Israel-Elections-Map licence.

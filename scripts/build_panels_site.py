@@ -78,8 +78,15 @@ def add_other(data: dict, ballots: pd.DataFrame) -> None:
                 u["example"] = ex
             else:
                 u["example"] = dict(u["prev"])
-        p["n_boxes"] = (len(p["units"]) if data["unit"] == "area"
-                        else sum(u["boxes"] for u in p["units"]))
+        # Units with zero weight do not enter any weighted sum: drop them (the
+        # forecast is unchanged and they need not be counted); list by weight.
+        p["dropped"] = sum(u["weight"] == 0 for u in p["units"])
+        p["units"] = sorted((u for u in p["units"] if u["weight"] > 0),
+                            key=lambda u: -u["weight"])
+        area = data["unit"] == "area"
+        p["n_boxes"] = len(p["units"]) if area else sum(u["boxes"] for u in p["units"])
+        p["votes_share"] = sum(u["votes"] / (u["boxes"] if area else 1)
+                               for u in p["units"]) / data["base_total_votes"]
     assert all(c in parties for c in major)
 
 
