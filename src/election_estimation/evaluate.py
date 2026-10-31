@@ -46,8 +46,8 @@ class Election:
     boxes: pd.DataFrame         # regular boxes: "unit" + party vote counts
     units: pd.DataFrame         # party vote counts per unit (regular boxes)
     unit_boxes: pd.Series       # number of regular boxes per unit
-    national: pd.Series         # national votes per list, double envelopes included
-    seats: pd.Series            # official seats per list
+    national: pd.Series         # target votes per list (see `load_election`)
+    seats: pd.Series            # seats per list computed from `national`
     blocs: dict[str, str]       # list -> bloc
 
     @property
@@ -55,12 +55,19 @@ class Election:
         return self.national / self.national.sum()
 
 
-def load_election(knesset: int, unit: str = "settlement") -> Election:
+def load_election(knesset: int, unit: str = "settlement", target: str = "official") -> Election:
+    """One election split into sampling units.
+
+    `target` sets what the panel must predict: "official" - the national result,
+    double envelopes included (the official seats); "regular" - the total of the
+    regular boxes only, the most a box sample can recover.
+    """
+    assert target in ("official", "regular")
     ballots = load_ballots(knesset)
     parties = party_columns(ballots)
     regular = ballots[~ballots["is_envelopes"] & (ballots["valid"] > 0)].copy()
     regular["unit"] = UNITS[unit](regular, knesset)
-    national = ballots[parties].sum()
+    national = (ballots if target == "official" else regular)[parties].sum()
     return Election(
         knesset=knesset,
         parties=parties,
@@ -73,8 +80,8 @@ def load_election(knesset: int, unit: str = "settlement") -> Election:
     )
 
 
-def load_all(unit: str = "settlement") -> dict[int, Election]:
-    return {k: load_election(k, unit) for k in UNIT_KNESSETS.get(unit, KNESSETS)}
+def load_all(unit: str = "settlement", target: str = "official") -> dict[int, Election]:
+    return {k: load_election(k, unit, target) for k in UNIT_KNESSETS.get(unit, KNESSETS)}
 
 
 # --- scoring -----------------------------------------------------------------
@@ -91,6 +98,7 @@ def score(pred_votes: pd.Series, e: Election) -> dict[str, float]:
         "share_L1": float((pred - true).abs().sum() * 100),
         "max_list_error": float((pred - true).abs().max() * 100),
         "seat_L1": float((pred_seats - e.seats).abs().sum()),
+        "seats_moved": float((pred_seats - e.seats).abs().sum() / 2),
         "threshold_errors": int(((pred >= threshold) != (true >= threshold)).sum()),
         "bloc_share_L1": float((pred_blocs - true_blocs).abs().sum() * 100),
         "bloc_seat_L1": float((to_blocs(pred_seats, e.blocs)
@@ -248,7 +256,20 @@ def greedy_weighted(decay: float = 0.7, candidates: int = 40) -> Method:
     return method
 
 
-def greedy_budget(decay: float = 0.7, candidates: int = 40) -> Method:
+def _budget_panels(X, y, units, costs, ks, candidates, nested, **kwargs) -> dict[int, Panel]:
+    """Greedy panels for every budget in ks. With `nested`, one run at the largest
+    budget; the panel for k is the last step whose cost fits in k (a prefix, so
+    smaller panels are subsets of larger ones)."""
+    if not nested:
+        return {k: _panel(units, greedy_selection(X, y, max_boxes=k, candidates=candidates,
+                                                  costs=costs, budget=k, **kwargs)[-1])
+                for k in ks}
+    history = greedy_selection(X, y, max_boxes=max(ks), candidates=candidates, costs=costs,
+                               budget=max(ks), **kwargs)
+    return {k: _panel(units, [h for h in history if h["cost"] <= k][-1]) for k in ks}
+
+
+def greedy_budget(decay: float = 0.7, candidates: int = 40, nested: bool = False) -> Method:
     """Greedy column generation under a box budget; k = boxes to count.
 
     A unit costs its expected boxes (`unit_costs`), and is counted whole on
@@ -258,12 +279,7 @@ def greedy_budget(decay: float = 0.7, candidates: int = 40) -> Method:
         units = candidate_units(train)
         costs = unit_costs(train, units)
         X, y = stacked(train, units, decay)
-        panels = {}
-        for k in ks:
-            history = greedy_selection(X, y, max_boxes=k, candidates=candidates,
-                                       costs=costs, budget=k)
-            panels[k] = _panel(units, history[-1])
-        return panels
+        return _budget_panels(X, y, units, costs, ks, candidates, nested)
     method.readings = ("unit",)
     return method
 
@@ -309,6 +325,7 @@ def greedy_regularized(
     tune_budget: int = 50,
     inner_folds: int = 2,
     ks: tuple[int, ...] = (35, 50, 70),
+    nested: bool = False,
 ) -> Method:
     """Greedy selection under a box budget with regularized weights.
 
@@ -329,12 +346,10 @@ def greedy_regularized(
         sizes = train[-1].units.loc[units].sum(axis=1).values.astype(float)
         X, y = stacked(train, units, decay, calibration=setting.get("calibration", 0.0),
                        noise=setting.get("noise", 0.0), rng=rng)
-        panels = {}
-        for k in budgets:
-            history = greedy_selection(X, y, max_boxes=k, candidates=candidates, costs=costs,
-                                       budget=k, sizes=sizes, mu=setting.get("mu", 0.0))
-            panels[k] = Panel(*_panel(units, history[-1]).__dict__.values())
-            panels[k].info = dict(setting)
+        panels = _budget_panels(X, y, units, costs, budgets, candidates, nested,
+                                sizes=sizes, mu=setting.get("mu", 0.0))
+        for panel in panels.values():
+            panel.info = dict(setting)
         return panels
 
     def method(train, budgets, rng) -> dict[int, Panel]:

@@ -32,18 +32,19 @@ def fit_weights(
     # Variables: w (k), e_plus (m), e_minus (m)[, d_plus (k), d_minus (k)].
     # X w - e_plus + e_minus = y;  w - d_plus + d_minus = prior.
     c = np.concatenate([np.zeros(k), np.ones(2 * m)])
-    A_eq = np.block([
-        [X, -np.eye(m), np.eye(m)],
-        [np.ones((1, k)), np.zeros((1, 2 * m))],
+    A_eq = vstack([
+        hstack([csr_matrix(X), -identity(m), identity(m)]),
+        hstack([csr_matrix(np.ones((1, k))), csr_matrix((1, 2 * m))]),
     ])
     b_eq = np.concatenate([y, [1.0]])
     if use_prior:
         c = np.concatenate([c, np.full(2 * k, mu)])
-        A_eq = np.block([
-            [A_eq, np.zeros((m + 1, 2 * k))],
-            [np.eye(k), np.zeros((k, 2 * m)), -np.eye(k), np.eye(k)],
+        A_eq = vstack([
+            hstack([A_eq, csr_matrix((m + 1, 2 * k))]),
+            hstack([identity(k), csr_matrix((k, 2 * m)), -identity(k), identity(k)]),
         ])
         b_eq = np.concatenate([b_eq, prior])
+    A_eq = A_eq.tocsr()
     res = linprog(c, A_eq=A_eq, b_eq=b_eq, bounds=(0, None), method="highs")
     if res.status != 0:
         raise RuntimeError(res.message)
