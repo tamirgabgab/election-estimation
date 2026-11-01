@@ -339,6 +339,19 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   the same panels (67% vs 65% within 2), worst election 4.0 (K25) vs 3.07; better in K23
   and K26, worse in K25. No gain: the site keeps the sector model. PyTorch comes from
   PyPI (download.pytorch.org is blocked by the environment's network policy).
+- **Docs and majority probabilities (Next steps D12, B6; 2026-11-01)**: `README.md` and
+  `docs/METHODOLOGY.md` section 7 describe the sector model, its estimator, uncertainty,
+  held-out results, error sources, partial counts and the variants tried. The calculator
+  shows P(61 or more) for every bloc and for right + Haredi and center-left + Arab, with
+  90% ranges, and a coalition builder (tick lists), all from the bootstrap replicates;
+  `check_panels_site` checks both (site version 5).
+- **Panel designs (Next steps A1, A2)**: `scripts/run_sector_design.py` →
+  `reports/sector_design.md` (100 panels per test, same seed, sector.MODEL, direct point).
+  At 2%: sorted by the main bloc (today) 2.24 seats, 69% within 2, worst 3.04; by the first
+  principal component of the list shares 2.26; two-component "snake" 2.32; two boxes per
+  area in half as many areas 2.59 (54%, worst 3.26). At 1.5% the same order (2.52 / 2.77
+  / 2.58 / 3.06). Neither balancing nor a second box helps: more areas beat more boxes
+  per area, and the bloc sort already stratifies the draw. The design stays as it is.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -484,7 +497,7 @@ move answered items to "Decisions" below with the answer.
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
 | Q-M2 | 15–40% of each panel's units get zero weight | dropped from the site (forecast unchanged) | re-fit with the freed budget to add units; keep them as spares |
-| Q-M4 | Which next steps to take (list in "Next steps", A1-D14) | None started | Any subset; recommended: D12, B6, then A1-A2, then B7-B8 |
+| Q-M4 | Which next steps to take (list in "Next steps", A1-D14) | D12, B6, A1, A2 done (user, 2026-11-01) | Recommended next: B7-B8, then A3-A5, D13-D14 |
 
 ### Decisions
 
@@ -561,11 +574,11 @@ hours, L = a day or more.
 
 ### A. Accuracy
 
-1. **Balanced draws within sectors (S-M)** - today the systematic draw is sorted by one
+1. **Done (no gain)** - **Balanced draws within sectors (S-M)** - today the systematic draw is sorted by one
    variable (the share of the sector's main bloc). Sort by a combined score (e.g. the first
    principal component of the K26 list shares) or use a balanced (cube) draw, so that the
    panel matches its sector on every list. Targets the 1.8 seats from the choice of areas.
-2. **Two boxes per area where boxes differ most (S)** - backtest one vs two boxes per
+2. **Done (no gain)** - **Two boxes per area where boxes differ most (S)** - backtest one vs two boxes per
    area at the same vote budget, by sector. Targets the 0.6 seats of single-box noise.
 3. **Regression (GREG) estimator (M)** - calibrate the panel weights in each sector to the
    known K26 totals of every list and to the box counts, instead of the ratio of one list
@@ -579,7 +592,7 @@ hours, L = a day or more.
 
 ### B. Election night
 
-6. **Bloc and coalition probabilities (S)** - from the bootstrap: P(each bloc or a chosen
+6. **Done** - **Bloc and coalition probabilities (S)** - from the bootstrap: P(each bloc or a chosen
    coalition reaches 61), shown in the calculator next to the seats.
 7. **Stage-by-stage rehearsal (S)** - replay K26 in the calculator with 25% / 50% / 75% /
    100% of the panel files and write an election-night checklist (`docs/ELECTION_NIGHT.md`):
@@ -599,12 +612,14 @@ hours, L = a day or more.
 
 ### D. Quality and documentation
 
-12. **Docs for the sector model (S)** - `docs/METHODOLOGY.md` and `README.md` still describe
+12. **Done** - **Docs for the sector model (S)** - `docs/METHODOLOGY.md` and `README.md` still describe
     the earlier panel models; add the sector model, its held-out results and the site.
 13. **Tests (M)** - pytest for `sector.predict` / `bootstrap` / `match_k27_boxes.link`, and a
     single command that runs the site checks (`check_panels_site.py`).
 14. **Archive the earlier experiments (S)** - move the swing / settlement / box-panel
     reports and `reports/k27_panels/{settlement,area}_*` to `reports/archive/`.
 
-Recommended order: 12 and 6 first (cheap, they make the site and docs current), then 1-2
-(the largest accuracy lever), then 7-8 before the election; 9-10 when the data arrives.
+Done on 2026-11-01: 12, 6, 1, 2 (1 and 2 gave no gain). Recommended next: 7-8 (election
+night rehearsal and several files), then 3-5 if more accuracy is wanted (GREG is the
+remaining estimator-side lever; the sampling design itself looks near its limit), 13-14;
+9-10 when the data arrives.
