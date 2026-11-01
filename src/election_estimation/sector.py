@@ -21,7 +21,7 @@ over the sector), one box counted per area. Sector sample sizes follow a Neyman
 allocation under a vote budget: more areas where past changes varied more.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 
 import numpy as np
@@ -221,6 +221,39 @@ def list_spread(prior: Prior, train: list[Election]) -> pd.Series:
     return pd.concat(out, axis=1).mean(axis=1)
 
 
+def empirical_spread(prior: Prior, train: list[Election], panels: int = 20,
+                     budget: float = 0.02, seed: int = 0) -> pd.Series:
+    """Per sector of `prior` (its labels applied to past areas): the squared seat error
+    one area adds, measured by simulating panels on past transitions.
+
+    For every transition, panels are drawn with size allocation under `budget`, read
+    through one box and predicted per sector (`MODEL["estimator"]`); the squared error
+    of the sector's votes per list (in seats, as a share of all votes) times its number
+    of areas, divided by its squared vote share, estimates sigma_s^2 of one area."""
+    rng = np.random.default_rng(seed)
+    out = []
+    for a, b in zip(train[:-1], train[1:]):
+        pr = transition_prior(a.knesset, b.knesset)
+        label = prior.sector.reindex(pr.sector.index)
+        fill = "small" if "small" in prior.sectors else prior.sector.value_counts().index[0]
+        pr = replace(pr, sector=label.fillna(fill))
+        n = allocate(pr, train, budget, neyman=False)
+        truth = b.units.reindex(index=pr.sector.index, columns=pr.lists, fill_value=0)
+        truth = truth.groupby(pr.sector).sum()
+        total = truth.values.sum()
+        share = pr.expected.groupby(pr.sector).sum() / pr.expected.sum()
+        err = []
+        for _ in range(panels):
+            panel = draw(pr, n, rng)
+            by_s = predict(pr, panel, read_boxes(b, panel.index, rng), by_sector=True,
+                           estimator=MODEL["estimator"])
+            e = (by_s - truth.reindex(by_s.index)) / total * 120
+            err.append((e ** 2).sum(axis=1))
+        var = pd.concat(err, axis=1).mean(axis=1)
+        out.append(var * n.reindex(var.index) / share.reindex(var.index) ** 2)
+    return pd.concat(out, axis=1).mean(axis=1)
+
+
 def allocate(prior: Prior, train: list[Election], budget: float,
              neyman: bool = True, spread: str = "bloc") -> pd.Series:
     """Areas per sector under a vote budget (share of the previous valid votes).
@@ -230,11 +263,11 @@ def allocate(prior: Prior, train: list[Election], budget: float,
     bloc shares) and c_s the expected cost of one area. Otherwise proportional to
     M_s / sqrt(c_s). `spread` = "list" uses `list_spread` (the prior's own sector
     labels, changes per list) instead of the bloc changes of each transition's
-    own sectors."""
+    own sectors; "empirical" uses `empirical_spread` (simulated seat error)."""
     m = prior.expected.groupby(prior.sector).sum()
     cost = (prior.expected * prior.cost).groupby(prior.sector).sum() / m
-    if neyman and spread == "list":
-        var = list_spread(prior, train)
+    if neyman and spread in ("list", "empirical"):
+        var = list_spread(prior, train) if spread == "list" else empirical_spread(prior, train)
         sigma = np.sqrt(var.reindex(m.index).fillna(var.mean()))
     elif neyman:
         spreads = [transition_spread(a, b) for a, b in zip(train[:-1], train[1:])]

@@ -3,8 +3,8 @@
 For every test election t: the network is trained on simulated panels of the
 transitions before t (k-1 -> k for k = 20 .. t-1; PANELS per budget, size
 allocation), then DRAWS panels of t are drawn (sector.MODEL, Neyman allocation,
-one random box per area) and both the sector model (ratio, direct point) and
-the network predict the same counted boxes. Seeds fixed; torch on CPU.
+one random box per area) and the sector model (ratio, direct point), the
+network and their average ("ensemble") predict the same counted boxes. Seeds fixed; torch on CPU.
 Writes reports/neural/draws_<t>.csv and reports/neural.md.
 
 Usage:
@@ -63,7 +63,8 @@ def run(t: int, draws: int) -> pd.DataFrame:
             sector = predict(prior, panel, counted, estimator=MODEL["estimator"])
             nn = pd.Series(national(net, make_batch(prior, panel, counted, cur.blocs, new)),
                            index=prior.lists)
-            for name, pred in (("sector", sector), ("neural", nn)):
+            ensemble = (sector / sector.sum() + nn / nn.sum()) / 2
+            for name, pred in (("sector", sector), ("neural", nn), ("ensemble", ensemble)):
                 rows.append({"test": t, "budget": budget, "draw": d, "model": name,
                              **score(pred, cur)})
     return pd.DataFrame(rows)
