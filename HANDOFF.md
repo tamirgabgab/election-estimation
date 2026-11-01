@@ -368,6 +368,22 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   2.93); calibrated + ratio 2.22 (68%, worst 3.08); calibrated level 2.31-2.36 for mu 0.3-3.
   At 1.5% every GREG variant is worse (2.74-2.93 vs 2.65). No gain: the model stays.
   (Test 26 of `cluster_ratio` in that report predates D18; tests 22-25 are paired.)
+- **Tests, archive and theory doc (Next steps D13, D14; 2026-11-01)**: `tests/test_sector.py`
+  (a census of the previous election gives it back with every estimator, per-sector output
+  sums to national, draws take the allocated areas and offset alternatives barely
+  overlap, two-box reading, calibration, k-means determinism, bootstrap and medoid, K27
+  box linking; 24 tests pass with `tests/test_metrics.py`); `scripts/check_all.sh` runs
+  pytest and the site check. The reports of the earlier models and the first K27 panels
+  moved to `reports/archive/` (README there; their scripts write there). New
+  `docs/THEORY.md`: the theory, algorithms and every formula of the K27 estimate,
+  validation, what did not help, assumptions, symbols.
+- **Allocation from measured error and ensemble (Next steps A4, A5)**:
+  `allocate(spread="empirical")` (`sector.empirical_spread`: sector sizes from the seat
+  error of simulated panels on past transitions) → `reports/sector_design.md`: at 2% 2.30
+  seats vs 2.24 for the current allocation (worst 3.27 vs 3.04); at 1.5% 2.57 vs 2.52.
+  The average of the sector model and the neural model (`reports/neural.md`, same
+  panels): 2.34 vs 2.30 at 2% (worst 3.51 vs 3.07), 2.56 vs 2.59 at 1.5%, 3.00 vs 3.01 at
+  1%. Neither helps; the model stays.
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -513,7 +529,7 @@ move answered items to "Decisions" below with the answer.
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
 | Q-M2 | 15–40% of each panel's units get zero weight | dropped from the site (forecast unchanged) | re-fit with the freed budget to add units; keep them as spares |
-| Q-M4 | Which next steps to take (list in "Next steps", A1-D14) | D12, B6, A1, A2, B7, B8, A3 done (user, 2026-11-01) | Left: A4-A5, D13-D14; C9-C11 with the data |
+| Q-M4 | Which next steps to take (list in "Next steps", A1-D14) | All of A, B and D done (user, 2026-11-01) | Left: C9-C11 with the data |
 
 ### Decisions
 
@@ -599,10 +615,10 @@ hours, L = a day or more.
 3. **Done (no gain)** - **Regression (GREG) estimator (M)** - calibrate the panel weights in each sector to the
    known K26 totals of every list and to the box counts, instead of the ratio of one list
    at a time.
-4. **Allocation from measured error (S)** - allocate areas per sector by each sector's
+4. **Done (no gain)** - **Allocation from measured error (S)** - allocate areas per sector by each sector's
    share of the held-out squared seat error (`reports/sector_diagnosis.md`) instead of the
    variance proxy.
-5. **Ensemble with the neural model (S)** - the network was better in K23 and K26 and worse
+5. **Done (no gain)** - **Ensemble with the neural model (S)** - the network was better in K23 and K26 and worse
    in K25; test the average of the two predictions and a network trained on all
    transitions with more simulated panels.
 
@@ -630,11 +646,12 @@ hours, L = a day or more.
 
 12. **Done** - **Docs for the sector model (S)** - `docs/METHODOLOGY.md` and `README.md` still describe
     the earlier panel models; add the sector model, its held-out results and the site.
-13. **Tests (M)** - pytest for `sector.predict` / `bootstrap` / `match_k27_boxes.link`, and a
+13. **Done** - **Tests (M)** - pytest for `sector.predict` / `bootstrap` / `match_k27_boxes.link`, and a
     single command that runs the site checks (`check_panels_site.py`).
-14. **Archive the earlier experiments (S)** - move the swing / settlement / box-panel
+14. **Done** - **Archive the earlier experiments (S)** - move the swing / settlement / box-panel
     reports and `reports/archive/k27_panels/{settlement,area}_*` to `reports/archive/`.
 
-Done on 2026-11-01: 12, 6, 1, 2, 7, 8, 3 (1, 2 and 3 gave no gain: the design and the
-estimator look near their limit at this budget). Left: 4-5 (small expected gains), 13-14
-(tests, archive), 9-11 when the data arrives.
+Done on 2026-11-01: 12, 6, 1, 2, 7, 8, 3, 13, 14, 4, 5 (1-5 gave no gain: at a 2% budget
+the design and the estimator look near their limit; the error left is sampling noise).
+Left: 9-11 when the data arrives. A larger budget is the only clear lever for accuracy
+(the user capped it at 2%).
