@@ -23,7 +23,11 @@ const { chromium } = require("playwright");
     await page.goto(file);
     await page.waitForSelector("#result table");
     result.overflow[name] = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
-    await page.screenshot({ path: path.join(outDir, `panels_${name}.png`), fullPage: true });
+    // Full-page capture can fail under load: retry, and report it without failing the check.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try { await page.screenshot({ path: path.join(outDir, `panels_${name}.png`), fullPage: true }); break; }
+      catch (e) { if (attempt === 2) result.screenshotErrors = (result.screenshotErrors || []).concat(name); else await page.waitForTimeout(2000); }
+    }
     if (name === "desktop") {
       const panels = await page.evaluate(() => DATA.panels.length);
       for (let i = 0; i < panels; i++) {
@@ -35,6 +39,11 @@ const { chromium } = require("playwright");
           shares: Object.fromEntries([...document.querySelectorAll("#forecast tbody tr")].map((r) => [r.dataset.letter, +r.dataset.share])),
         }));
       }
+      // Bloc majorities and the coalition builder.
+      const boxes = await page.$$("#coalition input");
+      for (const b of boxes.slice(0, 3)) await b.check();
+      result.majority = { rows: await page.$$eval("#majority tbody tr", (r) => r.length),
+        coalition: await page.$eval("#coalition-out", (e) => e.textContent) };
       // Import the base election's per-box committee file into the default panel:
       // it must give the same forecast as the built-in example.
       const def = await page.evaluate(() => defaultPanel());

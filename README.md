@@ -4,16 +4,18 @@ Estimate Israeli Knesset election results from a small sample of ballot boxes.
 
 ## Goal
 
-Choose the smallest set of ballot boxes whose weighted results reproduce the final
-national result:
+Predict the Knesset seats on election night from a small panel of ballot boxes (at most
+2% of the votes), counted as soon as they report. The current model (the **sector ratio
+model**, [docs/METHODOLOGY.md](docs/METHODOLOGY.md) section 7) groups the statistical
+areas into 12 sectors by how they voted last time, draws a panel of areas in each sector
+and counts one box per area. Every area in the country is then predicted from its own
+previous result plus the turnout and the proportional change its sector shows in the
+panel. Held out on Knesset 22-26, a 2% panel (about 217 boxes) moves 2.2 seats on
+average (2 or fewer in 67% of the panels, worst election 2.9), and its 90% seat
+intervals hold the true seats of 97% of the lists.
 
-```
-min  || y - Σ_{i∈S} w_i · x_i ||_1  +  λ · |S|
-```
-
-L1 error on party shares, plus a penalty `λ` on the number of sampled boxes.
-The selection is learned on past elections and tested on the next one.
-Full write-up: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
+The recommended Knesset 27 panels, their held-out accuracy and an election-night
+calculator are in [`reports/knesset_27_panels.html`](reports/knesset_27_panels.html).
 
 ## Repository
 
@@ -32,7 +34,11 @@ Full write-up: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 | [`data/README.md`](data/README.md) | Columns, checks, data notes |
 | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | Problem, pitfalls, models, handling changing parties, evaluation |
 | [`docs/MODEL_PLAN.md`](docs/MODEL_PLAN.md) | Agreed design of the fixed-panel model and its implementation steps |
-| [`src/election_estimation/`](src/election_estimation) | Modelling code: data loading, metrics (L1, Bader-Ofer, blocs), box selection (LP, greedy, MILP) |
+| [`src/election_estimation/`](src/election_estimation) | Modelling code: data loading, metrics (L1, Bader-Ofer, blocs), the sector ratio model (`sector.py`), the neural area model (`neural.py`), earlier panel models (`selection.py`, `swing.py`, `recommend.py`) |
+| [`reports/knesset_27_panels.html`](reports/knesset_27_panels.html) | Recommended Knesset 27 panels, held-out accuracy, election-night calculator (also reads the committee's per-box file) |
+| [`scripts/recommend_sector_panels.py`](scripts/recommend_sector_panels.py), [`scripts/build_panels_site.py`](scripts/build_panels_site.py), [`scripts/check_panels_site.py`](scripts/check_panels_site.py) | Draw the Knesset 27 panels, build the site, check it (JS calculator = Python model) |
+| [`scripts/match_k27_boxes.py`](scripts/match_k27_boxes.py) | Links the Knesset 27 polling station list to the areas when it is published |
+| `scripts/run_sector_*.py`, [`scripts/run_neural.py`](scripts/run_neural.py), [`scripts/diagnose_sector.py`](scripts/diagnose_sector.py) | Held-out experiments of the sector model, its variants, partial counts and the neural model (reports in `reports/*.md`) |
 | [`scripts/explore_knesset.py`](scripts/explore_knesset.py) | Per-election exploration and in-sample selection experiment (`PYTHONPATH=src`) |
 | [`HANDOFF.md`](HANDOFF.md) | Current status and next steps |
 | [`CLAUDE.md`](CLAUDE.md) | Working rules for this project |
@@ -47,8 +53,24 @@ python scripts/build_data.py
 
 ## Approach in short
 
-1. **Data** - ballot-level results (now Knesset 16-26; Knesset 26 provisional), validated and unified.
-2. **Baselines** - random sample, MILP / greedy selection of boxes.
-3. **Swing model** - predict the change from the previous election.
-4. **Neural model** - learnable per-box gates with an L0 (Hard-Concrete) penalty.
-5. **Evaluation** - train on election `t`, test on `t+1`; L1 on shares and seat error.
+1. **Data** - ballot-level results (Knesset 16-26; Knesset 26 provisional), validated and
+   unified; statistical areas for Knesset 19-26.
+2. **Target** - the total of the regular boxes (double envelopes cannot be sampled).
+3. **Earlier panel models** - fixed weighted panels (LP / greedy / MILP), swing and joint
+   models: 2.4-3.8 seats moved held out, worst election 5-8.
+4. **Sector ratio model** - sectors from past votes, turnout and proportional change per
+   sector, Neyman allocation, within-sector bootstrap for intervals and a medoid seat
+   point near the threshold: 2.2 seats moved at 2%.
+5. **Neural area model** - a learned correction on top of the sector model; no gain held
+   out, not used.
+6. **Evaluation** - always held out: everything is chosen on the elections before `t`
+   and scored on `t`; seats moved (half the seat L1) and share L1.
+
+To build the site after a data change:
+
+```bash
+PYTHONPATH=src python scripts/run_sector_heldout.py
+PYTHONPATH=src python scripts/recommend_sector_panels.py
+PYTHONPATH=src python scripts/build_panels_site.py
+PYTHONPATH=src python scripts/check_panels_site.py <screenshot_dir>
+```

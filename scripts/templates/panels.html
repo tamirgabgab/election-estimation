@@ -567,7 +567,25 @@ function bootstrap(prep, letters, agreements, noPass) {
     const v = reps.map((r) => r[i]).sort((a, b) => a - b);
     return { low: v[Math.floor(0.05 * (REPS - 1))], high: v[Math.ceil(0.95 * (REPS - 1))], p: pass[i] / REPS };
   });
-  return { medoid: reps[best], iv };
+  return { medoid: reps[best], iv, reps };
+}
+
+/* P(at least 61 seats) of a set of lists over the bootstrap replicates. */
+function majority(reps, members) {
+  const sums = reps.map((r) => members.reduce((a, i) => a + r[i], 0)).sort((a, b) => a - b);
+  const n = sums.length;
+  return { p: sums.filter((x) => x >= 61).length / n, low: sums[Math.floor(0.05 * (n - 1))], high: sums[Math.ceil(0.95 * (n - 1))] };
+}
+
+function renderCoalition() {
+  const r = state.last;
+  if (!r) return;
+  const members = [...document.querySelectorAll("#coalition input:checked")].map((x) => +x.value);
+  const seats = members.reduce((a, i) => a + r.seats[i], 0);
+  const m = majority(r.reps, members);
+  $("coalition-out").innerHTML = members.length
+    ? `<b>${seats}</b> מנדטים (טווח 90%: <span dir="ltr">${m.low}–${m.high}</span>), סיכוי ל-61 ומעלה: <span class="${m.p >= 0.95 ? "ok" : m.p >= 0.05 ? "mid" : "bad"}">${pct(m.p, 0)}</span>`
+    : "סמנו רשימות כדי לחשב.";
 }
 
 function parseAgreements() {
@@ -591,6 +609,7 @@ function runCalc() {
     const boot = bootstrap(prep, letters, agreements, noPass);
     $("calc-msg").className = "msg";
     $("calc-msg").textContent = `חושב מ-${prep.units.length} מתוך ${p.units.length} אזורים.`;
+    state.last = { lists, seats: boot.medoid, reps: boot.reps };
     renderResult(lists, share, boot.medoid, directSeats, boot.iv, direct.turnout);
   } catch (e) {
     $("calc-msg").className = "msg err";
@@ -632,11 +651,32 @@ function renderResult(lists, share, seats, directSeats, iv, turnout) {
   });
   const warn = (empty.length ? `<p class="msg err">לא נספר עדיין אף אזור במגזר ${empty.join(", ")}: למגזר הזה התחזית מניחה את תוצאות כנסת ${DATA.base}, והיא לא אמינה. בבדיקה לאחור, כשהמגזר הערבי כולו לא נספר הטעות הייתה 10 מנדטים בממוצע ועד 14; עם מחצית מאזוריו היא כמעט לא גדלה.</p>` : "")
     + (thin.length ? `<p class="msg">פחות ממחצית האזורים נספרו במגזר ${thin.join(", ")}: הטווחים רחבים יותר מהרגיל.</p>` : "");
-  $("result").innerHTML = warn + `<h3 style="margin:0">תחזית מנדטים לפי גוש (קו מקווקו: 61)</h3>` + bar + t + `</tbody></table></div>`
+  const idx = (pred) => lists.map((l, i) => pred(l) ? i : -1).filter((i) => i >= 0);
+  const groups = [
+    ...BLOCS.filter((b) => b !== "other" && blocSeats[b]).map((b) => [BLOC_HE[b], idx((l) => l.bloc === b)]),
+    ["ימין + חרדים", idx((l) => l.bloc === "right" || l.bloc === "haredi")],
+    ["מרכז-שמאל + ערבים", idx((l) => l.bloc === "center_left" || l.bloc === "arab")],
+  ];
+  let mt = `<div class="table-wrap"><table id="majority"><thead><tr><th>גוש או צירוף</th><th class="n">מנדטים</th><th class="n">טווח 90%</th><th class="n">סיכוי ל-61</th></tr></thead><tbody>`;
+  groups.forEach(([name, members]) => {
+    const m = majority(state.last.reps, members);
+    const seatsNow = members.reduce((a, i) => a + seats[i], 0);
+    mt += `<tr><td>${name}</td><td class="n"><b>${seatsNow}</b></td><td class="n"><span dir="ltr">${m.low}–${m.high}</span></td>`
+      + `<td class="n"><span class="${m.p >= 0.95 ? "ok" : m.p >= 0.05 ? "mid" : "bad"}">${pct(m.p, 0)}</span></td></tr>`;
+  });
+  mt += `</tbody></table></div>`;
+  const coal = `<div style="display:flex;flex-direction:column;gap:6px"><h3 style="margin:0">בניית קואליציה</h3>`
+    + `<div id="coalition" style="display:flex;flex-wrap:wrap;gap:4px 14px">`
+    + order.filter((i) => seats[i] > 0 || iv[i].p > 0).map((i) => `<label class="msg"><input type="checkbox" value="${i}"> ${esc(lists[i].letter)} ${esc(lists[i].name)}</label>`).join("")
+    + `</div><p class="msg" id="coalition-out" role="status"></p></div>`;
+  $("result").innerHTML = warn + `<h3 style="margin:0">תחזית מנדטים לפי גוש (קו מקווקו: 61)</h3>` + bar + mt
+    + `<p class="note">הסיכוי ל-61 הוא חלק ההגרלות החוזרות של הפאנל שבהן לגוש או לצירוף יש 61 מנדטים לפחות.</p>` + coal + t + `</tbody></table></div>`
     + `<p class="note">המנדטים נבחרים מתוך ${REPS} הגרלות חוזרות של הפאנל בתוך כל מגזר: התוצאה שהטעות הממוצעת שלה מול כל ההגרלות הכי קטנה, כך שרשימה ליד אחוז החסימה מקבלת את מה שסביר יותר. `
     + `האחוזים הם התחזית הישירה. רשימה עם סיכוי בין 5% ל-95% לעבור את אחוז החסימה מסומנת בכתום.</p>`
     + `<h3 style="margin:0">שיעור ההצבעה לפי מגזר</h3>` + tt + `</tbody></table></div>`
     + `<p class="note">קולות לקלפי מול הממוצע לקלפי באותו אזור בכנסת ${DATA.base}. בדוגמה זו הקלפיות נבחרו כדומות לאזור, ולכן הסטייה מאפס היא רעש של קלפי בודדת.</p>`;
+  document.querySelectorAll("#coalition input").forEach((x) => x.addEventListener("change", renderCoalition));
+  renderCoalition();
 }
 
 /* ---------- wiring ---------- */

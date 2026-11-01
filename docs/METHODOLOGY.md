@@ -31,7 +31,7 @@ s.t.         w_i ≥ 0
    already gives 2.18 pp L1 error. The model must estimate this part separately, e.g.
    `ŷ = (1 - α)·ŷ_regular + α·ŷ_envelopes`, with `α` and `ŷ_envelopes` from past elections.
 
-## 3. Models, in order
+## 3. Models, in order (the original plan; see section 7 for the model in use)
 
 1. **Baselines** - random sample of `k` boxes; all regular boxes (lower bound of
    the envelope bias).
@@ -92,3 +92,70 @@ from simplest to most advanced:
 
 Random sampling flattens at about 2.2 pp because of the envelope bias. The optimized
 selections are overfit (see pitfall 1) and are not expected to hold on another election.
+
+## 7. The sector ratio model (in use since 2026-10-31)
+
+The fixed weighted panels of sections 3-6 did not carry over between elections: held
+out on Knesset 22-26 they moved 2.4-3.8 seats, the worst election 5-8, and choosing a
+panel by how well it fit past elections did not help (the correlation between past and
+future fit was about 0). The sector ratio model (`src/election_estimation/sector.py`)
+takes a sampling view instead.
+
+**Target.** The total of the regular boxes; double envelopes cannot be sampled (M10).
+
+**Units and prior.** Statistical areas (CBS 2011; a settlement without areas is one
+unit). Before election day every area has its previous result and its expected votes:
+its number of boxes in the new election times its previous votes per box. A new area
+takes its settlement's previous shares and votes per box.
+
+**Sectors.** Weighted k-means (12 clusters) on the previous list shares of the areas
+(lists of 1% or more, the rest summed); clusters under 2% of the votes are merged.
+Each sector is named by its two largest lists.
+
+**Panel.** In every sector, a systematic draw with probability proportional to the
+expected votes, one box counted per area. Sector sample sizes follow a Neyman allocation
+under a vote budget (cost of an area = the votes of one box): more areas where the
+changes seen by one box varied more in past transitions (list-level variance plus
+turnout variance times the sector's distance from the national mix). Three alternatives
+per budget come from the same draw with the start shifted by a third of the step.
+
+**Estimator.** In sector `s` with counted areas `A`, area `a` read through one box with
+shares `q_a`, turnout ratio `r_a` (box votes / previous votes per box) and previous
+shares `p_a`:
+
+```
+R_s     = mean_A r_a                                  (turnout of the sector)
+share_l = P_{s,l} · (Σ_A r_a q_{a,l}) / (Σ_A p_{a,l}) (ratio, lists with P_{s,l} ≥ 0.5%)
+share_l = R_s P_{s,l} + mean_A r_a (q_{a,l} - p_{a,l}) (difference, other and new lists)
+votes_{s,l} = R_s · M_s · share_l / Σ_l share_l
+```
+
+`P_{s,l}` is the sector's previous share and `M_s` its expected votes. A new list starts
+from zero (its panel level). A sector with no counted area keeps its previous result.
+
+**Seats and uncertainty.** Bader-Ofer with the surplus agreements. The panel is
+resampled within sectors (200 replicates) for 90% seat intervals and P(pass the
+threshold); the seats shown are the medoid of the replicates (the seat vector with the
+least mean distance to the others), which helps when a list is near the threshold.
+
+**Held-out results** (`reports/sector_model.md`; 100 panels per test election and budget):
+
+| Budget | Boxes | Seats moved (medoid) | Within 2 | Worst election | 90% coverage |
+|---|---|---|---|---|---|
+| 1% | 108 | 3.16 | 38% | 4.0 | 96% |
+| 1.5% | 162 | 2.43 | 61% | 3.4 | 97% |
+| 2% | 217 | 2.21 | 67% | 2.9 | 97% |
+
+**Where the error comes from** (`reports/sector_diagnosis.md`, bloc sectors, 2%): reading
+every area in full leaves 0.2 seats (the model's own bias); the choice of areas adds 1.8
+and reading one box per area 0.6. Turnout per sector is the largest single gain over
+the earlier models (without it 4.2 seats).
+
+**Partial counts** (`reports/sector_partial.md`): a random 90% / 70% / 50% of the panel
+gives 2.5 / 2.9 / 3.4 seats; with no Arab-sector area counted the error is 10 seats on
+average, so the calculator warns when a sector has no counted area.
+
+**Variants tried** (`reports/sector_variants.md`, `reports/neural.md`): sectors by
+dominant bloc (2.41 seats at 2%), the difference estimator, 8-20 clusters (within the
+noise of 12), and a neural correction per area (PyTorch; 2.41 vs 2.30 on the same
+panels, worse in Knesset 25) - none better than the model above.

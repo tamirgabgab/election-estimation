@@ -45,6 +45,8 @@ def main(out_dir: str) -> None:
     page = json.loads(run.stdout.strip().splitlines()[-1])
     print("console errors:", page["errors"] or "none")
     print("horizontal overflow:", page["overflow"])
+    if page.get("screenshotErrors"):
+        print("screenshots not captured:", page["screenshotErrors"])
     ok = not page["errors"] and not any(page["overflow"].values())
     data = json.loads((ROOT / "reports" / "k27_panels" / "sector_final.json").read_text(encoding="utf-8"))
     base = data["base"]
@@ -60,6 +62,9 @@ def main(out_dir: str) -> None:
         diff = sum(abs(js["direct"].get(l, 0) - int(s)) for l, s in seats.items()) / 2
         print(f"{js['panel']} | direct seats moved JS vs Python {diff:g}")
         ok &= diff == 0
+    maj = page["majority"]
+    print(f"majority table: {maj['rows']} rows | coalition: {maj['coalition'][:60]}")
+    ok &= maj["rows"] >= 4 and "61" in maj["coalition"]
     imp = page["imported"]
     same = imp["direct"] == page["forecasts"][str(imp["panel"])]["direct"]
     print(f"committee file import: {imp['message'][:60]} | same seats as the example: {same}")

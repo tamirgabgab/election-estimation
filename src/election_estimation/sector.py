@@ -255,28 +255,69 @@ def allocate(prior: Prior, train: list[Election], budget: float,
 
 # --- drawing and predicting ------------------------------------------------------
 
+def principal_scores(x: np.ndarray, w: np.ndarray, k: int = 2) -> np.ndarray:
+    """Scores on the first `k` weighted principal components of the rows of x."""
+    w = w / w.sum()
+    xc = x - w @ x
+    _, _, vt = np.linalg.svd(xc * np.sqrt(w)[:, None], full_matrices=False)
+    return xc @ vt[:k].T
+
+
+def sort_areas(prior: Prior, areas: pd.Index, k: int, order: str) -> pd.Index:
+    """Order of the areas of one sector for the systematic draw.
+
+    "bloc": the share of the sector's main bloc; "pc1": the first principal component
+    of the previous list shares; "snake": bins of the first component (about sqrt(k),
+    equal expected votes), the second component inside them, alternating direction."""
+    if order == "bloc":
+        main = prior.prev_blocs.loc[areas].mul(prior.expected[areas], axis=0).sum().idxmax()
+        return prior.prev_blocs.loc[areas, main].sort_values().index
+    x = prior.prev_shares.loc[areas].values
+    if len(areas) < 3 or np.allclose(x.std(axis=0), 0):
+        return areas
+    sc = principal_scores(x, prior.expected[areas].values.astype(float))
+    first = pd.Series(sc[:, 0], index=areas).sort_values()
+    if order == "pc1":
+        return first.index
+    bins = max(2, int(round(np.sqrt(k))))
+    cum = prior.expected[first.index].cumsum() / prior.expected[areas].sum()
+    label = np.minimum((cum.values * bins).astype(int), bins - 1)
+    second = pd.Series(sc[:, 1], index=areas)
+    out = []
+    for j in range(bins):
+        members = first.index[label == j]
+        out += list(second[members].sort_values(ascending=j % 2 == 0).index)
+    return pd.Index(out)
+
+
 def draw(prior: Prior, n: pd.Series, rng: np.random.Generator,
-         offset: float = 0.0) -> pd.Series:
+         offset: float = 0.0, order: str = "bloc") -> pd.Series:
     """Systematic PPS draw per sector: area -> number of times drawn. `offset` (a
     fraction of the sampling step) shifts the random start: draws with the same
-    rng state and offsets 0, 1/3, 2/3 are valid samples that barely overlap."""
+    rng state and offsets 0, 1/3, 2/3 are valid samples that barely overlap.
+    `order`: how the areas are sorted before the draw (`sort_areas`)."""
     picks = []
     for s, k in n.items():
         areas = prior.sector.index[prior.sector == s]
-        main = prior.prev_blocs.loc[areas].mul(prior.expected[areas], axis=0).sum().idxmax()
-        order = prior.prev_blocs.loc[areas, main].sort_values().index
-        size = prior.expected[order].values
+        ordered = sort_areas(prior, areas, k, order)
+        size = prior.expected[ordered].values
         cum = np.cumsum(size)
         step = cum[-1] / k
         points = (rng.uniform(0, step) + offset * step) % step + step * np.arange(k)
-        picks.append(pd.Series(order[np.searchsorted(cum, points)]))
+        picks.append(pd.Series(ordered[np.searchsorted(cum, points)]))
     return pd.concat(picks).value_counts()
 
 
-def read_boxes(cur: Election, areas: pd.Index, rng: np.random.Generator) -> pd.DataFrame:
-    """One random regular box of each area (votes per list)."""
-    boxes = cur.boxes[cur.boxes["unit"].isin(areas)]
-    return boxes.groupby("unit").sample(n=1, random_state=rng).set_index("unit")[cur.parties]
+def read_boxes(cur: Election, areas: pd.Index, rng: np.random.Generator,
+               boxes: int = 1) -> pd.DataFrame:
+    """Votes per list of random regular boxes of each area: one box, or the mean of
+    up to `boxes` boxes (so that the turnout ratio stays per box)."""
+    b = cur.boxes[cur.boxes["unit"].isin(areas)]
+    if boxes == 1:
+        return b.groupby("unit").sample(n=1, random_state=rng).set_index("unit")[cur.parties]
+    b = b.sample(frac=1, random_state=rng)
+    pick = b[b.groupby("unit").cumcount() < boxes]
+    return pick.groupby("unit")[cur.parties].mean()
 
 
 def predict(prior: Prior, panel: pd.Series, counted: pd.DataFrame,
