@@ -320,9 +320,24 @@ def read_boxes(cur: Election, areas: pd.Index, rng: np.random.Generator,
     return pick.groupby("unit")[cur.parties].mean()
 
 
+def calibrate(w0: np.ndarray, x: np.ndarray, target: np.ndarray, mu: float) -> np.ndarray:
+    """Linear (GREG) calibration with a ridge: weights w = w0 (1 + (x - x0) lambda),
+    summing to 1, whose mean of x moves to `target`; `mu` (relative to the mean
+    variance of x) shrinks the move when the panel is small. Negative weights are
+    set to 0."""
+    xbar = w0 @ x
+    xc = x - xbar
+    S = xc.T @ (xc * w0[:, None])
+    ridge = mu * max(np.trace(S) / max(x.shape[1], 1), 1e-12)
+    lam = np.linalg.solve(S + ridge * np.eye(len(S)), target - xbar)
+    w = np.clip(w0 * (1 + xc @ lam), 0, None)
+    return w / w.sum() if w.sum() > 0 else w0
+
+
 def predict(prior: Prior, panel: pd.Series, counted: pd.DataFrame,
             turnout: bool = True, by_sector: bool = False,
-            estimator: str = "difference", missing: str = "prev") -> pd.Series | pd.DataFrame:
+            estimator: str = "difference", missing: str = "prev",
+            mu: float = 1.0) -> pd.Series | pd.DataFrame:
     """National votes per list from the counted boxes of the panel areas.
 
     `panel`: area -> times drawn (or any weights); `counted`: area -> votes per list
@@ -331,7 +346,9 @@ def predict(prior: Prior, panel: pd.Series, counted: pd.DataFrame,
     share times the panel's ratio of current to previous votes of the list, for lists
     with at least RATIO_MIN of the sector; the others by difference). `missing`: a sector
     with no counted area keeps its previous result ("prev") or takes the turnout and
-    change of all counted areas ("pooled")."""
+    change of all counted areas ("pooled"). "greg" and "greg_ratio" first calibrate the
+    panel weights of each sector to its previous shares of every list (`calibrate`,
+    ridge `mu`), then take the level ("greg") or the ratio estimator."""
     counted = counted.reindex(columns=prior.lists, fill_value=0).loc[panel.index]
     votes = counted.sum(axis=1)
     q = counted.div(votes, axis=0)
@@ -356,10 +373,14 @@ def predict(prior: Prior, panel: pd.Series, counted: pd.DataFrame,
                 out[s] = P_s * m_s
             continue
         ws = w[k] / w[k].sum()
+        if estimator.startswith("greg"):
+            ws = pd.Series(calibrate(ws.values, p[k].values, P_s.values, mu), index=ws.index)
         R = float((r[k] * ws).sum())
         change = (q[k] - p[k]).mul(r[k] * ws, axis=0).sum()
         y = (R * P_s + change).clip(lower=0)
-        if estimator == "ratio":
+        if estimator == "greg":
+            y = q[k].mul(r[k] * ws, axis=0).sum().clip(lower=0)
+        if estimator in ("ratio", "greg_ratio"):
             num = q[k].mul(r[k] * ws, axis=0).sum()
             den = p[k].mul(ws, axis=0).sum()
             use = (P_s >= RATIO_MIN) & (den > 0)

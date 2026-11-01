@@ -38,6 +38,7 @@ calculator are in [`reports/knesset_27_panels.html`](reports/knesset_27_panels.h
 | [`reports/knesset_27_panels.html`](reports/knesset_27_panels.html) | Recommended Knesset 27 panels, held-out accuracy, election-night calculator (also reads the committee's per-box file) |
 | [`scripts/recommend_sector_panels.py`](scripts/recommend_sector_panels.py), [`scripts/build_panels_site.py`](scripts/build_panels_site.py), [`scripts/check_panels_site.py`](scripts/check_panels_site.py) | Draw the Knesset 27 panels, build the site, check it (JS calculator = Python model) |
 | [`scripts/match_k27_boxes.py`](scripts/match_k27_boxes.py) | Links the Knesset 27 polling station list to the areas when it is published |
+| [`docs/ELECTION_NIGHT.md`](docs/ELECTION_NIGHT.md), [`scripts/rehearse_election_night.js`](scripts/rehearse_election_night.js) | Election-night checklist and a staged rehearsal of the calculator |
 | `scripts/run_sector_*.py`, [`scripts/run_neural.py`](scripts/run_neural.py), [`scripts/diagnose_sector.py`](scripts/diagnose_sector.py) | Held-out experiments of the sector model, its variants, partial counts and the neural model (reports in `reports/*.md`) |
 | [`scripts/explore_knesset.py`](scripts/explore_knesset.py) | Per-election exploration and in-sample selection experiment (`PYTHONPATH=src`) |
 | [`HANDOFF.md`](HANDOFF.md) | Current status and next steps |

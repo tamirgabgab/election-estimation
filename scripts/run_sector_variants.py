@@ -6,13 +6,16 @@ Variants (sectors / Neyman spread / estimator):
 - ratio: bloc sectors, list-level spread, ratio estimator;
 - cluster: k-means sectors (K clusters), list-level spread, difference;
 - cluster_ratio: k-means sectors, list-level spread, ratio estimator;
-- cluster_ratio_k<k>: the same with 8, 16 or 20 clusters.
+- cluster_ratio_k<k>: the same with 8, 16 or 20 clusters;
+- greg_mu<mu>: k-means sectors, weights calibrated to the previous shares of every
+  list (ridge mu), level estimator; greg_ratio_mu1: calibrated, then ratio.
 DRAWS panels per test, budget and variant, one random box per area, the same
 seed for every variant. Writes reports/sector_variants/draws_<t>.csv and
 reports/sector_variants.md.
 
 Usage:
-    PYTHONPATH=src python scripts/run_sector_variants.py [draws] [tests...]
+    PYTHONPATH=src python scripts/run_sector_variants.py [greg] [draws] [tests...]
+(`greg` runs only the greg variants, into greg_<t>.csv.)
 """
 
 import sys
@@ -38,16 +41,25 @@ VARIANTS = {  # name: sectors, spread, estimator, clusters
     "cluster_ratio_k8": ("cluster", "list", "ratio", 8),
     "cluster_ratio_k16": ("cluster", "list", "ratio", 16),
     "cluster_ratio_k20": ("cluster", "list", "ratio", 20),
+    "greg_mu0.3": ("cluster", "list", "greg", K, 0.3),
+    "greg_mu1": ("cluster", "list", "greg", K, 1.0),
+    "greg_mu3": ("cluster", "list", "greg", K, 3.0),
+    "greg_ratio_mu1": ("cluster", "list", "greg_ratio", K, 1.0),
 }
+# Only these run when the first argument is "greg" (the others are in the report already).
+# (each variant re-seeds per budget, so they see the same panels as cluster_ratio).
+GREG = [v for v in VARIANTS if v.startswith("greg")]
 
 
-def run(t: int, draws: int) -> pd.DataFrame:
+def run(t: int, draws: int, names: list[str] | None = None) -> pd.DataFrame:
     train = [area_election(k) for k in range(19, t)]
     cur = area_election(t)
-    priors = {(s, k): prior_for(train[-1], cur, sectors=s, k=k)
-              for s, _, _, k in VARIANTS.values()}
+    names = names or list(VARIANTS)
+    priors = {(v[0], v[3]): prior_for(train[-1], cur, sectors=v[0], k=v[3])
+              for n, v in VARIANTS.items() if n in names}
     rows = []
-    for name, (sectors, spread, estimator, k) in VARIANTS.items():
+    for name in names:
+        sectors, spread, estimator, k, *mu = VARIANTS[name]
         prior = priors[(sectors, k)]
         for budget in BUDGETS:
             n = allocate(prior, train, budget, spread=spread)
@@ -55,19 +67,20 @@ def run(t: int, draws: int) -> pd.DataFrame:
             for d in range(draws):
                 panel = draw(prior, n, rng)
                 pred = predict(prior, panel, read_boxes(cur, panel.index, rng),
-                               estimator=estimator)
+                               estimator=estimator, mu=mu[0] if mu else 1.0)
                 rows.append({"test": t, "variant": name, "budget": budget, "draw": d,
                              "areas": int(len(panel)), "sectors": int(len(n)),
                              **score(pred, cur)})
     return pd.DataFrame(rows)
 
 
-def main(draws: int, tests: list[int]) -> None:
+def main(draws: int, tests: list[int], greg: bool = False) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     for t in tests:
-        run(t, draws).to_csv(OUT / f"draws_{t}.csv", index=False)
+        run(t, draws, GREG if greg else None).to_csv(
+            OUT / f"{'greg' if greg else 'draws'}_{t}.csv", index=False)
         print(f"K{t} done", flush=True)
-    r = pd.concat(pd.read_csv(p) for p in sorted(OUT.glob("draws_*.csv")))
+    r = pd.concat(pd.read_csv(p) for p in sorted(OUT.glob("*_*.csv")))
     r["within_2"] = (r["seats_moved"] <= 2).astype(float)
     per = r.groupby(["variant", "budget", "test"])["seats_moved"].mean()
     g = r.groupby(["variant", "budget"]).agg(
@@ -85,5 +98,6 @@ def main(draws: int, tests: list[int]) -> None:
 
 
 if __name__ == "__main__":
-    args = [int(a) for a in sys.argv[1:]]
-    main(args[0] if args else 100, args[1:] or [22, 23, 24, 25, 26])
+    greg = sys.argv[1:2] == ["greg"]
+    args = [int(a) for a in sys.argv[1 + greg:]]
+    main(args[0] if args else 100, args[1:] or [22, 23, 24, 25, 26], greg)

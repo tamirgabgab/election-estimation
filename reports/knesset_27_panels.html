@@ -185,8 +185,9 @@ details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
     </details>
     <div class="toolbar">
       <label class="btn" for="cec-file">טעינת קובץ התוצאות של ועדת הבחירות</label>
-      <input type="file" id="cec-file" accept=".csv,.txt" hidden>
-      <span class="msg" id="import-msg" role="status">קובץ התוצאות לפי קלפי (CSV, כפי שהוועדה מפרסמת). המחשבון שולף ממנו את הקלפי של כל אזור בפאנל, ואם היא חסרה את קלפי הגיבוי.</span>
+      <input type="file" id="cec-file" accept=".csv,.txt" multiple hidden>
+      <button class="btn" type="button" id="clear-cec" hidden>ניקוי הקבצים שנטענו</button>
+      <span class="msg" id="import-msg" role="status">קובץ התוצאות לפי קלפי (CSV, כפי שהוועדה מפרסמת), אחד או כמה. המחשבון שולף את הקלפי של כל אזור בפאנל, ואם היא חסרה את קלפי הגיבוי. קבצים נוספים מצטרפים לקודמים, וקלפי שמופיעה שוב מקבלת את הספירה המאוחרת.</span>
     </div>
     <label for="votes" class="msg">או הזנה ידנית של הקולות לפי אזור, CSV: עמודה ראשונה מזהה האזור, ואחריה עמודה לכל רשימה לפי האותיות.</label>
     <textarea id="votes" spellcheck="false"></textarea>
@@ -382,7 +383,8 @@ function decodeFile(buf) {
   catch (e) { return new TextDecoder("windows-1255").decode(buf); }
 }
 
-function importCec(text) {
+/* Parse one per-box file: box key -> { valid, votes per letter }. */
+function parseCec(text) {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   const head = lines[0].split(",").map((c) => c.trim());
   const iS = head.indexOf("סמל ישוב"), iV = head.indexOf("כשרים");
@@ -390,7 +392,16 @@ function importCec(text) {
   if (iS < 0 || iB < 0 || iV < 0) throw new Error("זה לא נראה כמו קובץ תוצאות לפי קלפי: חסרות העמודות סמל ישוב, קלפי או כשרים.");
   const letters = head.map((h, j) => [h, j]).filter(([h]) => h && !META.has(h));
   const rows = new Map();
-  lines.slice(1).forEach((l) => { const c = l.split(",").map((x) => x.trim()); rows.set(c[iS] + "|" + c[iB], c); });
+  lines.slice(1).forEach((l) => {
+    const c = l.split(",").map((x) => x.trim());
+    rows.set(c[iS] + "|" + c[iB], { valid: +c[iV] || 0, v: Object.fromEntries(letters.map(([h, j]) => [h, +c[j] || 0])) });
+  });
+  return { rows, letters: letters.map(([h]) => h) };
+}
+
+/* Build the votes CSV of the chosen panel from all loaded boxes (state.cec). */
+function importCec() {
+  const { rows, letters } = state.cec;
   const p = DATA.panels[state.panel];
   const found = {}, missing = [];
   let backups = 0;
@@ -398,17 +409,17 @@ function importCec(text) {
     const cands = u.k27 && u.k27.length ? u.k27 : u.recommended;  // K27 numbers once linked (D17)
     for (let k = 0; k < cands.length; k++) {
       const r = cands[k], c = rows.get(r.settlement_code + "|" + r.ballot);
-      if (c && +c[iV] > 0) { found[u.id] = c; if (k) backups++; return; }
+      if (c && c.valid > 0) { found[u.id] = c; if (k) backups++; return; }
     }
     missing.push(u.id);
   });
-  if (!Object.keys(found).length) throw new Error("אף קלפי של הפאנל לא נמצאה בקובץ. בדקו שזה הקובץ לפי קלפי ושמספרי הקלפיות תואמים.");
+  if (!Object.keys(found).length) throw new Error("אף קלפי של הפאנל לא נמצאה בקבצים. בדקו שאלה קבצים לפי קלפי ושמספרי הקלפיות תואמים.");
   const tot = {};
   let all = 0;
-  Object.values(found).forEach((c) => { letters.forEach(([h, j]) => { tot[h] = (tot[h] || 0) + (+c[j] || 0); }); all += +c[iV]; });
+  Object.values(found).forEach((c) => { letters.forEach((h) => { tot[h] = (tot[h] || 0) + (c.v[h] || 0); }); all += c.valid; });
   const known = new Set(state.lists.map((l) => l.letter));
   const added = [];
-  letters.forEach(([h]) => {
+  letters.forEach((h) => {
     if (known.has(h) || tot[h] / all < 0.01) return;
     const at = state.lists.findIndex((l) => l.never_pass);
     state.lists.splice(at < 0 ? state.lists.length : at, 0, { letter: h, name: "", bloc: "other", from: "" });
@@ -419,35 +430,55 @@ function importCec(text) {
   p.units.forEach((u) => {
     const c = found[u.id];
     if (!c) return;
-    const v = Object.fromEntries(letters.map(([h, j]) => [h, +c[j] || 0]));
-    const sumNamed = named.reduce((a, L) => a + (v[L] || 0), 0);
-    out.push([u.id, ...state.lists.map((l) => l.never_pass ? Math.max(0, +c[iV] - sumNamed) : (v[l.letter] || 0))].join(","));
+    const sumNamed = named.reduce((a, L) => a + (c.v[L] || 0), 0);
+    out.push([u.id, ...state.lists.map((l) => l.never_pass ? Math.max(0, c.valid - sumNamed) : (c.v[l.letter] || 0))].join(","));
   });
   return { csv: out.join("\n"), found: Object.keys(found).length, backups, missing, added };
 }
 
+function applyCec() {
+  const r = importCec();
+  state.example = false;
+  renderListsEdit();
+  $("votes").value = r.csv;
+  const p = DATA.panels[state.panel];
+  $("import-msg").className = "msg";
+  $("import-msg").textContent = `נמצאו ${r.found} מתוך ${p.units.length} אזורים`
+    + (r.backups ? ` (${r.backups} מקלפי גיבוי)` : "") + "."
+    + ` נטענו ${state.cec.files} קבצים, ${state.cec.rows.size.toLocaleString("he-IL")} קלפיות.`
+    + (r.missing.length ? ` עוד לא בקבצים: ${r.missing.slice(0, 8).join(", ")}${r.missing.length > 8 ? " ועוד" : ""}.` : "")
+    + (r.added.length ? ` נוספו רשימות חדשות (${r.added.join(", ")}): קבעו להן שם, גוש ורשימת מקור בכנסת ${DATA.base}, ולחצו שוב על חישוב.` : "");
+  $("clear-cec").hidden = false;
+  runCalc();
+}
+
+/* Several files: every file adds its boxes; a box seen again takes the later count
+   (files are read in the order of their modification time). */
 $("cec-file").addEventListener("change", (ev) => {
-  const f = ev.target.files[0];
-  if (!f) return;
-  f.arrayBuffer().then((buf) => {
+  const files = [...ev.target.files].sort((a, b) => a.lastModified - b.lastModified);
+  if (!files.length) return;
+  Promise.all(files.map((f) => f.arrayBuffer())).then((bufs) => {
     try {
-      const r = importCec(decodeFile(buf));
-      state.example = false;
-      renderListsEdit();
-      $("votes").value = r.csv;
-      const p = DATA.panels[state.panel];
-      $("import-msg").className = "msg";
-      $("import-msg").textContent = `נמצאו ${r.found} מתוך ${p.units.length} אזורים`
-        + (r.backups ? ` (${r.backups} מקלפי גיבוי)` : "") + "."
-        + (r.missing.length ? ` עוד לא בקובץ: ${r.missing.slice(0, 8).join(", ")}${r.missing.length > 8 ? " ועוד" : ""}.` : "")
-        + (r.added.length ? ` נוספו רשימות חדשות (${r.added.join(", ")}): קבעו להן שם, גוש ורשימת מקור בכנסת ${DATA.base}, ולחצו שוב על חישוב.` : "");
-      runCalc();
+      state.cec = state.cec || { rows: new Map(), letters: [], files: 0 };
+      bufs.forEach((buf) => {
+        const one = parseCec(decodeFile(buf));
+        one.rows.forEach((v, k) => state.cec.rows.set(k, v));
+        one.letters.forEach((h) => { if (!state.cec.letters.includes(h)) state.cec.letters.push(h); });
+        state.cec.files++;
+      });
+      applyCec();
     } catch (e) {
       $("import-msg").className = "msg err";
       $("import-msg").textContent = e.message;
     }
     ev.target.value = "";
   });
+});
+$("clear-cec").addEventListener("click", () => {
+  state.cec = null;
+  $("clear-cec").hidden = true;
+  $("import-msg").className = "msg";
+  $("import-msg").textContent = "הקבצים נוקו. אפשר לטעון קבצים חדשים.";
 });
 
 function parseCsv(text) {
@@ -690,7 +721,9 @@ function renderResult(lists, share, seats, directSeats, iv, turnout) {
 function renderAll() {
   renderCompare();
   renderPanel();
-  if (state.example) { $("votes").value = templateCsv(true); runCalc(); }
+  if (state.cec) {  // loaded committee files follow the chosen panel
+    try { applyCec(); } catch (e) { $("import-msg").className = "msg err"; $("import-msg").textContent = e.message; }
+  } else if (state.example) { $("votes").value = templateCsv(true); runCalc(); }
 }
 state.panel = defaultPanel();
 state.lists = defaultLists();

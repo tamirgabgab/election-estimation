@@ -352,6 +352,22 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   area in half as many areas 2.59 (54%, worst 3.26). At 1.5% the same order (2.52 / 2.77
   / 2.58 / 3.06). Neither balancing nor a second box helps: more areas beat more boxes
   per area, and the bloc sort already stratifies the draw. The design stays as it is.
+- **Election night: several files and rehearsal (Next steps B7, B8)**: the calculator takes
+  one or more committee files at once or one after the other; boxes add up, a box seen
+  again takes the later count (files ordered by modification time), "ניקוי הקבצים שנטענו"
+  starts over, and loaded files follow the chosen panel. `scripts/rehearse_election_night.js`
+  replays the K26 file in four cumulative files (25% steps) for a random order and for
+  Arab-majority sectors last → `reports/election_night_rehearsal.json`: all 217 areas
+  found, no errors, the red warning shows until the Arab sectors report, the forecast
+  is within 1 seat of the final one from 25% (K26 is the model's base, so this checks the
+  procedure). Checklist: `docs/ELECTION_NIGHT.md` (site version 6).
+- **GREG calibration (Next steps A3)**: `sector.calibrate` (linear calibration of the panel
+  weights in each sector to the previous shares of every list, ridge `mu`),
+  `predict(estimator="greg" | "greg_ratio")`; `scripts/run_sector_variants.py greg` →
+  `reports/sector_variants.md`. At 2%: the current model 2.23 seats (67% within 2, worst
+  2.93); calibrated + ratio 2.22 (68%, worst 3.08); calibrated level 2.31-2.36 for mu 0.3-3.
+  At 1.5% every GREG variant is worse (2.74-2.93 vs 2.65). No gain: the model stays.
+  (Test 26 of `cluster_ratio` in that report predates D18; tests 22-25 are paired.)
 - **Docs**: `README.md`, `data/README.md`, `docs/METHODOLOGY.md`, `CLAUDE.md`.
 
 ## Key facts (from `python scripts/summarize_elections.py`)
@@ -497,7 +513,7 @@ move answered items to "Decisions" below with the answer.
 | ID | Question | Current value | Options |
 |----|----------|---------------|---------|
 | Q-M2 | 15–40% of each panel's units get zero weight | dropped from the site (forecast unchanged) | re-fit with the freed budget to add units; keep them as spares |
-| Q-M4 | Which next steps to take (list in "Next steps", A1-D14) | D12, B6, A1, A2 done (user, 2026-11-01) | Recommended next: B7-B8, then A3-A5, D13-D14 |
+| Q-M4 | Which next steps to take (list in "Next steps", A1-D14) | D12, B6, A1, A2, B7, B8, A3 done (user, 2026-11-01) | Left: A4-A5, D13-D14; C9-C11 with the data |
 
 ### Decisions
 
@@ -580,7 +596,7 @@ hours, L = a day or more.
    panel matches its sector on every list. Targets the 1.8 seats from the choice of areas.
 2. **Done (no gain)** - **Two boxes per area where boxes differ most (S)** - backtest one vs two boxes per
    area at the same vote budget, by sector. Targets the 0.6 seats of single-box noise.
-3. **Regression (GREG) estimator (M)** - calibrate the panel weights in each sector to the
+3. **Done (no gain)** - **Regression (GREG) estimator (M)** - calibrate the panel weights in each sector to the
    known K26 totals of every list and to the box counts, instead of the ratio of one list
    at a time.
 4. **Allocation from measured error (S)** - allocate areas per sector by each sector's
@@ -594,11 +610,11 @@ hours, L = a day or more.
 
 6. **Done** - **Bloc and coalition probabilities (S)** - from the bootstrap: P(each bloc or a chosen
    coalition reaches 61), shown in the calculator next to the seats.
-7. **Stage-by-stage rehearsal (S)** - replay K26 in the calculator with 25% / 50% / 75% /
+7. **Done** - **Stage-by-stage rehearsal (S)** - replay K26 in the calculator with 25% / 50% / 75% /
    100% of the panel files and write an election-night checklist (`docs/ELECTION_NIGHT.md`):
    which files to load, when the forecast is reliable (every sector counted), what to do
    with missing boxes.
-8. **Several files at once (S)** - the committee publishes results in parts; let the
+8. **Done** - **Several files at once (S)** - the committee publishes results in parts; let the
    calculator take more than one file and keep the latest count of every box.
 
 ### C. Data
@@ -619,7 +635,6 @@ hours, L = a day or more.
 14. **Archive the earlier experiments (S)** - move the swing / settlement / box-panel
     reports and `reports/k27_panels/{settlement,area}_*` to `reports/archive/`.
 
-Done on 2026-11-01: 12, 6, 1, 2 (1 and 2 gave no gain). Recommended next: 7-8 (election
-night rehearsal and several files), then 3-5 if more accuracy is wanted (GREG is the
-remaining estimator-side lever; the sampling design itself looks near its limit), 13-14;
-9-10 when the data arrives.
+Done on 2026-11-01: 12, 6, 1, 2, 7, 8, 3 (1, 2 and 3 gave no gain: the design and the
+estimator look near their limit at this budget). Left: 4-5 (small expected gains), 13-14
+(tests, archive), 9-11 when the data arrives.
