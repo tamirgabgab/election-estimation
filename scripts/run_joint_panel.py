@@ -7,9 +7,9 @@ family swing where the family continues (`joint_family`) or by the panel only
 validation on share L1 over the last 3 training elections. Panels of 20-150
 settlements, counted in full, no box cap.
 
-Each method writes reports/joint_panel/<method>.csv (they can run in
+Each method writes reports/archive/joint_panel/<method>.csv (they can run in
 parallel); `--report` merges them with the earlier level and swing results
-into reports/joint_panel.md.
+into reports/archive/joint_panel.md.
 
 Usage:
     PYTHONPATH=src python scripts/run_joint_panel.py joint_family
@@ -25,7 +25,7 @@ import pandas as pd
 from election_estimation.evaluate import evaluate, load_all
 from election_estimation.swing import swing_panel
 
-REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
+REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports" / "archive"  # earlier experiments
 PARTS_DIR = REPORTS_DIR / "joint_panel"
 UNIT = "settlement"
 TARGET = "regular"

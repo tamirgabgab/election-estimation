@@ -24,7 +24,7 @@ from election_estimation.evaluate import (evaluate, greedy_regularized, greedy_w
                                           load_all, random_pps, score, stacked, _panel)
 from election_estimation.selection import greedy_selection
 
-REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
+REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports" / "archive"  # earlier experiments
 UNIT = "settlement"
 TARGET = "regular"
 TESTS = [22, 23, 24, 25, 26]

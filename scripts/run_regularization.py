@@ -16,7 +16,7 @@ import pandas as pd
 
 from election_estimation.evaluate import evaluate, greedy_budget, greedy_regularized, load_all
 
-REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
+REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports" / "archive"  # earlier experiments
 TESTS = [22, 23, 24, 25, 26]
 KS = (35, 50, 70)
 SEED = 0

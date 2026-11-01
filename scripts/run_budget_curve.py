@@ -7,8 +7,8 @@ Unit: base box. Greedy panels are nested: one run at the largest budget, the
 panel for N is the prefix that fits in N boxes.
 
 Each method runs separately (they can run in parallel) and writes
-reports/budget_curve/<method>.csv; `--report` merges them into
-reports/budget_curve_base_box.md.
+reports/archive/budget_curve/<method>.csv; `--report` merges them into
+reports/archive/budget_curve_base_box.md.
 
 Usage:
     PYTHONPATH=src python scripts/run_budget_curve.py greedy_budget weight_prior
@@ -23,7 +23,7 @@ import pandas as pd
 from election_estimation.evaluate import (evaluate, greedy_budget, greedy_regularized,
                                           load_all, random_pps, stratified)
 
-REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
+REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports" / "archive"  # earlier experiments
 PARTS_DIR = REPORTS_DIR / "budget_curve"
 UNIT = "base_box"
 TARGET = "regular"

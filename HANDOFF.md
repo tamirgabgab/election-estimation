@@ -70,7 +70,7 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   (K25 in-sample experiment: 14 boxes reproduce the national result exactly, so only
   held-out evaluation is meaningful).
 - **Box matching diagnostics** (`src/election_estimation/matching.py`,
-  `scripts/box_matching_report.py` → `reports/box_matching.md`): base-box keys survive
+  `scripts/box_matching_report.py` → `reports/archive/box_matching.md`): base-box keys survive
   well K16→K23 but K24 reorganized the numbering (base boxes 9,388 → 5,614, each now a
   group of sub-boxes); boxes present in all of K16–K25 hold only 42% of K25's votes.
   Knesset 16–17 ballot ids are ten times larger (61, 62 = box 6 split); `load_ballots`
@@ -105,7 +105,7 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   result records the boxes counted; `stratified` (bloc strata, one box per unit),
   `greedy_budget` and `milp_budget` (whole units under a box budget; the MILP keeps the
   greedy solution when it finds nothing better in 45 s). `scripts/compare_baselines.py`
-  → `reports/baselines_summary.md` compares units and methods at equal budgets.
+  → `reports/archive/baselines_summary.md` compares units and methods at equal budgets.
   Mean over held-out K22–K26 (floor, all regular boxes: 2.8 seats, 1.95 pp):
 
   | Budget | Best optimized | Best probability sample | Random PPS (area) |
@@ -168,9 +168,9 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   elections. A rough probe of a swing estimator (previous result + mean change in the
   sampled boxes, by party family, random boxes) lowered K25–K26 errors from about 7.5 to
   5.5 seats moved at 160 boxes and did not help K24. Reports:
-  `reports/budget_curve_base_box.md`, `reports/settlement_panel.md`, `reports/oracle_panel.csv`.
+  `reports/archive/budget_curve_base_box.md`, `reports/archive/settlement_panel.md`, `reports/archive/oracle_panel.csv`.
 - **Swing model (M13–M15)**: `election_estimation/swing.py`, `scripts/run_swing_panel.py`
-  → `reports/swing_panel.md`. National bloc shares = previous election (all regular
+  → `reports/archive/swing_panel.md`. National bloc shares = previous election (all regular
   boxes) + the panel's weighted bloc swing; lists split within blocs by the panel; weights
   fit past national bloc swings plus list-share rows (`level`), weight prior `mu`, both by
   inner validation (2 folds, 35 settlements). Held-out K22–K26, seats moved mean (worst):
@@ -181,7 +181,7 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   goal (at most 2 in the mean and the worst election) is still not met; the remaining
   error is mostly the split of a bloc into its lists (max list error about 1.4 pp).
 - **Joint level + swing panels (M16–M19)**: `SwingPanel(family=True, alpha=...)`,
-  `scripts/run_joint_panel.py` → `reports/joint_panel.md`. Held-out K22–K26, seats moved
+  `scripts/run_joint_panel.py` → `reports/archive/joint_panel.md`. Held-out K22–K26, seats moved
   mean (worst), boxes counted:
 
   | Settlements | `joint_family` | `joint_bloc` (ablation) |
@@ -200,7 +200,7 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   `alpha` 0–0.5 (mostly 0.25). The goal (at most 2 in the mean and the worst election)
   is not met yet.
 - **Within-bloc rows and seat intervals (M20–M23)**: `swing.within_rows`,
-  `swing.seat_intervals`, `scripts/run_within_panel.py` → `reports/within_panel.md`.
+  `swing.seat_intervals`, `scripts/run_within_panel.py` → `reports/archive/within_panel.md`.
   Held-out K22–K26 (`joint_within`):
 
   | Settlements | Boxes | Seats moved, point | Outside the 90% interval | Coverage | Width |
@@ -244,7 +244,7 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   votes) or 148–280 areas (one box each, 0.8–1.8%). Private link:
   https://claude.ai/artifact/QVg2QpEoXJMi7M2A1AmrZa
 - **Error decomposition (M30)**: `scripts/diagnose_errors.py` →
-  `reports/error_decomposition.md`. Of the seats moved by the held-out within-bloc
+  `reports/archive/error_decomposition.md`. Of the seats moved by the held-out within-bloc
   panels (settlements 20–150, K22–K26): 21% from lists on the wrong side of the
   threshold (almost only Balad in K25), 29% from bloc totals, 50% within blocs. The Arab
   bloc has the largest errors, alternating in sign (−1, −1, +2, +4.9, −2.75 seats); the
@@ -291,7 +291,7 @@ number of boxes. Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
   200 replicates, medoid seats, 90% intervals, P(pass)). `scripts/check_panels_site.py`:
   no console errors or overflow, and the direct JS seats equal Python's for all 9 panels.
   Same private link (version 2). The earlier swing panels stay in
-  `reports/k27_panels/{settlement,area}_*` for the record.
+  `reports/archive/k27_panels/{settlement,area}_*` for the record.
 - **Sector model diagnosis (M39)**: `scripts/diagnose_sector.py` →
   `reports/sector_diagnosis.md` (2%, 50 panels per test). Every area read in full gives
   0.2 seats moved (the model's own bias), the mean prediction 0.4; the panels read
@@ -633,7 +633,7 @@ hours, L = a day or more.
 13. **Tests (M)** - pytest for `sector.predict` / `bootstrap` / `match_k27_boxes.link`, and a
     single command that runs the site checks (`check_panels_site.py`).
 14. **Archive the earlier experiments (S)** - move the swing / settlement / box-panel
-    reports and `reports/k27_panels/{settlement,area}_*` to `reports/archive/`.
+    reports and `reports/archive/k27_panels/{settlement,area}_*` to `reports/archive/`.
 
 Done on 2026-11-01: 12, 6, 1, 2, 7, 8, 3 (1, 2 and 3 gave no gain: the design and the
 estimator look near their limit at this budget). Left: 4-5 (small expected gains), 13-14

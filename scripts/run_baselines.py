@@ -23,7 +23,7 @@ from election_estimation.evaluate import (
     stratified,
 )
 
-REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
+REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports" / "archive"  # earlier experiments
 KS = [10, 20, 35, 50, 70, 100]
 RECENT = [22, 23, 24, 25, 26]
 DRAWS = 30

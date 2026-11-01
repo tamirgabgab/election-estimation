@@ -10,11 +10,11 @@ Targets:
 - a test election 22-26: the whole procedure (inner validation, alternatives,
   panels) runs on the elections before it and the panels are scored on it
   (single-box readings averaged over READINGS draws) ->
-  reports/k27_panels/<unit>_backtest_<t>.csv;
+  reports/archive/k27_panels/<unit>_backtest_<t>.csv;
 - 27: the panels for the next election, fit on every election, with their
   simulated probability of at most 2 seats moved, the in-sample fit of the same
   panel on past elections, and the data the election-night calculator needs ->
-  reports/k27_panels/<unit>_final.json.
+  reports/archive/k27_panels/<unit>_final.json.
 
 Usage (targets can run in separate processes):
     PYTHONPATH=src python scripts/recommend_panels.py settlement 22 23 24 25 26 27
@@ -33,7 +33,7 @@ from election_estimation.evaluate import UNITS, load_all, score
 from election_estimation.recommend import panel_probability, recommend
 from election_estimation.swing import BLOCS, MIN_SHARE, SwingPanel, continuing, seat_intervals
 
-OUT_DIR = Path(__file__).resolve().parents[1] / "reports" / "k27_panels"
+OUT_DIR = Path(__file__).resolve().parents[1] / "reports" / "archive" / "k27_panels"  # superseded by the sector model
 TARGET = "regular"
 TESTS = [22, 23, 24, 25, 26]
 NEXT = 27

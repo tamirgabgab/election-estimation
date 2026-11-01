@@ -2,7 +2,7 @@
 
 Reads reports/baselines_<unit>.csv (from run_baselines.py) and keeps the
 configurations that count about k boxes: single-box readings and the
-budget methods. Writes reports/baselines_summary.md.
+budget methods. Writes reports/archive/baselines_summary.md.
 
 Usage:
     PYTHONPATH=src python scripts/compare_baselines.py
@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
+REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports" / "archive"  # earlier experiments
 UNITS = ["settlement", "base_box", "area"]
 TESTS = [22, 23, 24, 25, 26]
 BUDGETS = [35, 50, 70, 100]

@@ -19,7 +19,7 @@ from election_estimation.data import (
 )
 from election_estimation.selection import exact_selection, greedy_selection, random_baseline
 
-REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
+REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports" / "archive"  # earlier experiments
 RANDOM_SIZES = [1, 5, 10, 15, 30, 100, 300, 1000, 3000]
 MILP_SIZES = [3, 5, 8]
 MILP_POOL = 500

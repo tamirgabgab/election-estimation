@@ -1,5 +1,5 @@
 """Where do the seats moved come from? Decomposes the held-out seat error of the
-within-bloc swing panels (reports/within_panel/lists_<t>.csv, settlements
+within-bloc swing panels (reports/archive/within_panel/lists_<t>.csv, settlements
 20-150, test elections 22-26) into parts, by counterfactual steps from the
 prediction towards the truth:
 
@@ -26,8 +26,8 @@ from election_estimation.metrics import bader_ofer
 from election_estimation.swing import BLOCS, continuing
 
 ROOT = Path(__file__).resolve().parents[1]
-IN_DIR = ROOT / "reports" / "within_panel"
-OUT = ROOT / "reports" / "error_decomposition.md"
+IN_DIR = ROOT / "reports" / "archive" / "within_panel"
+OUT = ROOT / "reports" / "archive" / "error_decomposition.md"
 OTHER = "_other"
 EPS = 1e-6
 
@@ -98,7 +98,7 @@ def main() -> None:
     by_t = r.groupby("test")[cols + [f"bloc_{b}" for b in BLOCS]].mean().round(2)
     share = (r[["threshold", "bloc", "within"]].sum() / r["seats_moved"].sum()).round(2)
     text = ["# Seat error decomposition (held-out within-bloc swing panels)", "",
-            "Source: `reports/within_panel/lists_<t>.csv` (settlements 20-150, tests 22-26), "
+            "Source: `reports/archive/within_panel/lists_<t>.csv` (settlements 20-150, tests 22-26), "
             "built by `scripts/diagnose_errors.py`. Columns are seats moved; `smooth` is the "
             "share L1 of passing lists in seats (no rounding); `bloc_<b>` is the signed seat "
             "error of the bloc (prediction minus truth).", "",

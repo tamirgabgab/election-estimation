@@ -15,7 +15,7 @@ from election_estimation.matching import (
     survival_matrix,
 )
 
-REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
+REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports" / "archive"  # earlier experiments
 PCT_COLUMNS = ["box_survival", "vote_survival", "settlement_vote_survival", "within_25pct",
                "matched_closer"]
 

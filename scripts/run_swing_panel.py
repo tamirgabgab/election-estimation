@@ -3,7 +3,7 @@
 The national bloc shares are the previous election's (all regular boxes) plus
 the weighted bloc swing of the panel settlements; lists within a bloc are split
 by the panel's weighted shares (`election_estimation.swing`). Compared with the
-level panels of run_settlement_panel.py (reports/settlement_panel.csv).
+level panels of run_settlement_panel.py (reports/archive/settlement_panel.csv).
 
 Usage:
     PYTHONPATH=src python scripts/run_swing_panel.py
@@ -16,7 +16,7 @@ import pandas as pd
 from election_estimation.evaluate import evaluate, load_all
 from election_estimation.swing import swing_panel
 
-REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
+REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports" / "archive"  # earlier experiments
 UNIT = "settlement"
 TARGET = "regular"
 TESTS = [22, 23, 24, 25, 26]

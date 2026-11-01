@@ -16,8 +16,8 @@ new lists (`swing.seat_intervals`). Scored per test election:
   are inside the interval; width: mean interval width in seats.
 
 Test elections can run in separate processes; each writes
-reports/within_panel/test_<t>.csv and `--report` merges them into
-reports/within_panel.md.
+reports/archive/within_panel/test_<t>.csv and `--report` merges them into
+reports/archive/within_panel.md.
 
 Usage:
     PYTHONPATH=src python scripts/run_within_panel.py 22 23
@@ -33,7 +33,7 @@ import pandas as pd
 from election_estimation.evaluate import load_all, score
 from election_estimation.swing import MIN_SHARE, seat_intervals, swing_panel
 
-REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
+REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports" / "archive"  # earlier experiments
 PARTS_DIR = REPORTS_DIR / "within_panel"
 UNIT = "settlement"
 TARGET = "regular"

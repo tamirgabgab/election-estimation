@@ -58,7 +58,7 @@ modelling:
 If survival is poor, switch the unit to the settlement for small settlements
 and to CBS statistical areas for large cities.
 
-Findings (2026-10-30, `reports/box_matching.md`, `election_estimation.matching`):
+Findings (2026-10-30, `reports/archive/box_matching.md`, `election_estimation.matching`):
 
 - Keys survive well from K16 to K23 (87–99% of votes per consecutive pair).
   Knesset 16–17 number boxes ten times larger (61, 62 = box 6 split), which the
@@ -242,7 +242,7 @@ sign of leakage.
    `scripts/run_baselines.py`; results in `reports/baselines_*.md`.
 6. **Baselines** – done: random (uniform, PPS), stratified, greedy, and
    greedy / MILP under a box budget, for settlement, base-box and area units
-   (`reports/baselines_summary.md`). Finding: optimized weights interpolate the
+   (`reports/archive/baselines_summary.md`). Finding: optimized weights interpolate the
    training targets, so the network step needs weight regularization.
 6b. **Regularization** – done: `weight_prior`, `calibration` and `noise` in
    `evaluate.py`, strengths by inner validation (`scripts/run_regularization.py`,
