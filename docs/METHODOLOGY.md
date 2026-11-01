@@ -95,6 +95,8 @@ selections are overfit (see pitfall 1) and are not expected to hold on another e
 
 ## 7. The sector ratio model (in use since 2026-10-31)
 
+The full derivation, algorithms and formulas are in [THEORY.md](THEORY.md).
+
 The fixed weighted panels of sections 3-6 did not carry over between elections: held
 out on Knesset 22-26 they moved 2.4-3.8 seats, the worst election 5-8, and choosing a
 panel by how well it fit past elections did not help (the correlation between past and

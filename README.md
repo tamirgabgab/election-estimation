@@ -33,6 +33,7 @@ calculator are in [`reports/knesset_27_panels.html`](reports/knesset_27_panels.h
 | [`scripts/check_reports.js`](scripts/check_reports.js) | Opens the reports in a headless browser and checks them |
 | [`data/README.md`](data/README.md) | Columns, checks, data notes |
 | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | Problem, pitfalls, models, handling changing parties, evaluation |
+| [`docs/THEORY.md`](docs/THEORY.md) | How the Knesset 27 estimate is made: theory, algorithms and every formula, validation, assumptions |
 | [`docs/MODEL_PLAN.md`](docs/MODEL_PLAN.md) | Agreed design of the fixed-panel model and its implementation steps |
 | [`src/election_estimation/`](src/election_estimation) | Modelling code: data loading, metrics (L1, Bader-Ofer, blocs), the sector ratio model (`sector.py`), the neural area model (`neural.py`), earlier panel models (`selection.py`, `swing.py`, `recommend.py`) |
 | [`reports/knesset_27_panels.html`](reports/knesset_27_panels.html) | Recommended Knesset 27 panels, held-out accuracy, election-night calculator (also reads the committee's per-box file) |
